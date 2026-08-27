@@ -1,0 +1,566 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "usuario",
+        "schemaName": "public",
+        "x": 12,
+        "y": 12
+      },
+      {
+        "name": "rol",
+        "schemaName": "public",
+        "x": 12,
+        "y": 122
+      },
+      {
+        "name": "permiso",
+        "schemaName": "public",
+        "x": 12,
+        "y": 232
+      },
+      {
+        "name": "rol_usuario",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 53
+      },
+      {
+        "name": "rol_permiso",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 195
+      },
+      {
+        "name": "ec",
+        "schemaName": "public",
+        "x": 12,
+        "y": 342
+      },
+      {
+        "name": "rol_ec",
+        "schemaName": "public",
+        "x": 12,
+        "y": 452
+      },
+      {
+        "name": "contacto",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 337
+      },
+      {
+        "name": "localidad",
+        "schemaName": "public",
+        "x": 12,
+        "y": 562
+      },
+      {
+        "name": "participacion_ec",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 479
+      },
+      {
+        "name": "tipo_campana",
+        "schemaName": "public",
+        "x": 12,
+        "y": 672
+      },
+      {
+        "name": "campana",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 717
+      },
+      {
+        "name": "tipo_incidencia",
+        "schemaName": "public",
+        "x": 12,
+        "y": 782
+      },
+      {
+        "name": "incidencia",
+        "schemaName": "public",
+        "x": 1091.892578125,
+        "y": 186
+      },
+      {
+        "name": "rol_tienda",
+        "schemaName": "public",
+        "x": 12,
+        "y": 892
+      },
+      {
+        "name": "tienda",
+        "schemaName": "public",
+        "x": 12,
+        "y": 1002
+      },
+      {
+        "name": "participacion_tienda",
+        "schemaName": "public",
+        "x": 1091.892578125,
+        "y": 360
+      },
+      {
+        "name": "horario",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 902
+      },
+      {
+        "name": "excepcion_horario",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 1044
+      },
+      {
+        "name": "turno",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 1328
+      },
+      {
+        "name": "participacion_voluntarios",
+        "schemaName": "public",
+        "x": 1091.892578125,
+        "y": 12
+      },
+      {
+        "name": "asignacion_turno",
+        "schemaName": "public",
+        "x": 1607.67919921875,
+        "y": 12
+      },
+      {
+        "name": "zona",
+        "schemaName": "public",
+        "x": 485.34765625,
+        "y": 1186
+      },
+      {
+        "name": "asignacion_zona",
+        "schemaName": "public",
+        "x": 1091.892578125,
+        "y": 598
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "id_usuario"
+        ],
+        "firstTableName": "rol_usuario",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "usuario",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_rol"
+        ],
+        "firstTableName": "rol_usuario",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "rol",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_rol"
+        ],
+        "firstTableName": "rol_permiso",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "rol",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_permiso"
+        ],
+        "firstTableName": "rol_permiso",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "permiso",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_ec"
+        ],
+        "firstTableName": "contacto",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "ec",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_usuario"
+        ],
+        "firstTableName": "participacion_ec",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "usuario",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_ec"
+        ],
+        "firstTableName": "participacion_ec",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "ec",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_rol_ec"
+        ],
+        "firstTableName": "participacion_ec",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "rol_ec",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_localidad"
+        ],
+        "firstTableName": "participacion_ec",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "localidad",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tipo_campana"
+        ],
+        "firstTableName": "campana",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tipo_campana",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_campana"
+        ],
+        "firstTableName": "incidencia",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "campana",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tipo_incidencia"
+        ],
+        "firstTableName": "incidencia",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tipo_incidencia",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_usuario"
+        ],
+        "firstTableName": "participacion_tienda",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "usuario",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tienda"
+        ],
+        "firstTableName": "participacion_tienda",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_rol_tienda"
+        ],
+        "firstTableName": "participacion_tienda",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "rol_tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_campana"
+        ],
+        "firstTableName": "participacion_tienda",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "campana",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tienda"
+        ],
+        "firstTableName": "horario",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tienda"
+        ],
+        "firstTableName": "excepcion_horario",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tienda"
+        ],
+        "firstTableName": "turno",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_usuario"
+        ],
+        "firstTableName": "participacion_voluntarios",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "usuario",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_campana"
+        ],
+        "firstTableName": "participacion_voluntarios",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "campana",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_turno"
+        ],
+        "firstTableName": "asignacion_turno",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "turno",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_participacion_voluntario"
+        ],
+        "firstTableName": "asignacion_turno",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "participacion_voluntarios",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_tienda"
+        ],
+        "firstTableName": "zona",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tienda",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_campana"
+        ],
+        "firstTableName": "asignacion_zona",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "campana",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_zona"
+        ],
+        "firstTableName": "asignacion_zona",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "zona",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id_usuario"
+        ],
+        "firstTableName": "asignacion_zona",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "usuario",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

@@ -1,0 +1,202 @@
+Table usuario {
+  id int [pk, increment]
+}
+
+Table rol {
+  id int [pk, increment]
+}
+
+Table permiso {
+  id int [pk, increment]
+}
+
+Table rol_usuario {
+  id_usuario int [not null]
+  id_rol int [not null]
+
+  indexes {
+    (id_usuario, id_rol) [pk]
+  }
+}
+
+Table rol_permiso {
+  id_rol int [not null]
+  id_permiso int [not null]
+
+  indexes {
+    (id_rol, id_permiso) [pk]
+  }
+}
+
+Table ec {
+  id int [pk, increment]
+}
+
+Table rol_ec {
+  id int [pk, increment]
+}
+
+Table contacto {
+  id int [pk, increment]
+  id_ec int [not null]
+}
+
+Table localidad {
+  id int [pk, increment]
+}
+
+Table participacion_ec {
+  id int [pk, increment]
+  id_usuario int [not null]
+  id_ec int [not null]
+  id_rol_ec int
+  id_localidad int
+}
+
+Table tipo_campana {
+  id int [pk, increment]
+}
+
+Table campana {
+  id int [pk, increment]
+  id_tipo_campana int [not null]
+}
+
+Table tipo_incidencia {
+  id int [pk, increment]
+}
+
+Table incidencia {
+  id int [pk, increment]
+  id_campana int [not null]
+  id_tipo_incidencia int [not null]
+}
+
+Table rol_tienda {
+  id int [pk, increment]
+}
+
+Table tienda {
+  id int [pk, increment]
+}
+
+Table participacion_tienda {
+  id int [pk, increment]
+  id_usuario int [not null]
+  id_tienda int [not null]
+  id_rol_tienda int
+  id_campana int [not null]
+
+  indexes {
+    (id_usuario, id_tienda, id_campana) [unique]
+  }
+}
+
+Table horario {
+  id int [pk, increment]
+  id_tienda int [not null]
+}
+
+Table excepcion_horario {
+  id int [pk, increment]
+  id_tienda int [not null]
+}
+
+Table turno {
+  id int [pk, increment]
+  id_tienda int [not null]
+}
+
+Table participacion_voluntarios {
+  id int [pk, increment]
+  id_usuario int [not null]
+  id_campana int [not null]
+
+  indexes {
+    (id_usuario, id_campana) [unique]
+  }
+}
+
+Table asignacion_turno {
+  id int [pk, increment]
+  id_turno int [not null]
+  id_participacion_voluntario int [not null]
+
+  indexes {
+    (id_turno, id_participacion_voluntario) [unique]
+  }
+}
+
+Table zona {
+  id int [pk, increment]
+  id_tienda int [not null]
+}
+
+Table asignacion_zona {
+  id int [pk, increment]
+  id_campana int [not null]
+  id_zona int [not null]
+  id_usuario int [not null]
+
+  indexes {
+    (id_campana, id_zona, id_usuario) [unique]
+  }
+}
+
+
+// USUARIO - ROL - PERMISO
+
+Ref: rol_usuario.id_usuario > usuario.id
+Ref: rol_usuario.id_rol > rol.id
+
+Ref: rol_permiso.id_rol > rol.id
+Ref: rol_permiso.id_permiso > permiso.id
+
+
+// EC
+
+Ref: contacto.id_ec > ec.id
+
+Ref: participacion_ec.id_usuario > usuario.id
+Ref: participacion_ec.id_ec > ec.id
+Ref: participacion_ec.id_rol_ec > rol_ec.id
+Ref: participacion_ec.id_localidad > localidad.id
+
+
+// CAMPAÑA
+
+Ref: campana.id_tipo_campana > tipo_campana.id
+
+Ref: incidencia.id_campana > campana.id
+Ref: incidencia.id_tipo_incidencia > tipo_incidencia.id
+
+
+// TIENDA
+
+Ref: participacion_tienda.id_usuario > usuario.id
+Ref: participacion_tienda.id_tienda > tienda.id
+Ref: participacion_tienda.id_rol_tienda > rol_tienda.id
+Ref: participacion_tienda.id_campana > campana.id
+
+Ref: horario.id_tienda > tienda.id
+Ref: excepcion_horario.id_tienda > tienda.id
+
+
+// TURNOS
+
+Ref: turno.id_tienda > tienda.id
+
+Ref: participacion_voluntarios.id_usuario > usuario.id
+Ref: participacion_voluntarios.id_campana > campana.id
+
+Ref: asignacion_turno.id_turno > turno.id
+Ref: asignacion_turno.id_participacion_voluntario > participacion_voluntarios.id
+
+
+// ZONAS
+
+Ref: zona.id_tienda > tienda.id
+
+Ref: asignacion_zona.id_campana > campana.id
+Ref: asignacion_zona.id_zona > zona.id
+Ref: asignacion_zona.id_usuario > usuario.id
