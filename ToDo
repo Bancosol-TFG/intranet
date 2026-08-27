@@ -1,0 +1,15 @@
+# Campaña
+start_date < end_date
+
+# report
+limit textos 1024
+
+# contacto
+al menos email o phone NotNull
+
+# schedule_exception
+[cerrado] Si closed es true horas nulas
+[abierto] Si closed es false horas no nulas
+
+# permission
+Pensar como hacer

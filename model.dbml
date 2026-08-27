@@ -1,202 +1,195 @@
-Table usuario {
+Table user {
+  id int [pk, increment]
+  name string [not null]
+  first_name string [not null]
+  surname string
+  phone_number string
+  email string
+  username string [not null]
+  password string
+}
+
+Table role {
+  id int [pk, increment]
+  name string [not null]
+}
+
+Table permission {
   id int [pk, increment]
 }
 
-Table rol {
+Table user_role {
   id int [pk, increment]
+  user_id int [not null, ref: > user.id]
+  role_id int [not null, ref: > role.id]
 }
 
-Table permiso {
+Table role_permission {
   id int [pk, increment]
+  role_id int [not null, ref: > role.id]
+  permission_id int [not null, ref: > permission.id]
 }
 
-Table rol_usuario {
-  id_usuario int [not null]
-  id_rol int [not null]
+Table collaborator {
+  id int [pk, increment]
+  name string [not null]
+  address string [not null]
+  locality int [not null, ref: > locality.id]
+}
+
+Table collaborator_role {
+  id int [pk, increment]
+  user_id int [not null, ref: > user.id]
+  collaborator_participation_id int [not null, ref: > collaborator_participation.id]
+  role int [not null, ref: > role.id]
+}
+
+Table contact {
+  id int [pk, increment]
+  collaborator_id int [not null, ref: > collaborator.id]
+  name string [not null]
+  email string
+  phone_number string
+}
+
+Table locality {
+  id int [pk, increment]
+  name string [not null]
+  postal_code string [not null]
+}
+
+Table collaborator_participation {
+  id int [pk, increment]
+  collaborator_id int [not null, ref: > collaborator.id]
+  campaign_id int [not null, ref: > campaign.id]
+}
+
+Table campaign_type {
+  id int [pk, increment]
+  name string [not null]
+}
+
+Table campaign {
+  id int [pk, increment]
+  campaign_type_id int [not null, ref: > campaign_type.id]
+  name string [not null]
+  start_date date [not null]
+  end_date date [not null]
+}
+
+Table report_type {
+  id int [pk, increment]
+  name string [not null, unique]
+}
+
+Table report {
+  id int [pk, increment]
+  creation_date date [not null]
+  resolution_date date [not null]
+  description string [not null]
+  solution string
+
+  solved_by int [ref: > user.id]
+  reported_by int [not null, ref: > user.id]
+  campaign_id int [ref: > campaign.id]
+  report_type_id int [not null, ref: > report_type.id]
+}
+
+Table store_role {
+  id int [pk, increment]
+  user_id int [not null, ref: > user.id]
+  store_participation_id int [not null, ref: > store_participation.id]
+  role int [not null, ref: > role.id]
+}
+
+Table store {
+  id int [pk, increment]
+  locality_id int [not null, ref: > locality.id]
+  chain_id int [not null, ref: > chain.id]
+  name string [not null, unique]
+  address string [not null]
+  checkout_shelfs integer [not null]
+  zone_id int [ref: < zone.id]
+}
+
+Table chain {
+  id int [pk, increment]
+  code string [not null, unique]
+}
+
+Table store_participation {
+  id int [pk, increment]
+  store_id int [not null, ref: > store.id]
+  campaign_id int [not null, ref: > campaign.id]
+  participates bool [not null]
 
   indexes {
-    (id_usuario, id_rol) [pk]
+    (store_id, campaign_id) [unique]
   }
 }
 
-Table rol_permiso {
-  id_rol int [not null]
-  id_permiso int [not null]
+Table schedule {
+  id int [pk, increment]
+  store_id int [not null, ref: > store.id]
+  week_day int [not null]
+  opening_time time
+  closing_time time
+}
+
+Table schedule_exception {
+  id int [pk, increment]
+  store_id int [not null, ref: > store.id]
+  date date [not null]
+  opening_time time
+  closing_time time
+  closed bool [not null]
+}
+
+Table shift {
+  id int [pk, increment]
+  date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  notes string
+
+  store_participation_id int [not null, ref: > store_participation.id]
+}
+
+Table volunteer_participation {
+  id int [pk, increment]
+
+  collaborator_participation_id int [not null, ref: > collaborator_participation.id]
+  user_id int [not null, ref: > user.id]
 
   indexes {
-    (id_rol, id_permiso) [pk]
+    (user_id, collaborator_participation_id) [unique]
   }
 }
 
-Table ec {
+Table shift_assignment {
   id int [pk, increment]
-}
+  shift_id int [not null, ref: > shift.id]
 
-Table rol_ec {
-  id int [pk, increment]
-}
-
-Table contacto {
-  id int [pk, increment]
-  id_ec int [not null]
-}
-
-Table localidad {
-  id int [pk, increment]
-}
-
-Table participacion_ec {
-  id int [pk, increment]
-  id_usuario int [not null]
-  id_ec int [not null]
-  id_rol_ec int
-  id_localidad int
-}
-
-Table tipo_campana {
-  id int [pk, increment]
-}
-
-Table campana {
-  id int [pk, increment]
-  id_tipo_campana int [not null]
-}
-
-Table tipo_incidencia {
-  id int [pk, increment]
-}
-
-Table incidencia {
-  id int [pk, increment]
-  id_campana int [not null]
-  id_tipo_incidencia int [not null]
-}
-
-Table rol_tienda {
-  id int [pk, increment]
-}
-
-Table tienda {
-  id int [pk, increment]
-}
-
-Table participacion_tienda {
-  id int [pk, increment]
-  id_usuario int [not null]
-  id_tienda int [not null]
-  id_rol_tienda int
-  id_campana int [not null]
+  volunteer_participation_id int [not null, ref: > volunteer_participation.id]
 
   indexes {
-    (id_usuario, id_tienda, id_campana) [unique]
+    (shift_id, volunteer_participation_id) [unique]
   }
 }
 
-Table horario {
+Table zone {
   id int [pk, increment]
-  id_tienda int [not null]
+  name string [not null, unique]
+  code string [not null]
 }
 
-Table excepcion_horario {
+Table zone_assignment {
   id int [pk, increment]
-  id_tienda int [not null]
-}
-
-Table turno {
-  id int [pk, increment]
-  id_tienda int [not null]
-}
-
-Table participacion_voluntarios {
-  id int [pk, increment]
-  id_usuario int [not null]
-  id_campana int [not null]
+  campaign_id int [not null, ref: > campaign.id]
+  zone_id int [not null, ref: > zone.id]
+  user_id int [not null, ref: > user.id]
 
   indexes {
-    (id_usuario, id_campana) [unique]
+    (campaign_id, zone_id, user_id) [unique]
   }
 }
-
-Table asignacion_turno {
-  id int [pk, increment]
-  id_turno int [not null]
-  id_participacion_voluntario int [not null]
-
-  indexes {
-    (id_turno, id_participacion_voluntario) [unique]
-  }
-}
-
-Table zona {
-  id int [pk, increment]
-  id_tienda int [not null]
-}
-
-Table asignacion_zona {
-  id int [pk, increment]
-  id_campana int [not null]
-  id_zona int [not null]
-  id_usuario int [not null]
-
-  indexes {
-    (id_campana, id_zona, id_usuario) [unique]
-  }
-}
-
-
-// USUARIO - ROL - PERMISO
-
-Ref: rol_usuario.id_usuario > usuario.id
-Ref: rol_usuario.id_rol > rol.id
-
-Ref: rol_permiso.id_rol > rol.id
-Ref: rol_permiso.id_permiso > permiso.id
-
-
-// EC
-
-Ref: contacto.id_ec > ec.id
-
-Ref: participacion_ec.id_usuario > usuario.id
-Ref: participacion_ec.id_ec > ec.id
-Ref: participacion_ec.id_rol_ec > rol_ec.id
-Ref: participacion_ec.id_localidad > localidad.id
-
-
-// CAMPAÑA
-
-Ref: campana.id_tipo_campana > tipo_campana.id
-
-Ref: incidencia.id_campana > campana.id
-Ref: incidencia.id_tipo_incidencia > tipo_incidencia.id
-
-
-// TIENDA
-
-Ref: participacion_tienda.id_usuario > usuario.id
-Ref: participacion_tienda.id_tienda > tienda.id
-Ref: participacion_tienda.id_rol_tienda > rol_tienda.id
-Ref: participacion_tienda.id_campana > campana.id
-
-Ref: horario.id_tienda > tienda.id
-Ref: excepcion_horario.id_tienda > tienda.id
-
-
-// TURNOS
-
-Ref: turno.id_tienda > tienda.id
-
-Ref: participacion_voluntarios.id_usuario > usuario.id
-Ref: participacion_voluntarios.id_campana > campana.id
-
-Ref: asignacion_turno.id_turno > turno.id
-Ref: asignacion_turno.id_participacion_voluntario > participacion_voluntarios.id
-
-
-// ZONAS
-
-Ref: zona.id_tienda > tienda.id
-
-Ref: asignacion_zona.id_campana > campana.id
-Ref: asignacion_zona.id_zona > zona.id
-Ref: asignacion_zona.id_usuario > usuario.id
