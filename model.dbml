@@ -7,27 +7,47 @@ Table user {
   email string
   username string [not null]
   password string
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table role {
   id int [pk, increment]
   name string [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table permission {
   id int [pk, increment]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table user_role {
   id int [pk, increment]
   user_id int [not null, ref: > user.id]
   role_id int [not null, ref: > role.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table role_permission {
   id int [pk, increment]
   role_id int [not null, ref: > role.id]
   permission_id int [not null, ref: > permission.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table collaborator {
@@ -35,6 +55,10 @@ Table collaborator {
   name string [not null]
   address string [not null]
   locality int [not null, ref: > locality.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table collaborator_role {
@@ -42,6 +66,10 @@ Table collaborator_role {
   user_id int [not null, ref: > user.id]
   collaborator_participation_id int [not null, ref: > collaborator_participation.id]
   role int [not null, ref: > role.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table contact {
@@ -50,23 +78,39 @@ Table contact {
   name string [not null]
   email string
   phone_number string
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table locality {
   id int [pk, increment]
   name string [not null]
   postal_code string [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table collaborator_participation {
   id int [pk, increment]
   collaborator_id int [not null, ref: > collaborator.id]
   campaign_id int [not null, ref: > campaign.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table campaign_type {
   id int [pk, increment]
   name string [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table campaign {
@@ -75,11 +119,19 @@ Table campaign {
   name string [not null]
   start_date date [not null]
   end_date date [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table report_type {
   id int [pk, increment]
   name string [not null, unique]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table report {
@@ -93,6 +145,10 @@ Table report {
   reported_by int [not null, ref: > user.id]
   campaign_id int [ref: > campaign.id]
   report_type_id int [not null, ref: > report_type.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table store_role {
@@ -100,6 +156,10 @@ Table store_role {
   user_id int [not null, ref: > user.id]
   store_participation_id int [not null, ref: > store_participation.id]
   role int [not null, ref: > role.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table store {
@@ -110,11 +170,19 @@ Table store {
   address string [not null]
   checkout_shelfs integer [not null]
   zone_id int [ref: < zone.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table chain {
   id int [pk, increment]
   code string [not null, unique]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table store_participation {
@@ -122,6 +190,10 @@ Table store_participation {
   store_id int [not null, ref: > store.id]
   campaign_id int [not null, ref: > campaign.id]
   participates bool [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 
   indexes {
     (store_id, campaign_id) [unique]
@@ -134,6 +206,10 @@ Table schedule {
   week_day int [not null]
   opening_time time
   closing_time time
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table schedule_exception {
@@ -143,6 +219,10 @@ Table schedule_exception {
   opening_time time
   closing_time time
   closed bool [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table shift {
@@ -153,6 +233,10 @@ Table shift {
   notes string
 
   store_participation_id int [not null, ref: > store_participation.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table volunteer_participation {
@@ -160,6 +244,10 @@ Table volunteer_participation {
 
   collaborator_participation_id int [not null, ref: > collaborator_participation.id]
   user_id int [not null, ref: > user.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 
   indexes {
     (user_id, collaborator_participation_id) [unique]
@@ -169,8 +257,11 @@ Table volunteer_participation {
 Table shift_assignment {
   id int [pk, increment]
   shift_id int [not null, ref: > shift.id]
-
   volunteer_participation_id int [not null, ref: > volunteer_participation.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 
   indexes {
     (shift_id, volunteer_participation_id) [unique]
@@ -181,6 +272,10 @@ Table zone {
   id int [pk, increment]
   name string [not null, unique]
   code string [not null]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 }
 
 Table zone_assignment {
@@ -188,6 +283,10 @@ Table zone_assignment {
   campaign_id int [not null, ref: > campaign.id]
   zone_id int [not null, ref: > zone.id]
   user_id int [not null, ref: > user.id]
+
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
 
   indexes {
     (campaign_id, zone_id, user_id) [unique]
