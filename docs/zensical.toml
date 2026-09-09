@@ -1,0 +1,44 @@
+[project]
+site_name = "Bancosol"
+site_url = ""
+site_description = "Documentation for the Bancosol TFG"
+repo_name = "Bancosol-TFG/intranet"
+repo_url = "https://github.com/Bancosol-TFG/intranet"
+docs_dir = "src"
+site_dir = "site"
+extra_css = ["stylesheets/extra.css"]
+extra_javascript = ["javascripts/shortcuts.js"]
+
+[project.theme]
+variant = "modern"
+font.text = "Inter"
+font.code = "JetBrains Mono"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.path",
+  "navigation.top",
+  "navigation.footer",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "search.highlight",
+  "toc.follow",
+]
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Activar tema claro"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Activar tema oscuro"
+
+[project.extra]
+generator = false
