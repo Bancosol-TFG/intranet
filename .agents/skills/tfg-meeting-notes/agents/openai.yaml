@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notas de reuniones del TFG"
+  short_description: "Resume reuniones del TFG en Zensical"
+  default_prompt: "Usa $tfg-meeting-notes para convertir esta transcripción JSON en una nota de reunión del TFG."
