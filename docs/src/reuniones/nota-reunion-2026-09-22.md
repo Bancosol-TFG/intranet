@@ -4,12 +4,16 @@
 
 - **Fecha:** 2026-09-22
 - **Duración:** 2 h 10 min
-- **Fuente:** `transcript.json`, generado a partir de `2026-09-22 10-41-36.mkv`
+- **Modalidad:** Online
+- **Fuentes:** `transcript.json`, generado a partir de `2026-09-22 10-41-36.mkv`, y apuntes de Notion «Reunion 5 repaso y decisiones»
+- **Registró en Notion:** Miguel
 - **Participantes:** Miguel, Adrián y Salma
 
 ## Resumen
 
 El equipo revisó el modelo de datos y fijó una primera arquitectura para comenzar el desarrollo. Se acordó centralizar en GitHub la planificación, las issues y el flujo de ramas y pull requests, con una estructura común para las tareas y revisiones obligatorias del equipo. También se acordó trasladar a Zensical la documentación existente en Notion. Como primer paso de implementación, Salma preparará la estructura inicial del proyecto para que el equipo pueda revisarla y, a partir de ella, dividir el trabajo en módulos y requisitos.
+
+Los apuntes manuales de Notion resumen los objetivos como revisar la documentación, las tareas, la migración, el refinado del modelo de datos y los requisitos.
 
 ## Puntos tratados
 
@@ -34,9 +38,9 @@ El equipo revisó el modelo de datos y fijó una primera arquitectura para comen
 
 ## Tareas y próximos pasos
 
-- **Salma:** investigar y crear la estructura inicial del backend con Spring Boot, incluyendo las dependencias necesarias y la configuración local con Docker; documentar la tarea en una issue, trabajar en una rama y presentar una pull request.
+- **Salma:** investigar y crear la estructura inicial del backend con Spring Boot, incluyendo las dependencias necesarias y la configuración local con Docker; documentar la tarea en una issue, trabajar en una rama y presentar una pull request. El apunte manual resume esta tarea como «Spring template».
 - **Adrián:** crear la plantilla común para las issues y configurar el proyecto de GitHub y su tablero Kanban para gestionar las tareas.
-- **Miguel:** configurar el flujo de colaboración del repositorio en GitHub, incluida la protección de la rama principal, la creación de una rama de desarrollo y la exigencia de aprobación de los otros dos integrantes para integrar cada pull request.
+- **Miguel:** configurar el flujo de colaboración del repositorio en GitHub, incluida la protección de la rama principal, la creación de una rama de desarrollo y la exigencia de aprobación de los otros dos integrantes para integrar cada pull request. El apunte manual también menciona la configuración de push y pull requests.
 - **Miguel:** migrar la documentación existente en Notion a la documentación Zensical ubicada en `intranet/docs`.
 - **Miguel y Adrián:** revisar la pull request de la estructura inicial y señalar dependencias o ajustes que falten.
 - **Equipo:** definir los módulos principales y, a partir de ellos, repartir la toma de requisitos y las primeras tareas de implementación.
