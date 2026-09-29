@@ -1,0 +1,57 @@
+services:
+  app:
+    container_name: bancosol-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+    volumes:
+      - ./api:/workspace
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:17
+    container_name: bancosol-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./volumes/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  drizzle-studio:
+    container_name: bancosol-studio
+    image: ghcr.io/drizzle-team/gateway:latest
+    ports:
+      - "5433:4983"
+    environment:
+      PORT: 4983
+      STORE_PATH: "/app"
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+    volumes:
+      - ./volumes/drizzle-conf:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
