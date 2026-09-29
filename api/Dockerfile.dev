@@ -15,7 +15,7 @@ RUN apt-get update \
 
 COPY . .
 
-RUN chmod +x mvnw watcher.sh
-RUN ./mvnw dependency:go-offline
+RUN chmod +x mvnw watcher.sh \
+    && ./mvnw dependency:go-offline
 
-CMD ["./watcher.sh"]
+CMD ["bash","./watcher.sh"]
