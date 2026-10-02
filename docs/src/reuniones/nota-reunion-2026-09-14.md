@@ -7,7 +7,7 @@
 - **Modalidad:** Online
 - **Fuente:** Exportación de Notion: «Reunion 4 resolver dudas con edu»
 - **Registró en Notion:** Adrián
-- **Participantes:** Adrián, Salma y Miguel
+- **Participantes:** Adrián, Salma, Miguel, Edu
 
 ## Resumen
 

@@ -25,7 +25,7 @@ El equipo afianzó el modelo de datos y tomó decisiones sobre las participacion
 
 ## Tareas y próximos pasos
 
-- No se identificaron tareas asignadas en la nota.
+- Volver a revisar el modelo de datos consultandolo con el tutor del TFG
 
 ## Puntos por explorar
 
