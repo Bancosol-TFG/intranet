@@ -1,0 +1,11 @@
+.env
+target
+.idea
+.settings
+.classpath
+.factorypath
+.project
+.vscode
+bin
+build
+volumes
