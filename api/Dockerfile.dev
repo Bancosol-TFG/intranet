@@ -1,6 +1,4 @@
-FROM eclipse-temurin:25-jdk
-
-WORKDIR /workspace
+FROM eclipse-temurin:25-jdk AS watcher
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl xz-utils ca-certificates \
@@ -13,9 +11,24 @@ RUN apt-get update \
     && watchexec --version \
     && rm -rf /tmp/watchexec /tmp/watchexec.tar.xz /var/lib/apt/lists/*
 
+FROM eclipse-temurin:25-jdk AS dependencies
+
+WORKDIR /workspace
+
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+
+RUN chmod +x mvnw \
+    && ./mvnw dependency:go-offline
+
+FROM eclipse-temurin:25-jdk AS dev
+
+WORKDIR /workspace
+
+COPY --from=watcher /usr/local/bin/watchexec /usr/local/bin/watchexec
+COPY --from=dependencies /root/.m2/ /root/.m2/
 COPY . .
 
-RUN chmod +x mvnw watcher.sh \
-    && ./mvnw dependency:go-offline
+RUN chmod +x mvnw watcher.sh
 
 CMD ["bash","./watcher.sh"]
