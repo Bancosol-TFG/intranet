@@ -7,5 +7,9 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
+
+  flyway:
+    sql-migration-prefix: v
+    repeatable-sql-migration-prefix: r
