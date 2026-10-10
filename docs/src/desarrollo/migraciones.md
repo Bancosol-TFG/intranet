@@ -13,15 +13,32 @@ Guarda los scripts SQL en:
 api/src/main/resources/db/migration/
 ```
 
-El proyecto usa nombres en minúscula y configura Flyway con el prefijo `v`. Cada
-migración versionada sigue este formato:
+## Convención de nombres de Flyway
+
+Una migración SQL versionada sigue esta estructura:
 
 ```text
-v<versión>__<descripción>.sql
+<prefijo><versión>__<descripción>.sql
 ```
 
-Por ejemplo: `v1__crear_tabla_chains.sql`. Usa la siguiente versión disponible
-para cada cambio; no reutilices una versión.
+Flyway usa `V` como prefijo predeterminado, dos guiones bajos (`__`) como
+separador y `.sql` como extensión. Por ejemplo, `V1__CreateChains.sql`. La
+versión debe ser única y Flyway aplica las migraciones versionadas una sola vez,
+en orden numérico.
+
+Este repositorio configura `spring.flyway.sql-migration-prefix: v` para mantener
+los nombres de archivo en minúsculas. Por eso el ejemplo real es
+`v1__crear_tabla_chains.sql`; el prefijo, la versión, el separador y la
+descripción ocupan las mismas partes que en el formato predeterminado.
+
+Flyway también admite migraciones repetibles con el formato predeterminado
+`R__<descripción>.sql`. No llevan versión y se vuelven a aplicar cuando cambia
+su checksum; suelen servir para vistas, funciones o procedimientos. El proyecto
+actualmente usa migraciones versionadas. Consulta la documentación de
+[migraciones versionadas](https://documentation.red-gate.com/fd/versioned-migrations-273973333.html)
+y [migraciones repetibles](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/repeatable-migrations).
+
+Asigna la siguiente versión disponible a cada cambio; no reutilices versiones.
 
 ## Flujo de trabajo
 
@@ -34,8 +51,9 @@ para cada cambio; no reutilices una versión.
 5. Revisa los mensajes de arranque y la fila de la migración en
    `flyway_schema_history`.
 
-Una migración que ya se haya aplicado no se edita ni se elimina: los cambios
-posteriores se añaden en otro script versionado.
+Una migración que ya se haya aplicado no se edita ni se elimina: Flyway guarda
+su checksum en `flyway_schema_history`. Los cambios posteriores se añaden en
+otro script versionado.
 
 ## Migración de ejemplo
 
