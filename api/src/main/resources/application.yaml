@@ -12,3 +12,4 @@ spring:
 
   flyway:
     sql-migration-prefix: v
+    repeatable-sql-migration-prefix: r

@@ -31,10 +31,12 @@ los nombres de archivo en minúsculas. Por eso el ejemplo real es
 `v1__crear_tabla_chains.sql`; el prefijo, la versión, el separador y la
 descripción ocupan las mismas partes que en el formato predeterminado.
 
-Flyway también admite migraciones repetibles con el formato predeterminado
-`R__<descripción>.sql`. No llevan versión y se vuelven a aplicar cuando cambia
-su checksum; suelen servir para vistas, funciones o procedimientos. El proyecto
-actualmente usa migraciones versionadas. Consulta la documentación de
+Flyway también admite migraciones repetibles. Su prefijo predeterminado es `R`,
+por ejemplo `R__crear_vista_chains_activas.sql`. Este repositorio configura
+`spring.flyway.repeatable-sql-migration-prefix: r` para mantener los nombres en
+minúsculas; por eso se usaría `r__crear_vista_chains_activas.sql`. No llevan
+versión y se vuelven a aplicar cuando cambia su checksum; suelen servir para
+vistas, funciones o procedimientos. Consulta la documentación de
 [migraciones versionadas](https://documentation.red-gate.com/fd/versioned-migrations-273973333.html)
 y [migraciones repetibles](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/repeatable-migrations).
 
