@@ -55,3 +55,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  docs:
+    container_name: bancosol-docs
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    command:
+      - python
+      - -m
+      - zensical
+      - serve
+      - --config-file
+      - zensical.toml
+      - --dev-addr
+      - 0.0.0.0:8000
+    ports:
+      - "${DOCS_PORT:-8001}:8000"
+    volumes:
+      - .:/workspace
