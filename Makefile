@@ -1,6 +1,5 @@
 PYTHON ?= python3
 MAKEFILE_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-DOCS_ROOT := $(MAKEFILE_ROOT)docs
 VENV ?= $(MAKEFILE_ROOT).venv-docs
 VENV_BIN := $(VENV)/bin
 PIP := $(VENV_BIN)/python -m pip
@@ -14,7 +13,7 @@ DOCS_STAMP := $(VENV)/.docs-installed
 help:
 	@echo "Comandos disponibles:"
 	@echo "  make docs-serve   Sirve la documentación con recarga automática"
-	@echo "  make docs-build   Genera y valida la documentación en docs/site/"
+	@echo "  make docs-build   Genera y valida la documentación en build/docs/"
 	@echo "  make docs-clean   Elimina la documentación generada"
 	@echo "  make venv         Crea el entorno e instala sus dependencias"
 
@@ -37,4 +36,4 @@ docs-build: venv
 	$(ZENSICAL) build --config-file $(DOCS_CONFIG) --clean
 
 docs-clean:
-	rm -rf $(DOCS_ROOT)site
+	rm -rf $(MAKEFILE_ROOT)build/docs
