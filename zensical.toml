@@ -4,10 +4,10 @@ site_url = ""
 site_description = "Documentation for the Bancosol TFG"
 repo_name = "Bancosol-TFG/intranet"
 repo_url = "https://github.com/Bancosol-TFG/intranet"
-docs_dir = "src"
-site_dir = "site"
-extra_css = ["stylesheets/extra.css"]
-extra_javascript = ["javascripts/shortcuts.js"]
+docs_dir = "docs"
+site_dir = "build/docs"
+extra_css = ["assets/stylesheets/extra.css"]
+extra_javascript = ["assets/javascripts/shortcuts.js"]
 
 [project.theme]
 variant = "modern"

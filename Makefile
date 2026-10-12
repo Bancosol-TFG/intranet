@@ -1,11 +1,11 @@
 PYTHON ?= python3
-DOCS_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-VENV ?= $(DOCS_ROOT).venv
+MAKEFILE_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+VENV ?= $(MAKEFILE_ROOT).venv-docs
 VENV_BIN := $(VENV)/bin
 PIP := $(VENV_BIN)/python -m pip
 ZENSICAL := $(VENV_BIN)/python -m zensical
-DOCS_CONFIG := $(DOCS_ROOT)zensical.toml
-DOCS_REQUIREMENTS := $(DOCS_ROOT)requirements-docs.txt
+DOCS_CONFIG := $(MAKEFILE_ROOT)zensical.toml
+DOCS_REQUIREMENTS := $(MAKEFILE_ROOT)requirements-docs.txt
 DOCS_STAMP := $(VENV)/.docs-installed
 
 .PHONY: help venv docs-install docs-serve docs-build docs-clean
@@ -13,7 +13,7 @@ DOCS_STAMP := $(VENV)/.docs-installed
 help:
 	@echo "Comandos disponibles:"
 	@echo "  make docs-serve   Sirve la documentación con recarga automática"
-	@echo "  make docs-build   Genera y valida la documentación en docs/site/"
+	@echo "  make docs-build   Genera y valida la documentación en build/docs/"
 	@echo "  make docs-clean   Elimina la documentación generada"
 	@echo "  make venv         Crea el entorno e instala sus dependencias"
 
@@ -36,4 +36,4 @@ docs-build: venv
 	$(ZENSICAL) build --config-file $(DOCS_CONFIG) --clean
 
 docs-clean:
-	rm -rf $(DOCS_ROOT)site
+	rm -rf $(MAKEFILE_ROOT)build/docs

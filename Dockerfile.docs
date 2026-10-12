@@ -1,0 +1,4 @@
+from python:3.14-slim
+workdir /workspace
+copy requirements-docs.txt /tmp/requirements-docs.txt
+run pip install --no-cache-dir -r /tmp/requirements-docs.txt

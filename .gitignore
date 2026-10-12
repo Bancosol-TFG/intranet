@@ -9,3 +9,5 @@ target
 bin
 build
 volumes
+.cache
+.venv-docs
