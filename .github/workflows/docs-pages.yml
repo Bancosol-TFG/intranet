@@ -3,7 +3,7 @@ name: Deploy documentation to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - dev
     paths:
       - "docs/**"
       - "requirements-docs.txt"
