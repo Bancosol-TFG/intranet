@@ -32,4 +32,5 @@ jobs:
         env:
           HUSKY: 0
       - run: pnpm check
+      - run: pnpm test
       - run: pnpm build
