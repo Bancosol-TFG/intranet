@@ -1,4 +1,15 @@
 services:
+  frontend:
+    container_name: bancosol-frontend
+    image: node:22-alpine
+    working_dir: /workspace
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/workspace
+      - /workspace/node_modules
+
   app:
     container_name: bancosol-api
     build:
