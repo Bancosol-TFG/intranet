@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare": "if [ -e ../.git ]; then cd .. && frontend/node_modules/.bin/husky frontend/.husky; fi",
+    "prepare": "node scripts/setup-hooks.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "check": "pnpm format:check && pnpm lint",

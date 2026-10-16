@@ -11,6 +11,8 @@ pnpm dev
 
 También se puede iniciar con `docker compose up frontend` desde la raíz del repositorio.
 
+El hook `pre-commit` se configura al instalar las dependencias en el host con `pnpm install` desde `frontend/`. Compose no monta `.git`, así que ejecutar la instalación solo dentro del contenedor no configura el hook local.
+
 ## Comprobaciones
 
 ```bash
