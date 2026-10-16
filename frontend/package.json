@@ -13,7 +13,7 @@
     "lint": "oxlint --ignore-pattern src/routeTree.gen.ts",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.3",
