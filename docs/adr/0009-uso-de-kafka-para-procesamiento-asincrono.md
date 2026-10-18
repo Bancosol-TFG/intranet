@@ -1,10 +1,10 @@
-# ADR-0010: Uso de Kafka para procesamiento asíncrono
+# ADR-0009: Uso de Kafka para procesamiento asíncrono
 
 ## Estado
-Accepted
+Proposed
 
 ## Contexto
-Se debatió usar Kafka para desacoplar notificaciones, auditoría, estadísticas y otras acciones disparadas por eventos. En la documentación de la reunión del 22 de septiembre se concluye que no se considera necesario para arrancar; en reuniones posteriores no se recoge un cambio de esa decisión.
+Se debatió usar Kafka para desacoplar notificaciones, auditoría, estadísticas y otras acciones disparadas por eventos. La documentación de la reunión del 22 de septiembre indica que no se considera necesario para arrancar, pero deja abierta la evaluación de su utilidad.
 
 ## Opciones consideradas
 1. Incorporar Kafka desde el inicio para distribuir eventos entre consumidores.
@@ -12,7 +12,7 @@ Se debatió usar Kafka para desacoplar notificaciones, auditoría, estadísticas
 3. Aplazar Kafka hasta que haya necesidades de carga, desacoplamiento o procesamiento asíncrono que lo justifiquen.
 
 ## Decisión
-No incorporar Kafka en la arquitectura inicial. Revisar esta decisión si aparecen necesidades concretas de procesamiento asíncrono, desacoplamiento o carga que justifiquen la infraestructura adicional.
+Pendiente de decisión. Kafka no se considera necesario para arrancar, pero el equipo decidirá más adelante si lo incorpora cuando concrete las necesidades de procesamiento asíncrono, desacoplamiento y carga.
 
 ## Consecuencias
 **Positivas:**

@@ -1,4 +1,4 @@
-# ADR-0004: Origen, emisión y activación de credenciales
+# ADR-0003: Origen, emisión y activación de credenciales
 
 ## Estado
 Proposed

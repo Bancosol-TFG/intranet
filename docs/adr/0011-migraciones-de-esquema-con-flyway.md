@@ -1,10 +1,10 @@
-# ADR-0012: Migraciones de esquema con Flyway
+# ADR-0011: Migraciones de esquema con Flyway
 
 ## Estado
 Accepted
 
 ## Contexto
-Flyway versiona y aplica los cambios del esquema PostgreSQL; Hibernate valida el esquema sin modificarlo (`ddl-auto: validate`). La convención para identificar nuevas migraciones y la excepción de la migración inicial se documentan por separado en el ADR-0022. La reunión del 12 de octubre también identificó que el orden de integración de las pull requests puede diferir del orden de las migraciones y que los cambios incompatibles requieren una estrategia adicional.
+Flyway versiona y aplica los cambios del esquema PostgreSQL; Hibernate valida el esquema sin modificarlo (`ddl-auto: validate`). La convención para identificar nuevas migraciones y la excepción de la migración inicial se documentan por separado en el ADR-0017. La reunión del 12 de octubre también identificó que el orden de integración de las pull requests puede diferir del orden de las migraciones y que los cambios incompatibles requieren una estrategia adicional.
 
 ## Opciones consideradas
 1. Gestionar los cambios del esquema mediante migraciones SQL versionadas con Flyway y validar las entidades con Hibernate.

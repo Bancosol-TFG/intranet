@@ -1,10 +1,10 @@
-# ADR-0005: Separación o unificación de usuario y voluntario
+# ADR-0004: Separación o unificación de usuario y voluntario
 
 ## Estado
 Proposed
 
 ## Contexto
-El equipo ha debatido si toda persona voluntaria debe tener una cuenta de acceso o si puede existir como voluntaria sin credenciales, por ejemplo cuando la gestiona una entidad colaboradora. En las reuniones se identificaron implicaciones para el alta, la aprobación y el uso de la aplicación móvil, pero no se cerró el modelo. La decisión está relacionada con el origen de las credenciales (ADR-0004).
+El equipo ha debatido si toda persona voluntaria debe tener una cuenta de acceso o si puede existir como voluntaria sin credenciales, por ejemplo cuando la gestiona una entidad colaboradora. En las reuniones se identificaron implicaciones para el alta, la aprobación y el uso de la aplicación móvil, pero no se cerró el modelo. La decisión está relacionada con el origen de las credenciales (ADR-0003).
 
 La nota del 27 de agosto recoge una solución inicial: correo y teléfono opcionales, y personas sin correo representadas como voluntarios sin contraseña. En las reuniones posteriores se discutieron flujos distintos para autorregistro, aprobación y grupos; se debe validar el modelo con el proceso real de Bancosol.
 

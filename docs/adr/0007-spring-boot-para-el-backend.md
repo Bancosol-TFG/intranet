@@ -1,10 +1,10 @@
-# ADR-0008: Spring Boot para el backend
+# ADR-0007: Spring Boot para el backend
 
 ## Estado
 Accepted
 
 ## Contexto
-En la reunión del 22 de septiembre se eligió Java con Spring Boot como tecnología inicial para el backend. En la reunión del 29 de septiembre se estaba preparando el esqueleto del backend con Spring Boot. La organización interna y el estilo de API se documentan por separado en los ADR-0020 y ADR-0021.
+En la reunión del 22 de septiembre se eligió Java con Spring Boot como tecnología inicial para el backend. En la reunión del 29 de septiembre se estaba preparando el esqueleto del backend con Spring Boot. La organización interna y el estilo de API se documentan por separado en los ADR-0015 y ADR-0016.
 
 ## Opciones consideradas
 1. Usar Java con Spring Boot para el backend.

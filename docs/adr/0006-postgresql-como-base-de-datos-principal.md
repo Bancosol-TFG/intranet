@@ -1,4 +1,4 @@
-# ADR-0007: PostgreSQL como base de datos principal
+# ADR-0006: PostgreSQL como base de datos principal
 
 ## Estado
 Accepted

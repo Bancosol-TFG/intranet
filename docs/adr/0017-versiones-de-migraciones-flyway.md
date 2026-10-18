@@ -1,10 +1,10 @@
-# ADR-0022: Versiones de migraciones Flyway
+# ADR-0017: Versiones de migraciones Flyway
 
 ## Estado
 Accepted
 
 ## Contexto
-El equipo eligió Flyway para versionar el esquema (ADR-0012). La secuencia numérica compartida podía producir colisiones cuando varias personas preparasen migraciones en paralelo. La documentación del proyecto define para las migraciones nuevas una versión con fecha y hora `YYMMDDHHmm`, comprobando que no se reutilice y usando el mismo huso horario. La migración inicial `v1__crear_tabla_chains.sql` es una excepción heredada.
+El equipo eligió Flyway para versionar el esquema (ADR-0011). La secuencia numérica compartida podía producir colisiones cuando varias personas preparasen migraciones en paralelo. La documentación del proyecto define para las migraciones nuevas una versión con fecha y hora `YYMMDDHHmm`, comprobando que no se reutilice y usando el mismo huso horario. La migración inicial `v1__crear_tabla_chains.sql` es una excepción heredada.
 
 ## Opciones consideradas
 1. Asignar versiones secuenciales coordinadas por el equipo.

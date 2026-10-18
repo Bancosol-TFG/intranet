@@ -1,4 +1,4 @@
-# ADR-0020: API REST con JSON
+# ADR-0015: API REST con JSON
 
 ## Estado
 Accepted

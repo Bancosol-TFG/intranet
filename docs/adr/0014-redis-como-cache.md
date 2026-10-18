@@ -1,4 +1,4 @@
-# ADR-0019: Redis como caché
+# ADR-0014: Redis como caché
 
 ## Estado
 Proposed
@@ -12,7 +12,7 @@ En la reunión del 22 de septiembre se propuso Redis como caché para datos cons
 3. No utilizar Redis y resolver las lecturas directamente desde PostgreSQL.
 
 ## Decisión
-Pendiente de decisión. PostgreSQL es la base de datos principal (ADR-0007); las reuniones no permiten confirmar si Redis formará parte del despliegue inicial o si se incorporará más adelante.
+Pendiente de decisión. PostgreSQL es la base de datos principal (ADR-0006); las reuniones no permiten confirmar si Redis formará parte del despliegue inicial o si se incorporará más adelante.
 
 ## Consecuencias
 **Positivas:**

@@ -1,4 +1,4 @@
-# ADR-0016: Exclusión de un chatbot de WhatsApp
+# ADR-0013: Exclusión de un chatbot de WhatsApp
 
 ## Estado
 Accepted
