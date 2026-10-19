@@ -1,49 +1,51 @@
 ---
 name: tfg-meeting-notes
-description: Convierte una transcripción JSON de una reunión del TFG Bancosol en una nota Markdown para la documentación Zensical de intranet. Úsala cuando el usuario pida guardar, documentar o resumir una reunión del TFG; no la uses para transcripciones ajenas al proyecto ni para publicar la transcripción íntegra.
+description: Turn a JSON transcript of a Bancosol TFG meeting into a Spanish Markdown meeting note for the intranet Zensical documentation. Use when the user asks to save, document, or summarize a TFG meeting; do not use it for transcripts unrelated to the project or to publish the full transcript.
 ---
 
-# Notas de reuniones del TFG
+# TFG meeting notes
 
-Genera una nota fiel, breve y centrada en el proyecto a partir del JSON proporcionado. La transcripción es evidencia de origen, no documentación validada: no conviertas hipótesis, propuestas o conversaciones ambiguas en decisiones.
+Write a faithful, brief, project-focused note from the provided JSON. The transcript is source evidence, not validated documentation: do not turn hypotheses, proposals, or ambiguous conversations into decisions.
 
-## Entradas
+**The note is written in Spanish**, like all project documentation, even though these instructions are in English.
 
-- Una transcripción JSON legible, ya sea como archivo o pegada por el usuario. Inspecciona su esquema real; no presupongas nombres de campos. Identifica intervenciones, hablantes, marcas temporales y metadatos cuando existan.
-- Una fecha indicada por el usuario, si la proporciona.
+## Inputs
 
-Si el JSON está vacío, corrupto o no contiene conversación recuperable, no crees la nota. Explica el problema concreto y solicita una entrada válida.
+- A readable JSON transcript, either as a file or pasted by the user. Inspect its actual schema; do not assume field names. Identify turns, speakers, timestamps, and metadata when they exist.
+- A date given by the user, if any.
 
-## Procedimiento
+If the JSON is empty, corrupt, or contains no recoverable conversation, do not create the note. Explain the specific problem and ask for a valid input.
 
-1. Confirma que trabajas en el repositorio `intranet` y localiza su raíz. La documentación fuente es `docs/src`; no escribas en `docs/site`, que es salida generada.
-2. Revisa `docs/src/index.md`, la configuración `docs/zensical.toml` y, si existen, las notas de `docs/src/reuniones/` para conservar idioma, nomenclatura y estilo. No modifiques otras páginas salvo petición expresa.
-3. Lee toda la conversación y separa:
-   - contenido relacionado con el TFG Bancosol, su producto, requisitos, diseño, arquitectura, implementación, documentación, organización, evaluación o siguientes pasos;
-   - contenido personal, saludos, bromas, pausas y digresiones sin efecto sobre el proyecto.
-4. Excluye el segundo grupo. Si una intervención mezcla ambos, conserva solo la información relevante para el proyecto. No menciones que se omitió una conversación personal ni resumas datos personales innecesarios.
-5. Distingue de forma explícita lo discutido, lo acordado y lo pendiente. No inventes participantes, responsables, fechas límite, decisiones ni contexto. Conserva las dudas y atribuye una postura a una persona solo cuando el JSON la identifique con claridad y la atribución aporte valor.
-6. Determina la fecha de la reunión con este orden:
-   1. fecha indicada expresamente por el usuario;
-   2. fecha explícita y no ambigua en los metadatos o en el contenido de la reunión;
-   3. fecha incluida en el nombre del archivo de transcripción;
-   4. fecha de modificación del archivo.
+## Procedure
 
-   No uses la fecha de procesamiento como si fuera la de la reunión. Si no existe ninguna fuente de fecha, pregunta al usuario antes de escribir.
-7. Determina la duración de la reunión con este orden:
-   1. duración explícita en los metadatos;
-   2. diferencia entre la primera marca de inicio y la última marca de finalización de la conversación;
-   3. duración del archivo de audio o vídeo de origen, si está disponible.
+1. Confirm that you are in the `intranet` repository and locate its root. The documentation source is `docs/` and the site configuration is `zensical.toml` at the root. Do not write to `build/docs/`, which is generated output.
+2. Review `docs/index.md`, `zensical.toml`, and the existing notes in `docs/reuniones/` to keep their language, naming, and style. Do not modify other pages unless explicitly asked.
+3. Read the whole conversation and separate:
+   - content related to the Bancosol TFG: its product, requirements, design, architecture, implementation, documentation, organization, evaluation, or next steps;
+   - personal content, greetings, jokes, pauses, and digressions with no effect on the project.
+4. Exclude the second group. If a turn mixes both, keep only the project-relevant information. Do not mention that a personal conversation was omitted, and do not summarize unnecessary personal data.
+5. Explicitly distinguish what was discussed, what was agreed, and what is pending. Do not invent participants, owners, deadlines, decisions, or context. Keep doubts as doubts, and attribute a position to a person only when the JSON clearly identifies them and the attribution adds value.
+6. Determine the meeting date in this order:
+   1. a date explicitly given by the user;
+   2. an explicit, unambiguous date in the metadata or in the meeting content;
+   3. a date included in the transcript file name;
+   4. the file modification date.
 
-   Redondea al minuto más cercano —30 segundos o más redondean hacia arriba— y usa el formato `X h Y min`, incluyendo los valores cero cuando corresponda. Si ninguna fuente permite calcularla con fiabilidad, escribe `No consta en la reunión`; no inventes una duración.
-8. Crea `docs/src/reuniones/` si no existe y usa `assets/meeting-note-template.md` como estructura. El archivo se llamará `nota-reunion-AAAA-MM-DD.md`. Si ya existe una nota distinta para esa fecha, no la sobrescribas: usa el primer sufijo libre (`-2`, `-3`, etc.) e informa de ello.
-9. Redacta en español y en Markdown compatible con Zensical. Resume y parafrasea; no vuelques la transcripción completa ni incluyas citas extensas. El resultado debe entenderse sin leer el JSON original.
-10. Elimina de la plantilla las instrucciones entre comentarios. Conserva todas las secciones y todos los campos de `Datos de la reunión`; cuando no haya datos verificables, escribe `No consta en la reunión` o `No se identificaron`, según corresponda.
-11. Verifica el archivo creado, ejecuta `git diff --check` y, si el entorno documental ya está instalado, `make docs-build`. No instales dependencias solo para esta comprobación. Informa de la ruta, la fecha elegida, la duración y cualquier validación que no hayas podido ejecutar.
+   Do not use the processing date as the meeting date. If there is no date source, ask the user before writing.
+7. Determine the meeting duration in this order:
+   1. an explicit duration in the metadata;
+   2. the difference between the first start timestamp and the last end timestamp of the conversation;
+   3. the duration of the source audio or video file, if available.
 
-## Límites
+   Round to the nearest minute (30 seconds or more rounds up) and use the format `X h Y min`, including zero values where needed. If no source allows a reliable calculation, write `No consta en la reunión`; do not invent a duration.
+8. Create `docs/reuniones/` if it does not exist and use `assets/meeting-note-template.md` as the structure. Name the file `nota-reunion-AAAA-MM-DD.md`. If a different note already exists for that date, do not overwrite it: use the first free suffix (`-2`, `-3`, etc.) and report it.
+9. Write the note in Spanish, in Zensical-compatible Markdown. Summarize and paraphrase; do not dump the full transcript or include long quotes. The note must be understandable without reading the original JSON.
+10. Remove the commented instructions from the template. Keep every section and every field of `Datos de la reunión`; when there is no verifiable data, write `No consta en la reunión` or `No se identificaron`, as appropriate.
+11. Check the created file, run `git diff --check` and, if the documentation environment is already installed, `make docs-build`. Do not install dependencies only for this check. Report the path, the chosen date, the duration, and any check you could not run.
 
-- No conserves una copia de la transcripción completa dentro de `docs/` salvo petición expresa.
-- No crees ni actualices issues, pull requests, requisitos, ADR u otros documentos sin autorización específica.
-- Si la transcripción contradice documentación existente, no decidas cuál es correcta: registra la discrepancia en `Puntos por explorar` con lenguaje neutral.
-- Trata nombres, correos y otros datos personales como información privada; incluye solo lo necesario para comprender responsabilidades del proyecto.
+## Limits
+
+- Do not keep a copy of the full transcript in `docs/` unless explicitly asked.
+- Do not create or update issues, pull requests, requirements, ADRs, or other documents without specific authorization.
+- If the transcript contradicts existing documentation, do not decide which one is correct: record the discrepancy in `Puntos por explorar` in neutral language.
+- Treat names, emails, and other personal data as private information; include only what is needed to understand project responsibilities.
