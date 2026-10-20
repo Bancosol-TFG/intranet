@@ -16,7 +16,7 @@ description: Write commit messages for the Bancosol intranet repository with Con
 ```
 
 - **Type** (required, English, lowercase): `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, or `style`.
-- **Scope** (optional, English, lowercase): the area touched. Current scopes: `frontend`, `api`, `db`, `docs`, `ci`. Omit it when the change spans several areas.
+- **Scope** (English, lowercase): the area touched. Always include one when it fits. Current scopes: `frontend`, `api`, `db`, `docs`, `ci`, `ia` (agent configuration: `AGENTS.md`, skills, and AI setup). Omit it only when the change spans several areas with no single fit.
 - **Summary** (required, Spanish): starts with a verb in the infinitive and in lowercase, has no final period, and stays under about 72 characters.
 - **Body** (optional, Spanish): explain why, not what, when the summary is not enough. Wrap at about 72 characters.
 - **Footer** (optional): `BREAKING CHANGE: <descripción>` for incompatible changes. Issue references belong in the pull request, not in each commit.

@@ -16,13 +16,13 @@ description: Write and open pull requests in the Bancosol intranet repository wi
 
 ## Title
 
-Use the format of the main commit, in Spanish, without the issue number:
+Use the format of the main commit, in Spanish, without the issue number. Always include the scope when one fits (see `tfg-commit-conventions`):
 
 ```text
 <type>(<scope>): <resumen en español>
 ```
 
-Example: `feat(frontend): configurar base React con TanStack`.
+Examples: `feat(frontend): configurar base React con TanStack`, `chore(ia): configurar el proyecto para desarrollo con IA`.
 
 ## Description
 
