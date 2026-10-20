@@ -88,14 +88,6 @@ de código, módulos compartidos, permisos por endpoint, tests, decisiones de
 arquitectura y la forma de documentar. Las skills describen procedimientos
 concretos; lo que debe cumplirse en todos los casos va en `AGENTS.md`.
 
-Cada integrante elige la herramienta, el plan y el modelo con los que trabaja. El
-repositorio no define un flujo de planificación ni subagentes, porque dependen de
-los planes de cada uno.
-
-Las decisiones pendientes (autenticación de producción, lista de roles y si la
-aplicación móvil forma parte de este repositorio) no se implementan hasta que el
-equipo las acuerde.
-
 ## Añadir o modificar skills
 
 - Crea o edita siempre las skills en `.agents/skills/<nombre>/SKILL.md`; el
