@@ -81,6 +81,21 @@ cuando se pide por su nombre (por ejemplo, `/tfg-pr-review` en Claude Code o
    Necesita la aprobación de los otros dos integrantes y se integra con merge,
    sin squash.
 
+## Reglas del equipo
+
+`AGENTS.md` recoge las reglas que los agentes deben cumplir siempre: convenciones
+de código, módulos compartidos, permisos por endpoint, tests, decisiones de
+arquitectura y la forma de documentar. Las skills describen procedimientos
+concretos; lo que debe cumplirse en todos los casos va en `AGENTS.md`.
+
+Cada integrante elige la herramienta, el plan y el modelo con los que trabaja. El
+repositorio no define un flujo de planificación ni subagentes, porque dependen de
+los planes de cada uno.
+
+Las decisiones pendientes (autenticación de producción, lista de roles y si la
+aplicación móvil forma parte de este repositorio) no se implementan hasta que el
+equipo las acuerde.
+
 ## Añadir o modificar skills
 
 - Crea o edita siempre las skills en `.agents/skills/<nombre>/SKILL.md`; el

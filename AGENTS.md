@@ -27,8 +27,31 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
   - Skills are written in English, but the content they produce for the team must be in Spanish.
 - Open pull requests against `dev`.
 - Do not edit `.env`, `frontend/src/routeTree.gen.ts`, or `volumes/`.
-- Before proposing an architecture change, check the ADRs in `docs/adr/`.
+- Before proposing an architecture change, check the ADRs in `docs/adr/`. If a decision on architecture or technology is needed, ask the team first and record it as an ADR. Do not decide it silently in code.
+- Deliver each feature complete in one pull request: backend, frontend, tests, and documentation.
+- Tests must check real behavior. Do not write tests that always pass.
+- Every endpoint declares the roles allowed to use it. If the roles are not specified, ask before implementing.
+- Do not create a changelog file. The pull request description lists the changes and serves as the record.
+- Do not prescribe a model, a planning flow, or subagents. Each developer chooses their own tools.
 - Update the documentation together with the code. If a change alters commands, configuration, environment variables, ports, conventions, the data model, or a recorded decision, update `docs/` (or `model.dbml`, a `README.md`, or the related ADR) in the same pull request. Follow the `tfg-project-docs` skill.
+
+## Code
+
+- Identifiers and code in English. Do not write comments; names must explain the code.
+- Constants in `UPPER_SNAKE_CASE`, at the top of the file, right below the imports.
+- `camelCase` for functions and variables, with descriptive names. Do not use one-letter names.
+- Keep functions short, reusable, and with a single clear responsibility.
+- Keep the code of the three developers consistent with each other.
+
+## Modules
+
+- Shared domain modules: `Users`, `Auth`, `Collaborator`, `Shops`, `Campaigns`, `Logs`, `Territory`, `Turns`, `Auditory`, `Notifications`, `Reports`. Backend, frontend, and the mobile app share these concepts.
+- Each backend module uses the layers `Controller`, `DTO`, `Entity`, `Exception`, `Repository`, and `Service`.
+- Ask for human validation before creating a new folder or module.
+
+## Pending decisions
+
+Do not implement these without an agreed decision: the production authentication system (requires an ADR), the list of roles, and whether the mobile app is part of this repository.
 
 ## Skills
 
