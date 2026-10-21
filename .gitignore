@@ -11,3 +11,6 @@ build
 volumes
 .cache
 .venv-docs
+
+# Configuración local de agentes de IA
+.claude/settings.local.json
