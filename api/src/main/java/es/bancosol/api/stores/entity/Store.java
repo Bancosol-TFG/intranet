@@ -1,7 +1,7 @@
-package es.bancosol.api.stores.store.entity;
+package es.bancosol.api.stores.entity;
 
 import java.time.Instant;
-import es.bancosol.api.stores.chain.entity.Chain;
+import es.bancosol.api.stores.entity.Chain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

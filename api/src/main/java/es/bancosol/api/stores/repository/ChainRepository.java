@@ -1,10 +1,10 @@
-package es.bancosol.api.stores.chain.repository;
+package es.bancosol.api.stores.repository;
 
 import java.util.Optional;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
-import es.bancosol.api.stores.chain.entity.Chain;
+import es.bancosol.api.stores.entity.Chain;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

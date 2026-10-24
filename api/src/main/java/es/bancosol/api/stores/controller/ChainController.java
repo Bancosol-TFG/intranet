@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.chain.controller;
+package es.bancosol.api.stores.controller;
 
-import es.bancosol.api.stores.chain.dto.ChainRequest;
-import es.bancosol.api.stores.chain.dto.ChainResponse;
-import es.bancosol.api.stores.chain.service.ChainService;
+import es.bancosol.api.stores.dto.ChainRequest;
+import es.bancosol.api.stores.dto.ChainResponse;
+import es.bancosol.api.stores.service.ChainService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
