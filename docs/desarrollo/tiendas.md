@@ -1,6 +1,6 @@
 # Tiendas
 
-El módulo `stores` agrupa los submódulos relacionados con tiendas. El submódulo `chain` gestiona las cadenas en la tabla `chains`.
+El módulo `stores` gestiona cadenas y tiendas en las tablas `chains` y `stores`. Sus clases se organizan por capas directamente en `es.bancosol.api.stores`: `controller`, `dto`, `entity`, `repository` y `service`.
 
 ## Cadenas
 
@@ -35,7 +35,7 @@ Los errores usan el manejo por defecto de Spring. Temporalmente, la configuraci�
 
 ## Tiendas
 
-El submódulo `store` gestiona la tabla `stores`. Localidades (`locality_id`) y zonas (`zone_id`) quedan pendientes y no forman parte de la tabla ni del contrato actual.
+Las tiendas se guardan en la tabla `stores`. Localidades (`locality_id`) y zonas (`zone_id`) quedan pendientes y no forman parte de la tabla ni del contrato actual.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
