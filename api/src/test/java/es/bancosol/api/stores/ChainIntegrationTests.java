@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.chain;
+package es.bancosol.api.stores;
 
 import java.util.UUID;
-import es.bancosol.api.stores.chain.entity.Chain;
-import es.bancosol.api.stores.chain.repository.ChainRepository;
+import es.bancosol.api.stores.entity.Chain;
+import es.bancosol.api.stores.repository.ChainRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

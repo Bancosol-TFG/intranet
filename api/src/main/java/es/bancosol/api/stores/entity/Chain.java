@@ -1,4 +1,4 @@
-package es.bancosol.api.stores.chain.entity;
+package es.bancosol.api.stores.entity;
 
 import java.time.Instant;
 import jakarta.persistence.Column;

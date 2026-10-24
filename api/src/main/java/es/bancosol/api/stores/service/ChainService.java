@@ -1,10 +1,10 @@
-package es.bancosol.api.stores.chain.service;
+package es.bancosol.api.stores.service;
 
 import java.time.Instant;
-import es.bancosol.api.stores.chain.dto.ChainRequest;
-import es.bancosol.api.stores.chain.dto.ChainResponse;
-import es.bancosol.api.stores.chain.entity.Chain;
-import es.bancosol.api.stores.chain.repository.ChainRepository;
+import es.bancosol.api.stores.dto.ChainRequest;
+import es.bancosol.api.stores.dto.ChainResponse;
+import es.bancosol.api.stores.entity.Chain;
+import es.bancosol.api.stores.repository.ChainRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
