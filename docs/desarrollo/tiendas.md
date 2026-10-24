@@ -60,3 +60,26 @@ El borrado lógico registra `deleted_at`; las tiendas borradas quedan fuera de l
 No se puede borrar una cadena mientras conserve alguna tienda no borrada: devuelve 409 y mantiene la cadena. Cuando todas sus tiendas están borradas, permite la baja con 204. El alta y cambio de cadena de una tienda y el borrado de la cadena bloquean su fila dentro de la transacción y revalidan su estado para coordinar operaciones concurrentes.
 
 `StoreService.findStore(storeId)` devuelve la entidad de una tienda no borrada o lanza 404, para reutilizarla desde los horarios.
+
+## Horario semanal
+
+El submódulo `schedule` guarda en `schedules` los tramos de apertura de cada tienda. `weekDay` usa ISO: 1 es lunes y 7 es domingo. Cada día admite varios tramos.
+
+| Método | Ruta | Resultado |
+| --- | --- | --- |
+| GET | `/stores/{storeId}/schedules` | 200, los siete días sin paginación |
+| POST | `/stores/{storeId}/schedules` | 201, tramo creado |
+| PUT | `/stores/{storeId}/schedules/{scheduleId}` | 200, tramo actualizado |
+| DELETE | `/stores/{storeId}/schedules/{scheduleId}` | 204, baja lógica |
+
+Para crear o editar, envía `{"weekDay":1,"openingTime":"10:00","closingTime":"14:00"}`. Los tres campos son obligatorios; `weekDay` debe estar entre 1 y 7 y el cierre debe ser posterior a la apertura dentro del mismo día. La edición permite cambiar de día. POST y PUT devuelven `id`, `weekDay`, `openingTime` y `closingTime`.
+
+GET devuelve una lista ordenada de siete objetos con `weekDay` y `slots`. Cada tramo contiene `id`, `openingTime` y `closingTime`, ordenado por apertura. Un día cerrado tiene `slots: []`.
+
+Los intervalos son semiabiertos: `10:00–14:00` y `14:00–18:00` pueden coexistir. Se comprueba el solapamiento solo contra otros tramos no borrados de la misma tienda y día, excluyendo el propio al editar. Las escrituras bloquean la fila de la tienda durante la transacción para serializar la comprobación y el guardado. La baja registra `deleted_at`, conserva la auditoría y permite reutilizar el tramo horario.
+
+- 400: campos ausentes o nulos, día fuera de 1–7 o cierre anterior o igual a la apertura.
+- 404: tienda inexistente o borrada, o tramo inexistente, borrado o perteneciente a otra tienda al editar o borrar.
+- 409: solapamiento con otro tramo activo.
+
+La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `schedule.dto`, permiten reutilizar la validación del orden de las horas. El validador delega los valores nulos a las restricciones de cada petición; `ScheduleRequest` exige ambas horas con `@NotNull`. Las excepciones de calendario y el horario efectivo quedan pendientes de t-04.
