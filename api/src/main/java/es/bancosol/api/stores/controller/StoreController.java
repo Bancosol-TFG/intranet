@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.store.controller;
+package es.bancosol.api.stores.controller;
 
-import es.bancosol.api.stores.store.dto.StoreRequest;
-import es.bancosol.api.stores.store.dto.StoreResponse;
-import es.bancosol.api.stores.store.service.StoreService;
+import es.bancosol.api.stores.dto.StoreRequest;
+import es.bancosol.api.stores.dto.StoreResponse;
+import es.bancosol.api.stores.service.StoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

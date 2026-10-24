@@ -1,4 +1,4 @@
-package es.bancosol.api.stores.store.dto;
+package es.bancosol.api.stores.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

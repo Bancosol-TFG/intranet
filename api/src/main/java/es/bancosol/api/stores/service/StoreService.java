@@ -1,12 +1,12 @@
-package es.bancosol.api.stores.store.service;
+package es.bancosol.api.stores.service;
 
 import java.time.Instant;
-import es.bancosol.api.stores.chain.entity.Chain;
-import es.bancosol.api.stores.chain.repository.ChainRepository;
-import es.bancosol.api.stores.store.dto.StoreRequest;
-import es.bancosol.api.stores.store.dto.StoreResponse;
-import es.bancosol.api.stores.store.entity.Store;
-import es.bancosol.api.stores.store.repository.StoreRepository;
+import es.bancosol.api.stores.entity.Chain;
+import es.bancosol.api.stores.repository.ChainRepository;
+import es.bancosol.api.stores.dto.StoreRequest;
+import es.bancosol.api.stores.dto.StoreResponse;
+import es.bancosol.api.stores.entity.Store;
+import es.bancosol.api.stores.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

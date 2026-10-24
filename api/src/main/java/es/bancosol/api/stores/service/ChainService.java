@@ -5,7 +5,7 @@ import es.bancosol.api.stores.dto.ChainRequest;
 import es.bancosol.api.stores.dto.ChainResponse;
 import es.bancosol.api.stores.entity.Chain;
 import es.bancosol.api.stores.repository.ChainRepository;
-import es.bancosol.api.stores.store.repository.StoreRepository;
+import es.bancosol.api.stores.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

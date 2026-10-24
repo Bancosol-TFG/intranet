@@ -1,6 +1,6 @@
-package es.bancosol.api.stores.store.repository;
+package es.bancosol.api.stores.repository;
 
-import es.bancosol.api.stores.store.entity.Store;
+import es.bancosol.api.stores.entity.Store;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,7 +1,7 @@
-package es.bancosol.api.stores.store.dto;
+package es.bancosol.api.stores.dto;
 
-import es.bancosol.api.stores.chain.dto.ChainResponse;
-import es.bancosol.api.stores.store.entity.Store;
+import es.bancosol.api.stores.dto.ChainResponse;
+import es.bancosol.api.stores.entity.Store;
 
 public record StoreResponse(Integer id, String name, String address, Integer checkoutShelfs, ChainResponse chain) {
     public static StoreResponse from(Store store) {
