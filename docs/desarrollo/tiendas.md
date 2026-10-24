@@ -1,6 +1,6 @@
 # Tiendas
 
-El módulo `stores` agrupa los submódulos relacionados con tiendas. El submódulo `chain` gestiona las cadenas en la tabla `chains`.
+El módulo `stores` gestiona las cadenas en la tabla `chains`. Sus clases se organizan por capas directamente en `es.bancosol.api.stores`: `controller`, `dto`, `entity`, `repository` y `service`.
 
 ## Cadenas
 
