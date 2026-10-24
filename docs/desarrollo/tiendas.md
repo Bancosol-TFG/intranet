@@ -1,6 +1,6 @@
 # Tiendas
 
-El módulo `stores` gestiona cadenas y tiendas en las tablas `chains` y `stores`. Sus clases se organizan por capas directamente en `es.bancosol.api.stores`: `controller`, `dto`, `entity`, `repository` y `service`.
+El módulo `stores` gestiona cadenas, tiendas y horarios en las tablas `chains`, `stores`, `schedules` y `schedule_exceptions`. Sus clases se organizan por capas directamente en `es.bancosol.api.stores`: `controller`, `dto`, `entity`, `repository` y `service`.
 
 ## Cadenas
 
@@ -63,7 +63,7 @@ No se puede borrar una cadena mientras conserve alguna tienda no borrada: devuel
 
 ## Horario semanal
 
-El submódulo `schedule` guarda en `schedules` los tramos de apertura de cada tienda. `weekDay` usa ISO: 1 es lunes y 7 es domingo. Cada día admite varios tramos.
+Los tramos de apertura de cada tienda se guardan en `schedules`. `weekDay` usa ISO: 1 es lunes y 7 es domingo. Cada día admite varios tramos.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
@@ -82,7 +82,7 @@ Los intervalos son semiabiertos: `10:00–14:00` y `14:00–18:00` pueden coexis
 - 404: tienda inexistente o borrada, o tramo inexistente, borrado o perteneciente a otra tienda al editar o borrar.
 - 409: solapamiento con otro tramo activo.
 
-La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `schedule.dto`, permiten reutilizar la validación del orden de las horas. El validador delega los valores nulos a las restricciones de cada petición; `ScheduleRequest` exige ambas horas con `@NotNull`.
+La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `es.bancosol.api.stores.dto`, permiten reutilizar la validación del orden de las horas. El validador delega los valores nulos a las restricciones de cada petición; `ScheduleRequest` exige ambas horas con `@NotNull`.
 
 
 ## Excepciones por fecha
