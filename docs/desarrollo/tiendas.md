@@ -82,4 +82,36 @@ Los intervalos son semiabiertos: `10:00–14:00` y `14:00–18:00` pueden coexis
 - 404: tienda inexistente o borrada, o tramo inexistente, borrado o perteneciente a otra tienda al editar o borrar.
 - 409: solapamiento con otro tramo activo.
 
-La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `schedule.dto`, permiten reutilizar la validación del orden de las horas. El validador delega los valores nulos a las restricciones de cada petición; `ScheduleRequest` exige ambas horas con `@NotNull`. Las excepciones de calendario y el horario efectivo quedan pendientes de t-04.
+La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `schedule.dto`, permiten reutilizar la validación del orden de las horas. El validador delega los valores nulos a las restricciones de cada petición; `ScheduleRequest` exige ambas horas con `@NotNull`.
+
+
+## Excepciones por fecha
+
+Las excepciones de `schedule_exceptions` sustituyen todo el horario semanal de una fecha concreta. Se pueden guardar varios tramos de apertura o un único cierre completo.
+
+| Método | Ruta | Resultado |
+| --- | --- | --- |
+| GET | `/stores/{storeId}/schedule-exceptions` | 200, listado paginado |
+| POST | `/stores/{storeId}/schedule-exceptions` | 201, excepción creada |
+| PUT | `/stores/{storeId}/schedule-exceptions/{exceptionId}` | 200, excepción actualizada |
+| DELETE | `/stores/{storeId}/schedule-exceptions/{exceptionId}` | 204, baja lógica |
+
+Para abrir, envía `{"date":"2031-05-12","closed":false,"openingTime":"10:00","closingTime":"14:00"}`. Para cerrar, envía `{"date":"2031-05-12","closed":true}` sin horas o con ambas a `null`. POST y PUT devuelven `id`, `date`, `closed`, `openingTime` y `closingTime`. La fecha y `closed` son obligatorios. Un tramo abierto exige ambas horas y cierre posterior a apertura en el mismo día.
+
+El listado admite `page`, `size`, `sort` y los filtros opcionales `from` y `to`, en formato ISO `YYYY-MM-DD`, con ambos límites incluidos. Por defecto ordena por `date` y `openingTime` ascendentes. Devuelve `content` y `page`, con `size`, `number`, `totalElements` y `totalPages`.
+
+Los intervalos son semiabiertos: se admiten tramos adyacentes. Las escrituras bloquean la tienda durante la transacción. Las comprobaciones solo consideran excepciones no borradas de esa tienda y fecha, y excluyen la propia al editar. El borrado conserva la fila y su auditoría con `deleted_at` y permite reutilizar la fecha y las horas.
+
+- 400: fecha o `closed` ausentes o nulos, fecha u horas mal formadas, cierre con horas, apertura sin ambas horas, cierre anterior o igual a apertura, o `from` posterior a `to`.
+- 404: tienda inexistente o borrada, o excepción inexistente, borrada o de otra tienda al editar o borrar.
+- 409: solapamiento con otro tramo, cierre en una fecha con tramos abiertos, apertura en una fecha cerrada o segundo cierre de la misma fecha. También se aplican al editar.
+
+## Horario efectivo
+
+`GET /stores/{storeId}/schedule?date=2031-05-12` devuelve `storeId`, `date`, `source`, `closed` y `slots`. Cada tramo de `slots` contiene `openingTime` y `closingTime`, ordenado por apertura.
+
+Si existen excepciones no borradas para esa fecha, tienen prioridad sobre todos los tramos semanales: `source` es `EXCEPTION` y solo se devuelven sus tramos. Una excepción de cierre devuelve `closed: true` y `slots: []` aunque exista horario semanal.
+
+Si no hay excepciones activas, `source` es `WEEKLY` y se usan los tramos semanales del día ISO de la fecha. Sin tramos semanales, devuelve `closed: true` y `slots: []`. Al borrar la última excepción se recupera el horario semanal.
+
+La fecha es obligatoria: si falta o está mal formada devuelve 400. Una tienda inexistente o borrada devuelve 404.
