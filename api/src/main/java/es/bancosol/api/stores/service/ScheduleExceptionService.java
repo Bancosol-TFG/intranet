@@ -1,14 +1,14 @@
-package es.bancosol.api.stores.schedule.service;
+package es.bancosol.api.stores.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import es.bancosol.api.stores.schedule.dto.ScheduleExceptionRequest;
-import es.bancosol.api.stores.schedule.dto.ScheduleExceptionResponse;
-import es.bancosol.api.stores.schedule.entity.ScheduleException;
-import es.bancosol.api.stores.schedule.repository.ScheduleExceptionRepository;
-import es.bancosol.api.stores.store.entity.Store;
-import es.bancosol.api.stores.store.service.StoreService;
+import es.bancosol.api.stores.dto.ScheduleExceptionRequest;
+import es.bancosol.api.stores.dto.ScheduleExceptionResponse;
+import es.bancosol.api.stores.entity.ScheduleException;
+import es.bancosol.api.stores.repository.ScheduleExceptionRepository;
+import es.bancosol.api.stores.entity.Store;
+import es.bancosol.api.stores.service.StoreService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;

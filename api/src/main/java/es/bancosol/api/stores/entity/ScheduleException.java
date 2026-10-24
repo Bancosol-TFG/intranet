@@ -1,9 +1,9 @@
-package es.bancosol.api.stores.schedule.entity;
+package es.bancosol.api.stores.entity;
 
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.LocalDate;
-import es.bancosol.api.stores.store.entity.Store;
+import es.bancosol.api.stores.entity.Store;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

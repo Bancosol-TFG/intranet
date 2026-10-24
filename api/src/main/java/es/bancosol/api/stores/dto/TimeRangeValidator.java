@@ -1,4 +1,4 @@
-package es.bancosol.api.stores.schedule.dto;
+package es.bancosol.api.stores.dto;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

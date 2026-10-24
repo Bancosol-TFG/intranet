@@ -1,10 +1,10 @@
-package es.bancosol.api.stores.schedule.controller;
+package es.bancosol.api.stores.controller;
 
 import java.util.List;
-import es.bancosol.api.stores.schedule.dto.ScheduleDayResponse;
-import es.bancosol.api.stores.schedule.dto.ScheduleRequest;
-import es.bancosol.api.stores.schedule.dto.ScheduleResponse;
-import es.bancosol.api.stores.schedule.service.ScheduleService;
+import es.bancosol.api.stores.dto.ScheduleDayResponse;
+import es.bancosol.api.stores.dto.ScheduleRequest;
+import es.bancosol.api.stores.dto.ScheduleResponse;
+import es.bancosol.api.stores.service.ScheduleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

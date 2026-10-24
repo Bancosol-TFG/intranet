@@ -1,9 +1,9 @@
-package es.bancosol.api.stores.schedule.repository;
+package es.bancosol.api.stores.repository;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import es.bancosol.api.stores.schedule.entity.ScheduleException;
+import es.bancosol.api.stores.entity.ScheduleException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 

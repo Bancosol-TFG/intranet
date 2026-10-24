@@ -1,12 +1,12 @@
-package es.bancosol.api.stores.schedule.service;
+package es.bancosol.api.stores.service;
 
 import java.time.LocalDate;
-import es.bancosol.api.stores.schedule.dto.EffectiveScheduleResponse;
-import es.bancosol.api.stores.schedule.dto.EffectiveScheduleResponse.Slot;
-import es.bancosol.api.stores.schedule.dto.EffectiveScheduleResponse.Source;
-import es.bancosol.api.stores.schedule.repository.ScheduleExceptionRepository;
-import es.bancosol.api.stores.schedule.repository.ScheduleRepository;
-import es.bancosol.api.stores.store.service.StoreService;
+import es.bancosol.api.stores.dto.EffectiveScheduleResponse;
+import es.bancosol.api.stores.dto.EffectiveScheduleResponse.Slot;
+import es.bancosol.api.stores.dto.EffectiveScheduleResponse.Source;
+import es.bancosol.api.stores.repository.ScheduleExceptionRepository;
+import es.bancosol.api.stores.repository.ScheduleRepository;
+import es.bancosol.api.stores.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

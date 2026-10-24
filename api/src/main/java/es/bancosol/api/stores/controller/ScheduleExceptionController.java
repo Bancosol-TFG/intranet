@@ -1,9 +1,9 @@
-package es.bancosol.api.stores.schedule.controller;
+package es.bancosol.api.stores.controller;
 
 import java.time.LocalDate;
-import es.bancosol.api.stores.schedule.dto.ScheduleExceptionRequest;
-import es.bancosol.api.stores.schedule.dto.ScheduleExceptionResponse;
-import es.bancosol.api.stores.schedule.service.ScheduleExceptionService;
+import es.bancosol.api.stores.dto.ScheduleExceptionRequest;
+import es.bancosol.api.stores.dto.ScheduleExceptionResponse;
+import es.bancosol.api.stores.service.ScheduleExceptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

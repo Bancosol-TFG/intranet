@@ -1,4 +1,4 @@
-package es.bancosol.api.stores.schedule.dto;
+package es.bancosol.api.stores.dto;
 
 import java.time.LocalDate;
 import java.time.LocalTime;

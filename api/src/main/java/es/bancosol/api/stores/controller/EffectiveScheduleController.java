@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.schedule.controller;
+package es.bancosol.api.stores.controller;
 
 import java.time.LocalDate;
-import es.bancosol.api.stores.schedule.dto.EffectiveScheduleResponse;
-import es.bancosol.api.stores.schedule.service.EffectiveScheduleService;
+import es.bancosol.api.stores.dto.EffectiveScheduleResponse;
+import es.bancosol.api.stores.service.EffectiveScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;

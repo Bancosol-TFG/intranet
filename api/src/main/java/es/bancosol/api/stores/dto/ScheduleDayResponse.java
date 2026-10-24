@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.schedule.dto;
+package es.bancosol.api.stores.dto;
 
 import java.time.LocalTime;
 import java.util.List;
-import es.bancosol.api.stores.schedule.entity.Schedule;
+import es.bancosol.api.stores.entity.Schedule;
 
 public record ScheduleDayResponse(Integer weekDay, List<Slot> slots) {
     public record Slot(Integer id, LocalTime openingTime, LocalTime closingTime) {

@@ -1,8 +1,8 @@
-package es.bancosol.api.stores.schedule.dto;
+package es.bancosol.api.stores.dto;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import es.bancosol.api.stores.schedule.entity.ScheduleException;
+import es.bancosol.api.stores.entity.ScheduleException;
 
 public record ScheduleExceptionResponse(Integer id, LocalDate date, boolean closed,
                                         LocalTime openingTime, LocalTime closingTime) {
