@@ -11,6 +11,7 @@ function HomePage() {
     <main className="page">
       <h1>Intranet</h1>
       <nav className="card-list">
+        <Link to="/campaigns">Campañas</Link>
         <Link to="/campaign-types">Tipos de campaña</Link>
       </nav>
     </main>
