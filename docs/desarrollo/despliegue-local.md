@@ -36,6 +36,7 @@ Compose usa estos valores:
 | `APP_PORT` | `8080` | API |
 | `DB_PORT` | `5432` | PostgreSQL |
 | `DOCS_PORT` | `8001` | Documentación Zensical |
+| `FRONTEND_PORT` | `5173` | Frontend |
 
 Por ejemplo, puedes cambiar `APP_PORT` o `DOCS_PORT` si esos puertos ya están
 ocupados. Drizzle Studio publica el puerto `5433`, configurado directamente en
@@ -55,12 +56,17 @@ del control de versiones.
 | Servicio | Acceso desde el equipo local | Puerto dentro de Compose |
 | --- | --- | --- |
 | API (`app`) | `http://localhost:${APP_PORT:-8080}` | `8080` |
+| Frontend (`frontend`) | `http://localhost:${FRONTEND_PORT:-5173}` | `5173` |
 | PostgreSQL (`postgres`) | `localhost:${DB_PORT:-5432}` | `5432`; otras aplicaciones de Compose usan `postgres:5432` |
 | Drizzle Studio (`drizzle-studio`) | `http://localhost:5433` | `4983` |
 | Documentación (`docs`) | `http://localhost:${DOCS_PORT:-8001}` | `8000` |
 
 La API y Drizzle Studio esperan a que la comprobación de salud de PostgreSQL
 indique que está listo. La documentación no depende de la base de datos.
+
+Durante el desarrollo, Vite redirige las rutas de la API al backend indicado en
+`VITE_API_PROXY_TARGET`. Compose lo configura como `http://app:8080`; si ejecutas
+Vite en el equipo local, el valor predeterminado es `http://localhost:8080`.
 
 ## Arrancar y detener
 
