@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { campaignTypesApi, type CampaignType } from "./api";
+import { campaignTypesApi, type CampaignType } from "./api/campaign-types";
 
 export function CampaignTypesPage() {
   const queryClient = useQueryClient();

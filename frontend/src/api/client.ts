@@ -1,8 +1,3 @@
-export type CampaignType = {
-  id: number;
-  name: string;
-};
-
 export type PageResponse<T> = {
   content: T[];
   page: {
@@ -13,17 +8,13 @@ export type PageResponse<T> = {
   };
 };
 
-type CampaignTypePayload = {
-  name: string;
-};
-
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "");
 
 if (!BACKEND_URL) {
   throw new Error("VITE_BACKEND_URL must be defined.");
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BACKEND_URL}${path}`, {
     ...init,
     headers: {
@@ -55,28 +46,3 @@ async function errorMessage(response: Response): Promise<string> {
   }
   return "No se ha podido completar la operación.";
 }
-
-export const campaignTypesApi = {
-  list(name: string, page: number) {
-    const params = new URLSearchParams({ page: String(page), size: "10", sort: "name,asc" });
-    if (name) {
-      params.set("name", name);
-    }
-    return request<PageResponse<CampaignType>>(`/campaign-types?${params.toString()}`);
-  },
-  create(payload: CampaignTypePayload) {
-    return request<CampaignType>("/campaign-types", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  },
-  update(campaignTypeId: number, payload: CampaignTypePayload) {
-    return request<CampaignType>(`/campaign-types/${campaignTypeId}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
-  },
-  remove(campaignTypeId: number) {
-    return request<void>(`/campaign-types/${campaignTypeId}`, { method: "DELETE" });
-  },
-};

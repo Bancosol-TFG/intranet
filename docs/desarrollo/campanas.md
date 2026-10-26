@@ -34,4 +34,4 @@ Los errores usan el manejo por defecto de Spring. Temporalmente, la configuraci�
 
 ## Interfaz
 
-La ruta `/campaign-types` de la intranet permite crear, consultar, editar y eliminar tipos de campaña. El formulario valida que el nombre no esté vacío, el listado permite buscar por nombre y la paginación muestra diez registros por página. El frontend usa `VITE_BACKEND_URL` como prefijo obligatorio de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. En desarrollo, Vite redirige `/api` al backend indicado por `VITE_API_PROXY_TARGET` y elimina el prefijo antes de reenviar la petición.
+La ruta `/campaign-types` de la intranet permite crear, consultar, editar y eliminar tipos de campaña. El formulario valida que el nombre no esté vacío, el listado permite buscar por nombre y la paginación muestra diez registros por página. El frontend usa `VITE_BACKEND_URL` como URL base obligatoria de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. Las llamadas a la API están en `frontend/src/api/`, con un módulo por recurso y un wrapper común en `client.ts`.

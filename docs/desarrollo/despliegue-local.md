@@ -27,7 +27,7 @@ Edita `.env` y define estas variables obligatorias:
 | `DB_NAME` | Nombre de la base de datos que crea PostgreSQL. |
 | `DB_USER` | Usuario de PostgreSQL. |
 | `DB_PASSWORD` | Contraseña del usuario de PostgreSQL. |
-| `VITE_BACKEND_URL` | Prefijo obligatorio de las peticiones del frontend al backend, por ejemplo `/api`. |
+| `VITE_BACKEND_URL` | URL base de la API que usa el frontend, por ejemplo `http://localhost:8080`. |
 
 Los puertos publicados en el equipo local son opcionales. Si no los defines,
 Compose usa estos valores:
@@ -65,11 +65,9 @@ del control de versiones.
 La API y Drizzle Studio esperan a que la comprobación de salud de PostgreSQL
 indique que está listo. La documentación no depende de la base de datos.
 
-Durante el desarrollo, Vite redirige las peticiones que empiezan por `/api` al
-backend indicado en `VITE_API_PROXY_TARGET` y elimina ese prefijo antes de
-reenviarlas. Compose lo configura como `http://app:8080`; si ejecutas Vite en el
-equipo local, el valor predeterminado es `http://localhost:8080`. El frontend
-toma el prefijo de `VITE_BACKEND_URL`, que debe estar definido de forma explícita.
+El frontend llama a la API directamente con la URL de `VITE_BACKEND_URL`, por
+ejemplo `http://localhost:8080`. La API acepta peticiones desde
+`http://localhost:5173`, el origen del frontend en desarrollo.
 
 ## Arrancar y detener
 

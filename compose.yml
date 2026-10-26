@@ -8,7 +8,6 @@ services:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:
       VITE_BACKEND_URL: ${VITE_BACKEND_URL}
-      VITE_API_PROXY_TARGET: http://app:8080
     volumes:
       - ./frontend:/workspace
       - /workspace/node_modules
