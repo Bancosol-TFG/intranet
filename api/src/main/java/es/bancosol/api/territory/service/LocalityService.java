@@ -55,6 +55,6 @@ public class LocalityService {
     }
 
     private String normalizeFilter(String filter) {
-        return filter == null || filter.isBlank() ? null : filter;
+        return filter == null || filter.isBlank() ? "" : filter;
     }
 }
