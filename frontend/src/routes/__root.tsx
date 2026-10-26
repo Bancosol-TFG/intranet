@@ -5,6 +5,7 @@ export const Route = createRootRoute({
     <>
       <nav className="navigation" aria-label="Navegación principal">
         <Link to="/">Intranet</Link>
+        <Link to="/collaborators">Colaboradores</Link>
         <Link to="/localities">Localidades</Link>
       </nav>
       <Outlet />

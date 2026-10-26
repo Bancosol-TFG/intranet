@@ -1,6 +1,7 @@
 package es.bancosol.api.territory.service;
 
 import java.time.Instant;
+import es.bancosol.api.collaborator.repository.CollaboratorRepository;
 import es.bancosol.api.territory.dto.LocalityRequest;
 import es.bancosol.api.territory.dto.LocalityResponse;
 import es.bancosol.api.territory.entity.Locality;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class LocalityService {
     private final LocalityRepository repository;
+    private final CollaboratorRepository collaborators;
 
     public Page<LocalityResponse> list(String name, String postalCode, Pageable pageable) {
         return repository.search(normalizeFilter(name), normalizeFilter(postalCode), pageable)
@@ -46,6 +48,9 @@ public class LocalityService {
     public void delete(Integer localityId) {
         Locality locality = repository.findForUpdate(localityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (collaborators.existsByLocalityId(localityId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        }
         locality.setDeletedAt(Instant.now());
     }
 
