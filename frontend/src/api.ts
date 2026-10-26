@@ -17,8 +17,14 @@ type CampaignTypePayload = {
   name: string;
 };
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "");
+
+if (!BACKEND_URL) {
+  throw new Error("VITE_BACKEND_URL must be defined.");
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(`${BACKEND_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

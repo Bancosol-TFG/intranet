@@ -65,7 +65,7 @@ describe("página de tipos de campaña", () => {
     expect(await screen.findByText("Tipo de campaña creado.")).toBeInTheDocument();
     expect(await screen.findByText("Recogida")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/campaign-types",
+      "/api/campaign-types",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ name: "Recogida" }),
