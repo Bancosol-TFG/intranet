@@ -4,6 +4,7 @@ import java.time.Instant;
 import es.bancosol.api.campaigns.dto.CampaignTypeRequest;
 import es.bancosol.api.campaigns.dto.CampaignTypeResponse;
 import es.bancosol.api.campaigns.entity.CampaignType;
+import es.bancosol.api.campaigns.repository.CampaignRepository;
 import es.bancosol.api.campaigns.repository.CampaignTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class CampaignTypeService {
     private final CampaignTypeRepository repository;
+    private final CampaignRepository campaignRepository;
 
     public Page<CampaignTypeResponse> list(String name, Pageable pageable) {
         return repository.findByNameContainingIgnoreCase(name == null ? "" : name, pageable)
@@ -44,7 +46,11 @@ public class CampaignTypeService {
 
     @Transactional
     public void delete(Integer campaignTypeId) {
-        findCampaignType(campaignTypeId).setDeletedAt(Instant.now());
+        CampaignType campaignType = findCampaignType(campaignTypeId);
+        if (campaignRepository.existsByCampaignTypeId(campaignTypeId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        }
+        campaignType.setDeletedAt(Instant.now());
     }
 
     private CampaignType findCampaignType(Integer campaignTypeId) {

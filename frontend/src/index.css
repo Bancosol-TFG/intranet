@@ -77,11 +77,24 @@ label {
   gap: 0.35rem;
 }
 
-input {
+input,
+select {
   border: 1px solid #9ca3af;
   border-radius: 0.35rem;
   font: inherit;
   padding: 0.55rem 0.7rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.form-actions {
+  align-items: end;
+  display: flex;
+  gap: 0.5rem;
 }
 
 button {
@@ -155,6 +168,8 @@ td {
   color: #0f766e;
   padding: 1rem;
   text-decoration: none;
+}
+
 .page {
   width: min(100%, 1100px);
   margin: auto;
