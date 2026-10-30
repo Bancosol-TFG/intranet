@@ -21,6 +21,16 @@ const LOGIN_PATH = "/login";
 
 let pendingRefresh: Promise<boolean> | null = null;
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response = await send(path, init);
 
@@ -33,7 +43,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new Error(await errorMessage(response));
+    throw new ApiError(response.status, errorMessage(response));
   }
 
   if (response.status === 204) {
@@ -73,12 +83,12 @@ function send(path: string, init?: RequestInit): Promise<Response> {
   });
 }
 
-async function errorMessage(response: Response): Promise<string> {
+function errorMessage(response: Response): string {
   if (response.status === 401) {
     return "El correo o la contraseña no son correctos.";
   }
   if (response.status === 409) {
-    return "Ya existe un registro con ese nombre.";
+    return "La operación entra en conflicto con los datos existentes.";
   }
   if (response.status === 404) {
     return "El registro ya no existe.";

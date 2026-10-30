@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { RouterProvider } from "@tanstack/react-router";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearSession, startSession } from "../api/session";
+import { clearSession, startSession } from "../shared/api/session";
 import { router } from "../router";
 
 describe("ruta inicial", () => {

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CampaignsPage } from "../campaigns-page";
+import { CampaignsPage } from "./CampaignsPage";
 
 function jsonResponse(body: unknown, status = 200) {
   return {

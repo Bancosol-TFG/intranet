@@ -1,5 +1,10 @@
-import { refreshSession, request } from "./client";
-import { clearSession, getCurrentUser, startSession, type AuthResponse } from "./session";
+import { refreshSession, request } from "../../shared/api/client";
+import {
+  clearSession,
+  getCurrentUser,
+  startSession,
+  type AuthResponse,
+} from "../../shared/api/session";
 
 const WEB_CLIENT = "WEB";
 

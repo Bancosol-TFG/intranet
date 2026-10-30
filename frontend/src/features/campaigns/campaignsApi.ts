@@ -1,20 +1,6 @@
-import { request, type PageResponse } from "./client";
+import { request, type PageResponse } from "../../shared/api/client";
 
-export type Campaign = {
-  id: number;
-  name: string;
-  campaignTypeId: number;
-  campaignTypeName: string;
-  startDate: string;
-  endDate: string;
-};
-
-export type CampaignPayload = {
-  name: string;
-  campaignTypeId: number;
-  startDate: string;
-  endDate: string;
-};
+import type { Campaign, CampaignPayload } from "./campaignTypes";
 
 export const campaignsApi = {
   list(name: string, campaignTypeId: string, page: number) {
@@ -39,7 +25,7 @@ export const campaignsApi = {
       body: JSON.stringify(payload),
     });
   },
-  remove(campaignId: number) {
+  delete(campaignId: number) {
     return request<void>(`/campaigns/${campaignId}`, { method: "DELETE" });
   },
 };

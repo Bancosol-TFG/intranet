@@ -1,6 +1,6 @@
 import { createRootRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
-import { authApi } from "../api/auth";
-import { getCurrentUser } from "../api/session";
+import { authApi } from "../features/auth/authApi";
+import { getCurrentUser } from "../shared/api/session";
 
 const LOGIN_ROUTE = "/login";
 const CHANGE_PASSWORD_ROUTE = "/change-password";

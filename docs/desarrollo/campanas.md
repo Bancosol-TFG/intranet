@@ -60,4 +60,4 @@ El borrado es lógico y conserva `deleted_at`. Las campañas borradas no aparece
 
 ## Interfaz
 
-La ruta `/campaign-types` de la intranet permite crear, consultar, editar y eliminar tipos de campaña y campañas. El formulario valida que el nombre no esté vacío, el listado permite buscar por nombre y la paginación muestra diez registros por página. El frontend usa `VITE_BACKEND_URL` como URL base obligatoria de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. Las llamadas a la API están en `frontend/src/api/`, con un módulo por recurso y un wrapper común en `client.ts`.
+La ruta `/campaign-types` de la intranet permite crear, consultar, editar y eliminar tipos de campaña y campañas. El formulario valida que el nombre no esté vacío, el listado permite buscar por nombre y la paginación muestra diez registros por página. El frontend usa `VITE_BACKEND_URL` como URL base obligatoria de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. Las operaciones de campañas y tipos de campaña están en `frontend/src/features/campaigns/` y usan el cliente común de `frontend/src/shared/api/client.ts`.

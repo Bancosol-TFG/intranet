@@ -1,13 +1,6 @@
-import { request, type PageResponse } from "./client";
+import { request, type PageResponse } from "../../shared/api/client";
 
-export type CampaignType = {
-  id: number;
-  name: string;
-};
-
-export type CampaignTypePayload = {
-  name: string;
-};
+import type { CampaignType, CampaignTypePayload } from "./campaignTypes";
 
 export const campaignTypesApi = {
   list(name: string, page: number) {
@@ -33,7 +26,7 @@ export const campaignTypesApi = {
       body: JSON.stringify(payload),
     });
   },
-  remove(campaignTypeId: number) {
+  delete(campaignTypeId: number) {
     return request<void>(`/campaign-types/${campaignTypeId}`, { method: "DELETE" });
   },
 };

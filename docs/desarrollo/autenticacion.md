@@ -27,6 +27,6 @@ El código que modifique roles o permisos debe llamar a `PermissionChangeTracker
 
 ## Frontend
 
-`frontend/src/api/client.ts` añade el token a cada petición. Ante un 401 renueva la sesión una sola vez, aunque fallen varias peticiones a la vez, y repite la petición. Si no puede renovarla, redirige a `/login`.
+`frontend/src/shared/api/client.ts` añade el token a cada petición. Ante un 401 renueva la sesión una sola vez, aunque fallen varias peticiones a la vez, y repite la petición. Si no puede renovarla, redirige a `/login`.
 
 La cookie es `Secure`: en desarrollo funciona en `localhost`, pero no en otro host servido por HTTP.

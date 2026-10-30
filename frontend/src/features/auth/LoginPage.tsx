@@ -1,28 +1,23 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { authApi } from "./api/auth";
+import { useLogin } from "./useAuth";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const login = useLogin();
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setError("");
-    try {
-      const user = await authApi.login(email, password);
-      await navigate({ to: user.mustChangePassword ? "/change-password" : "/" });
-    } catch (loginError) {
-      setError((loginError as Error).message);
-    }
+    const user = await login.mutateAsync({ email, password });
+    await navigate({ to: user.mustChangePassword ? "/change-password" : "/" });
   }
 
   return (
     <main className="page">
       <h1>Iniciar sesión</h1>
-      <form onSubmit={(event) => void submit(event)}>
+      <form onSubmit={(event) => void submit(event).catch(() => undefined)}>
         <label>
           Correo electrónico
           <input
@@ -41,7 +36,7 @@ export function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
-        {error && <p role="alert">{error}</p>}
+        {login.error && <p role="alert">{login.error.message}</p>}
         <button type="submit">Entrar</button>
       </form>
     </main>

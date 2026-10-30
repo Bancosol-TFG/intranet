@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { authApi } from "./api/auth";
+import { useChangePassword } from "./useAuth";
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
@@ -9,23 +9,18 @@ export function ChangePasswordPage() {
   const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState("");
+  const changePassword = useChangePassword();
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setError("");
-    try {
-      await authApi.changePassword(currentPassword, newPassword);
-      await navigate({ to: "/login" });
-    } catch (changeError) {
-      setError((changeError as Error).message);
-    }
+    await changePassword.mutateAsync({ currentPassword, newPassword });
+    await navigate({ to: "/login" });
   }
 
   return (
     <main className="page">
       <h1>Cambiar contraseña</h1>
-      <form onSubmit={(event) => void submit(event)}>
+      <form onSubmit={(event) => void submit(event).catch(() => undefined)}>
         <label>
           Contraseña actual
           <input
@@ -46,7 +41,7 @@ export function ChangePasswordPage() {
             onChange={(event) => setNewPassword(event.target.value)}
           />
         </label>
-        {error && <p role="alert">{error}</p>}
+        {changePassword.error && <p role="alert">{changePassword.error.message}</p>}
         <button type="submit">Guardar</button>
       </form>
     </main>
