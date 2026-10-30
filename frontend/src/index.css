@@ -1,17 +1,40 @@
 :root {
   font-family: system-ui, sans-serif;
+  color: #1c3042;
+  background: #f4f7fa;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
 }
-
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  background: #153b56;
+}
+.navigation a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.25rem;
+}
+.navigation a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.4rem;
+}
+a {
+  color: #125b84;
+}
 h1 {
   margin: 1rem;
 }
@@ -132,4 +155,120 @@ td {
   color: #0f766e;
   padding: 1rem;
   text-decoration: none;
+.page {
+  width: min(100%, 1100px);
+  margin: auto;
+  padding: 1.5rem;
+}
+.page h1 {
+  margin: 0 0 0.5rem;
+}
+.page-header {
+  margin-bottom: 1.5rem;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #d5e0e8;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.panel h2 {
+  margin-top: 0;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+input,
+select,
+button {
+  font: inherit;
+}
+input,
+select {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #8294a3;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: inherit;
+}
+button {
+  padding: 0.65rem 1rem;
+  border: 1px solid #125b84;
+  border-radius: 0.25rem;
+  background: #125b84;
+  color: #fff;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid #b45b09;
+  outline-offset: 3px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+th,
+td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #d5e0e8;
+  text-align: left;
+}
+th {
+  background: #edf3f7;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.status {
+  padding: 0.8rem;
+  background: #e6f3eb;
+  border-radius: 0.25rem;
+}
+.error-message {
+  padding: 0.8rem;
+  background: #fff0ee;
+  color: #8b2520;
+  border-radius: 0.25rem;
+}
+@media (max-width: 600px) {
+  .page {
+    padding: 1rem;
+  }
+  .panel {
+    padding: 1rem;
+  }
+  .navigation {
+    padding: 1rem;
+  }
 }

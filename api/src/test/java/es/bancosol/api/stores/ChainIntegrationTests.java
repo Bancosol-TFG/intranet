@@ -3,6 +3,8 @@ package es.bancosol.api.stores;
 import java.util.UUID;
 import es.bancosol.api.stores.entity.Chain;
 import es.bancosol.api.stores.repository.ChainRepository;
+import es.bancosol.api.stores.entity.Store;
+import es.bancosol.api.stores.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +29,8 @@ class ChainIntegrationTests {
     private MockMvc mockMvc;
     @Autowired
     private ChainRepository repository;
+    @Autowired
+    private StoreRepository storeRepository;
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -144,6 +148,27 @@ class ChainIntegrationTests {
                 .isEqualTo(2);
         mockMvc.perform(get("/chains").param("code", code)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.page.totalElements").value(1));
+    }
+
+    @Test
+    void blocksDeletionUntilAllStoresAreSoftDeleted() throws Exception {
+        Chain chain = repository.save(new Chain(uniqueCode()));
+        Store first = storeRepository.save(new Store(uniqueCode(), "Address", 0, chain));
+        Store second = storeRepository.save(new Store(uniqueCode(), "Address", 1, chain));
+        mockMvc.perform(delete("/chains/{chainId}", chain.getId())).andExpect(status().isConflict());
+        entityManager.flush();
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM chains WHERE id = ?", java.sql.Timestamp.class,
+                chain.getId())).isNull();
+        mockMvc.perform(get("/chains/{chainId}", chain.getId())).andExpect(status().isOk());
+        mockMvc.perform(delete("/stores/{storeId}", first.getId())).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/chains/{chainId}", chain.getId())).andExpect(status().isConflict());
+        mockMvc.perform(delete("/stores/{storeId}", second.getId())).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/chains/{chainId}", chain.getId())).andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM chains WHERE id = ?", java.sql.Timestamp.class,
+                chain.getId())).isNotNull();
+        mockMvc.perform(get("/chains/{chainId}", chain.getId())).andExpect(status().isNotFound());
     }
 
     private String uniqueCode() {

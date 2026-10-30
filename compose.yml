@@ -2,6 +2,8 @@ services:
   frontend:
     container_name: bancosol-frontend
     image: node:22-alpine
+    environment:
+      VITE_API_PROXY_TARGET: http://app:8080
     working_dir: /workspace
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
     ports:
