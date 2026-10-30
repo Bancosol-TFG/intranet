@@ -8,6 +8,8 @@ services:
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL}
     volumes:
       - ./frontend:/workspace
       - /workspace/node_modules

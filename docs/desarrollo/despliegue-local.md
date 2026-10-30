@@ -27,6 +27,7 @@ Edita `.env` y define estas variables obligatorias:
 | `DB_NAME` | Nombre de la base de datos que crea PostgreSQL. |
 | `DB_USER` | Usuario de PostgreSQL. |
 | `DB_PASSWORD` | Contraseña del usuario de PostgreSQL. |
+| `VITE_BACKEND_URL` | URL base de la API que usa el frontend, por ejemplo `http://localhost:8080`. |
 
 Los puertos publicados en el equipo local son opcionales. Si no los defines,
 Compose usa estos valores:
@@ -36,6 +37,7 @@ Compose usa estos valores:
 | `APP_PORT` | `8080` | API |
 | `DB_PORT` | `5432` | PostgreSQL |
 | `DOCS_PORT` | `8001` | Documentación Zensical |
+| `FRONTEND_PORT` | `5173` | Frontend |
 
 Por ejemplo, puedes cambiar `APP_PORT` o `DOCS_PORT` si esos puertos ya están
 ocupados. Drizzle Studio publica el puerto `5433`, configurado directamente en
@@ -55,12 +57,17 @@ del control de versiones.
 | Servicio | Acceso desde el equipo local | Puerto dentro de Compose |
 | --- | --- | --- |
 | API (`app`) | `http://localhost:${APP_PORT:-8080}` | `8080` |
+| Frontend (`frontend`) | `http://localhost:${FRONTEND_PORT:-5173}` | `5173` |
 | PostgreSQL (`postgres`) | `localhost:${DB_PORT:-5432}` | `5432`; otras aplicaciones de Compose usan `postgres:5432` |
 | Drizzle Studio (`drizzle-studio`) | `http://localhost:5433` | `4983` |
 | Documentación (`docs`) | `http://localhost:${DOCS_PORT:-8001}` | `8000` |
 
 La API y Drizzle Studio esperan a que la comprobación de salud de PostgreSQL
 indique que está listo. La documentación no depende de la base de datos.
+
+El frontend llama a la API directamente con la URL de `VITE_BACKEND_URL`, por
+ejemplo `http://localhost:8080`. La API acepta peticiones desde
+`http://localhost:5173`, el origen del frontend en desarrollo.
 
 ## Arrancar y detener
 
