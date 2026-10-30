@@ -21,4 +21,4 @@ El borrado es lógico: las localidades borradas no aparecen en listados ni está
 - 400: falta el nombre o el código postal, o está vacío o compuesto solo por espacios.
 - 404: localidad inexistente o borrada.
 
-El acceso anónimo está permitido temporalmente por la configuración común de seguridad. Esta entrega no establece roles permanentes. Un módulo posterior de colaboradores deberá coordinar el alta y el borrado mediante el bloqueo pesimista de localidad disponible en el repositorio; este CRUD todavía no comprueba colaboradores asociados.
+Los endpoints exigen un token de acceso válido (ver [autenticación](autenticacion.md)). Esta entrega no establece roles permanentes. Un módulo posterior de colaboradores deberá coordinar el alta y el borrado mediante el bloqueo pesimista de localidad disponible en el repositorio; este CRUD todavía no comprueba colaboradores asociados.

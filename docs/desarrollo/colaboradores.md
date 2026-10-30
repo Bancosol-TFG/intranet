@@ -17,4 +17,4 @@ Las altas y ediciones requieren nombre y dirección no vacíos y `localityId` de
 
 Las bajas conservan las filas con `deleted_at`. Al dar de baja a un colaborador también se dan de baja sus contactos activos en la misma transacción. Las operaciones de colaborador y contacto bloquean primero la fila del colaborador; las operaciones que asignan localidad bloquean después la localidad. El borrado de localidad bloquea la localidad y luego consulta colaboradores activos sin bloquear filas de colaborador. Así se evita el ciclo de espera entre baja de localidad y cambios de colaboradores.
 
-El acceso anónimo continúa permitido temporalmente por la configuración común de seguridad.
+Los endpoints exigen un token de acceso válido (ver [autenticación](autenticacion.md)).
