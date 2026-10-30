@@ -1,17 +1,289 @@
 :root {
   font-family: system-ui, sans-serif;
+  color: #1c3042;
+  background: #f4f7fa;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
 }
-
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  background: #153b56;
+}
+.navigation a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.25rem;
+}
+.navigation a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.4rem;
+}
+a {
+  color: #125b84;
+}
 h1 {
   margin: 1rem;
+}
+
+.page {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.page h1,
+.page h2,
+.page p {
+  margin-top: 0;
+}
+
+.page-header p {
+  color: #4b5563;
+  margin-bottom: 0;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.inline-form,
+.search-form {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: 0.35rem;
+}
+
+input,
+select {
+  border: 1px solid #9ca3af;
+  border-radius: 0.35rem;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.form-actions {
+  align-items: end;
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  background: #0f766e;
+  border: 1px solid #0f766e;
+  border-radius: 0.35rem;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.55rem 0.85rem;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button.secondary {
+  background: #fff;
+  border-color: #6b7280;
+  color: #111827;
+}
+
+button.danger {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.message {
+  color: #b91c1c;
+  margin: 1rem 0 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.7rem;
+  text-align: left;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.card-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem;
+  max-width: 20rem;
+}
+
+.card-list a {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #0f766e;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.page {
+  width: min(100%, 1100px);
+  margin: auto;
+  padding: 1.5rem;
+}
+.page h1 {
+  margin: 0 0 0.5rem;
+}
+.page-header {
+  margin-bottom: 1.5rem;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #d5e0e8;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.panel h2 {
+  margin-top: 0;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+input,
+select,
+button {
+  font: inherit;
+}
+input,
+select {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #8294a3;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: inherit;
+}
+button {
+  padding: 0.65rem 1rem;
+  border: 1px solid #125b84;
+  border-radius: 0.25rem;
+  background: #125b84;
+  color: #fff;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid #b45b09;
+  outline-offset: 3px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+th,
+td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #d5e0e8;
+  text-align: left;
+}
+th {
+  background: #edf3f7;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.status {
+  padding: 0.8rem;
+  background: #e6f3eb;
+  border-radius: 0.25rem;
+}
+.error-message {
+  padding: 0.8rem;
+  background: #fff0ee;
+  color: #8b2520;
+  border-radius: 0.25rem;
+}
+@media (max-width: 600px) {
+  .page {
+    padding: 1rem;
+  }
+  .panel {
+    padding: 1rem;
+  }
+  .navigation {
+    padding: 1rem;
+  }
 }
