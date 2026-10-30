@@ -36,7 +36,7 @@ Compose usa estos valores:
 | --- | ---: | --- |
 | `APP_PORT` | `8080` | API |
 | `JWT_SECRET` | Valor de desarrollo de `compose.yml` | API; mínimo 32 bytes, obligatorio fuera de Compose |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Vacías | API; crean el primer administrador al arrancar |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Vacías en Compose; `admin@bancosol.com` y `admin` en `.env.example` | API; crean el primer administrador al arrancar |
 | `DB_PORT` | `5432` | PostgreSQL |
 | `DOCS_PORT` | `8001` | Documentación Zensical |
 | `FRONTEND_PORT` | `5173` | Frontend |

@@ -21,6 +21,10 @@ Mientras una cuenta tenga la contraseña temporal, solo puede usar `/auth/*`; el
 
 Si `ADMIN_EMAIL` y `ADMIN_PASSWORD` están definidas, la API crea esa cuenta al arrancar con el rol `ADMIN`, salvo que el correo ya exista. Debe cambiar la contraseña al entrar.
 
+`.env.example` define `admin@bancosol.com` con la contraseña `admin`, así que al copiarlo a `.env` esa es la cuenta de desarrollo. Al entrar por primera vez hay que cambiar la contraseña por otra de al menos 8 caracteres.
+
+La cuenta solo se crea si el correo no existe: cambiar estas variables después no modifica una cuenta existente. Son credenciales solo para desarrollo; fuera de ese entorno hay que usar otras o dejarlas vacías.
+
 ## Cambios de roles y permisos
 
 El código que modifique roles o permisos debe llamar a `PermissionChangeTracker.markChanged()`. Los tokens de acceso anteriores a ese momento reciben 401 y el cliente los renueva.
