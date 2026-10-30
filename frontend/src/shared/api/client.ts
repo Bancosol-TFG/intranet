@@ -14,6 +14,16 @@ if (!BACKEND_URL) {
   throw new Error("VITE_BACKEND_URL must be defined.");
 }
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BACKEND_URL}${path}`, {
     ...init,
@@ -24,7 +34,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(await errorMessage(response));
+    throw new ApiError(response.status, errorMessage(response));
   }
 
   if (response.status === 204) {
@@ -34,9 +44,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function errorMessage(response: Response): Promise<string> {
+function errorMessage(response: Response): string {
   if (response.status === 409) {
-    return "Ya existe un registro con ese nombre.";
+    return "La operación entra en conflicto con los datos existentes.";
   }
   if (response.status === 404) {
     return "El registro ya no existe.";

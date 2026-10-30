@@ -63,14 +63,6 @@ h1 {
   padding: 1.25rem;
 }
 
-.inline-form,
-.search-form {
-  align-items: end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
 label {
   display: grid;
   flex: 1 1 16rem;
@@ -89,12 +81,6 @@ select {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-}
-
-.form-actions {
-  align-items: end;
-  display: flex;
-  gap: 0.5rem;
 }
 
 button {
@@ -121,11 +107,6 @@ button.secondary {
 button.danger {
   background: #b91c1c;
   border-color: #b91c1c;
-}
-
-.message {
-  color: #b91c1c;
-  margin: 1rem 0 0;
 }
 
 table {
