@@ -168,6 +168,8 @@ td {
   color: #0f766e;
   padding: 1rem;
   text-decoration: none;
+}
+
 .page {
   width: min(100%, 1100px);
   margin: auto;

@@ -19,7 +19,7 @@ describe("gestión de localidades", () => {
     let locality: { id: number; name: string; postalCode: string } | null = null;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.startsWith("/api/localities?") && init?.method === undefined) {
+      if (url.startsWith("http://localhost:8080/localities?") && init?.method === undefined) {
         return Response.json({
           content: locality ? [locality] : [],
           page: {
@@ -30,19 +30,19 @@ describe("gestión de localidades", () => {
           },
         });
       }
-      if (url === "/api/localities" && init?.method === "POST") {
+      if (url === "http://localhost:8080/localities" && init?.method === "POST") {
         const body = JSON.parse(String(init.body)) as { name: string; postalCode: string };
         locality = { id: 1, ...body };
         return Response.json(locality, { status: 201 });
       }
-      if (url === "/api/localities/1" && init?.method === "PUT") {
+      if (url === "http://localhost:8080/localities/1" && init?.method === "PUT") {
         locality = {
           id: 1,
           ...(JSON.parse(String(init.body)) as { name: string; postalCode: string }),
         };
         return Response.json(locality);
       }
-      if (url === "/api/localities/1" && init?.method === "DELETE") {
+      if (url === "http://localhost:8080/localities/1" && init?.method === "DELETE") {
         locality = null;
         return new Response(null, { status: 204 });
       }
@@ -61,7 +61,7 @@ describe("gestión de localidades", () => {
     fireEvent.click(screen.getByRole("button", { name: "Crear" }));
     expect(await screen.findByText("Sevilla")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/localities",
+      "http://localhost:8080/localities",
       expect.objectContaining({ method: "POST" }),
     );
 
@@ -70,14 +70,14 @@ describe("gestión de localidades", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
     expect(await screen.findByText("Sevilla Este")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/localities/1",
+      "http://localhost:8080/localities/1",
       expect.objectContaining({ method: "PUT" }),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Borrar" }));
     await waitFor(() => expect(screen.getByText("No hay localidades.")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/localities/1",
+      "http://localhost:8080/localities/1",
       expect.objectContaining({ method: "DELETE" }),
     );
   });
@@ -90,7 +90,7 @@ describe("gestión de localidades", () => {
     }));
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.startsWith("/api/localities?") && init?.method === undefined) {
+      if (url.startsWith("http://localhost:8080/localities?") && init?.method === undefined) {
         const page = Number(new URL(url, "http://localhost").searchParams.get("page"));
         const totalPages = Math.ceil(localities.length / 10);
         return Response.json({
@@ -98,7 +98,7 @@ describe("gestión de localidades", () => {
           page: { size: 10, number: page, totalElements: localities.length, totalPages },
         });
       }
-      if (url === "/api/localities/11" && init?.method === "DELETE") {
+      if (url === "http://localhost:8080/localities/11" && init?.method === "DELETE") {
         localities.pop();
         return new Response(null, { status: 204 });
       }
@@ -123,13 +123,13 @@ describe("gestión de localidades", () => {
 
   it("muestra un error 400 y conserva los valores escritos", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input).startsWith("/api/localities?") && init?.method === undefined) {
+      if (String(input).startsWith("http://localhost:8080/localities?") && init?.method === undefined) {
         return Response.json({
           content: [],
           page: { size: 10, number: 0, totalElements: 0, totalPages: 0 },
         });
       }
-      if (String(input) === "/api/localities" && init?.method === "POST") {
+      if (String(input) === "http://localhost:8080/localities" && init?.method === "POST") {
         return new Response(null, { status: 400 });
       }
       throw new Error(`Petición inesperada: ${init?.method ?? "GET"} ${String(input)}`);

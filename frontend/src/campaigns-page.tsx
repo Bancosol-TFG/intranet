@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { campaignTypesApi, campaignsApi, type Campaign } from "./api";
+import { campaignTypesApi } from "./api/campaign-types";
+import { campaignsApi, type Campaign } from "./api/campaigns";
 
 const EMPTY_FORM = {
   name: "",

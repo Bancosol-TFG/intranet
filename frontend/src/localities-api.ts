@@ -1,4 +1,4 @@
-import { request, type PageResponse } from "./api";
+import { request, type PageResponse } from "./api/client";
 
 export type Locality = {
   id: number;

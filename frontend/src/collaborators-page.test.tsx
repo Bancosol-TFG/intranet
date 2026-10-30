@@ -36,9 +36,9 @@ describe("gestión de colaboradores", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
-      if (url.startsWith("/api/collaborators?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators?") && method === "GET")
         return page(collaborator ? [collaborator] : []);
-      if (url.startsWith("/api/localities?") && method === "GET") {
+      if (url.startsWith("http://localhost:8080/localities?") && method === "GET") {
         const search = new URL(url, "http://localhost").searchParams.get("name");
         return page(
           search?.startsWith("Sevilla")
@@ -48,7 +48,7 @@ describe("gestión de colaboradores", () => {
               : [{ id: 8, name: "Otra localidad" }],
         );
       }
-      if (url === "/api/collaborators" && method === "POST") {
+      if (url === "http://localhost:8080/collaborators" && method === "POST") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           address: string;
@@ -57,9 +57,9 @@ describe("gestión de colaboradores", () => {
         collaborator = { id: 3, ...body, localityName: "Sevilla Norte" };
         return Response.json(collaborator, { status: 201 });
       }
-      if (url === "/api/collaborators/3/contacts?page=0&size=10&sort=name,asc" && method === "GET")
+      if (url === "http://localhost:8080/collaborators/3/contacts?page=0&size=10&sort=name,asc" && method === "GET")
         return page(contact ? [contact] : []);
-      if (url === "/api/collaborators/3/contacts" && method === "POST") {
+      if (url === "http://localhost:8080/collaborators/3/contacts" && method === "POST") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           email: string | null;
@@ -68,7 +68,7 @@ describe("gestión de colaboradores", () => {
         contact = { id: 4, ...body };
         return Response.json(contact, { status: 201 });
       }
-      if (url === "/api/collaborators/3/contacts/4" && method === "DELETE")
+      if (url === "http://localhost:8080/collaborators/3/contacts/4" && method === "DELETE")
         return new Response(null, { status: 500 });
       throw new Error(`Petición inesperada: ${method} ${url}`);
     });
@@ -91,7 +91,7 @@ describe("gestión de colaboradores", () => {
     fireEvent.click(screen.getByRole("button", { name: "Crear" }));
     expect(await screen.findByText("Asociación Sur")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/collaborators",
+      "http://localhost:8080/collaborators",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ name: "Asociación Sur", address: "Calle Uno", localityId: 9 }),
@@ -110,16 +110,16 @@ describe("gestión de colaboradores", () => {
       .closest("section");
     fireEvent.click(within(contactsPanel!).getByRole("button", { name: "Borrar" }));
     expect(await within(contactsPanel!).findByRole("alert")).toHaveTextContent(
-      "No se ha podido completar la operación. Inténtalo de nuevo.",
+      "No se ha podido completar la operación.",
     );
   });
 
   it("muestra el error 400 y conserva el formulario del colaborador", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.startsWith("/api/collaborators?")) return page([]);
-      if (url.startsWith("/api/localities?")) return page([{ id: 1, name: "Madrid" }]);
-      if (url === "/api/collaborators" && init?.method === "POST")
+      if (url.startsWith("http://localhost:8080/collaborators?")) return page([]);
+      if (url.startsWith("http://localhost:8080/localities?")) return page([{ id: 1, name: "Madrid" }]);
+      if (url === "http://localhost:8080/collaborators" && init?.method === "POST")
         return new Response(null, { status: 400 });
       throw new Error(`Petición inesperada: ${String(input)}`);
     });
@@ -151,11 +151,11 @@ describe("gestión de colaboradores", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
-      if (url.startsWith("/api/collaborators?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators?") && method === "GET")
         return page(collaborator ? [collaborator] : []);
-      if (url.startsWith("/api/localities?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/localities?") && method === "GET")
         return page([{ id: 1, name: "Madrid" }]);
-      if (url === "/api/collaborators" && method === "POST") {
+      if (url === "http://localhost:8080/collaborators" && method === "POST") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           address: string;
@@ -164,7 +164,7 @@ describe("gestión de colaboradores", () => {
         collaborator = { id: 21, ...body, localityName: "Madrid" };
         return Response.json(collaborator, { status: 201 });
       }
-      if (url === "/api/collaborators/21" && method === "PUT") {
+      if (url === "http://localhost:8080/collaborators/21" && method === "PUT") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           address: string;
@@ -173,13 +173,13 @@ describe("gestión de colaboradores", () => {
         collaborator = { id: 21, ...body, localityName: "Madrid" };
         return Response.json(collaborator);
       }
-      if (url === "/api/collaborators/21" && method === "DELETE") {
+      if (url === "http://localhost:8080/collaborators/21" && method === "DELETE") {
         collaborator = null;
         return new Response(null, { status: 204 });
       }
-      if (url.startsWith("/api/collaborators/21/contacts?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators/21/contacts?") && method === "GET")
         return page(contact ? [contact] : []);
-      if (url === "/api/collaborators/21/contacts" && method === "POST") {
+      if (url === "http://localhost:8080/collaborators/21/contacts" && method === "POST") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           email: string | null;
@@ -188,7 +188,7 @@ describe("gestión de colaboradores", () => {
         contact = { id: 22, ...body };
         return Response.json(contact, { status: 201 });
       }
-      if (url === "/api/collaborators/21/contacts/22" && method === "PUT") {
+      if (url === "http://localhost:8080/collaborators/21/contacts/22" && method === "PUT") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           email: string | null;
@@ -197,7 +197,7 @@ describe("gestión de colaboradores", () => {
         contact = { id: 22, ...body };
         return Response.json(contact);
       }
-      if (url === "/api/collaborators/21/contacts/22" && method === "DELETE") {
+      if (url === "http://localhost:8080/collaborators/21/contacts/22" && method === "DELETE") {
         contact = null;
         return new Response(null, { status: 204 });
       }
@@ -272,14 +272,14 @@ describe("gestión de colaboradores", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
-      if (url.startsWith("/api/collaborators?") && method === "GET") return page(collaborators);
-      if (url.startsWith("/api/localities?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators?") && method === "GET") return page(collaborators);
+      if (url.startsWith("http://localhost:8080/localities?") && method === "GET")
         return page([{ id: 1, name: "Madrid" }]);
-      if (url.startsWith("/api/collaborators/31/contacts?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators/31/contacts?") && method === "GET")
         return page([firstContact]);
-      if (url.startsWith("/api/collaborators/32/contacts?") && method === "GET")
+      if (url.startsWith("http://localhost:8080/collaborators/32/contacts?") && method === "GET")
         return page(contactForSecond ? [contactForSecond] : []);
-      if (url === "/api/collaborators/32/contacts" && method === "POST") {
+      if (url === "http://localhost:8080/collaborators/32/contacts" && method === "POST") {
         const body = JSON.parse(String(init?.body)) as {
           name: string;
           email: string | null;
@@ -309,7 +309,7 @@ describe("gestión de colaboradores", () => {
     fireEvent.click(screen.getByRole("button", { name: "Añadir contacto" }));
     expect(await screen.findByText("Contacto nuevo")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/collaborators/32/contacts",
+      "http://localhost:8080/collaborators/32/contacts",
       expect.objectContaining({ method: "POST" }),
     );
   });

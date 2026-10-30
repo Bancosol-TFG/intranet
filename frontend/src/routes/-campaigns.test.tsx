@@ -50,7 +50,7 @@ describe("página de campañas", () => {
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.startsWith("/campaign-types")) {
+        if (url.startsWith("http://localhost:8080/campaign-types")) {
           return jsonResponse(pageOf([campaignType]));
         }
         return jsonResponse(pageOf([campaign]));
@@ -69,7 +69,7 @@ describe("página de campañas", () => {
     let created = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.startsWith("/campaign-types")) {
+      if (url.startsWith("http://localhost:8080/campaign-types")) {
         return jsonResponse(pageOf([campaignType]));
       }
       if (init?.method === "POST") {
@@ -92,7 +92,7 @@ describe("página de campañas", () => {
     expect(await screen.findByText("Campaña creada.")).toBeInTheDocument();
     expect(await screen.findByText("Gran Recogida")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/campaigns",
+      "http://localhost:8080/campaigns",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
