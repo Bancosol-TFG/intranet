@@ -1,7 +1,7 @@
 # ADR-0014: Redis como caché
 
 ## Estado
-Proposed
+Accepted
 
 ## Contexto
 En la reunión del 22 de septiembre se propuso Redis como caché para datos consultados con frecuencia, como roles y permisos. En la reunión del 29 de septiembre se indicó que no se empezaría con caché y que se añadiría si surgía la necesidad. La nota del 30 de septiembre pide confirmar si Redis se aplazó o si cambió la decisión arquitectónica.
@@ -12,13 +12,12 @@ En la reunión del 22 de septiembre se propuso Redis como caché para datos cons
 3. No utilizar Redis y resolver las lecturas directamente desde PostgreSQL.
 
 ## Decisión
-Pendiente de decisión. PostgreSQL es la base de datos principal (ADR-0006); las reuniones no permiten confirmar si Redis formará parte del despliegue inicial o si se incorporará más adelante.
+Redis forma parte del despliegue. De momento solo guarda la fecha del último cambio de roles y permisos (ADR-0019). PostgreSQL sigue siendo la base de datos principal (ADR-0006).
 
 ## Consecuencias
 **Positivas:**
-- Resolver esta decisión permitirá fijar los servicios de despliegue y las responsabilidades de cada almacenamiento.
-- Aplazar Redis evita añadir infraestructura antes de validar su necesidad.
+- Comprobar si un token está desfasado no requiere consultar la base de datos en cada petición.
 
 **Negativas:**
-- Si se incorpora Redis, habrá que definir qué datos almacenar, su caducidad, invalidación y coherencia con PostgreSQL.
-- Mientras siga pendiente, los diagramas y la configuración del entorno no pueden dar por cerrado su uso.
+- Cualquier dato nuevo en Redis tendrá que definir su caducidad, invalidación y coherencia con PostgreSQL.
+- Hay un servicio más que desplegar y vigilar.

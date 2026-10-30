@@ -35,6 +35,8 @@ Compose usa estos valores:
 | Variable | Predeterminado | Servicio |
 | --- | ---: | --- |
 | `APP_PORT` | `8080` | API |
+| `JWT_SECRET` | Valor de desarrollo de `compose.yml` | API; mínimo 32 bytes, obligatorio fuera de Compose |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Vacías | API; crean el primer administrador al arrancar |
 | `DB_PORT` | `5432` | PostgreSQL |
 | `DOCS_PORT` | `8001` | Documentación Zensical |
 | `FRONTEND_PORT` | `5173` | Frontend |
@@ -58,6 +60,7 @@ del control de versiones.
 | --- | --- | --- |
 | API (`app`) | `http://localhost:${APP_PORT:-8080}` | `8080` |
 | Frontend (`frontend`) | `http://localhost:${FRONTEND_PORT:-5173}` | `5173` |
+| Redis (`redis`) | Sin puerto publicado | `redis:6379` |
 | PostgreSQL (`postgres`) | `localhost:${DB_PORT:-5432}` | `5432`; otras aplicaciones de Compose usan `postgres:5432` |
 | Drizzle Studio (`drizzle-studio`) | `http://localhost:5433` | `4983` |
 | Documentación (`docs`) | `http://localhost:${DOCS_PORT:-8001}` | `8000` |
