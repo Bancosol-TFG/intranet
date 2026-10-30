@@ -7,6 +7,7 @@ export const Route = createRootRoute({
         <Link to="/">Intranet</Link>
         <Link to="/collaborators">Colaboradores</Link>
         <Link to="/localities">Localidades</Link>
+        <Link to="/zones">Zonas</Link>
       </nav>
       <Outlet />
     </>

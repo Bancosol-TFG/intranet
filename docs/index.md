@@ -7,3 +7,4 @@
 - [Tiendas y cadenas](desarrollo/tiendas.md)
 - [Colaboradores y contactos](desarrollo/colaboradores.md)
 - [Localidades](desarrollo/localidades.md)
+- [Zonas](desarrollo/zonas.md)
