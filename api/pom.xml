@@ -105,13 +105,23 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>
+					<execution>
+						<id>compile-permission-annotation-processor</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/permission-annotation-processor/src/main/java</compileSourceRoot>
+							</compileSourceRoots>
+							<outputDirectory>${project.build.outputDirectory}</outputDirectory>
+							<proc>none</proc>
+						</configuration>
+					</execution>
 					<execution>
 						<id>default-compile</id>
 						<phase>compile</phase>
@@ -119,12 +129,11 @@
 							<goal>compile</goal>
 						</goals>
 						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
+							<proc>full</proc>
+							<annotationProcessors>
+								<annotationProcessor>es.bancosol.api.security.processor.PermissionAnnotationProcessor</annotationProcessor>
+								<annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>
+							</annotationProcessors>
 						</configuration>
 					</execution>
 					<execution>
@@ -134,15 +143,27 @@
 							<goal>testCompile</goal>
 						</goals>
 						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
+							<proc>full</proc>
+							<annotationProcessors>
+								<annotationProcessor>es.bancosol.api.security.processor.PermissionAnnotationProcessor</annotationProcessor>
+								<annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>
+							</annotationProcessors>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>es/bancosol/api/security/processor/**</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
