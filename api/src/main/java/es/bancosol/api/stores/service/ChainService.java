@@ -5,6 +5,8 @@ import es.bancosol.api.stores.dto.ChainRequest;
 import es.bancosol.api.stores.dto.ChainResponse;
 import es.bancosol.api.stores.entity.Chain;
 import es.bancosol.api.stores.repository.ChainRepository;
+import es.bancosol.api.stores.repository.StoreRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class ChainService {
     private final ChainRepository repository;
+    private final StoreRepository storeRepository;
+    private final EntityManager entityManager;
 
     public Page<ChainResponse> list(String code, Pageable pageable) {
         return repository.findByCodeContainingIgnoreCase(code == null ? "" : code, pageable)
@@ -44,7 +48,16 @@ public class ChainService {
 
     @Transactional
     public void delete(Integer chainId) {
-        findChain(chainId).setDeletedAt(Instant.now());
+        Chain chain = repository.findByIdForUpdate(chainId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        entityManager.refresh(chain);
+        if (chain.getDeletedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        if (storeRepository.existsByChainIdAndDeletedAtIsNull(chainId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        }
+        chain.setDeletedAt(Instant.now());
     }
 
     private Chain findChain(Integer chainId) {

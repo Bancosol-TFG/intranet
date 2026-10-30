@@ -8,8 +8,11 @@ export default defineConfig({
   plugins: [tanstackRouter({ target: "react" }), react()],
   server: {
     proxy: {
-      "/campaign-types": apiProxyTarget,
-      "/campaigns": apiProxyTarget,
+      "^/api(?:/|$)": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
     },
   },
   test: {
