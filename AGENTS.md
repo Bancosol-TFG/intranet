@@ -50,3 +50,13 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
 ## Skills
 
 The project skills live in `.agents/skills/`. `.claude/skills` is a symbolic link to that folder so that Claude Code loads them; always create or edit skills in `.agents/skills/`.
+
+## Workflow and commits
+
+A single task may require multiple commits. Before staging any changes or creating each commit, you must ask for explicit human approval.
+
+If the response is "yes", stage the relevant changes, create the commit, and proceed with the next part of the task.
+
+Otherwise, do not stage or commit anything. Continue implementing the requested changes without committing, and ask for approval again once the work is completed.
+
+This approval process must be repeated independently before every commit. Never stage or create a commit without explicit human approval.
