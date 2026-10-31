@@ -2,6 +2,7 @@ package es.bancosol.api.security.processor;
 
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedSourceVersion;
@@ -39,8 +40,13 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
                 .getTypeElement(REQUIRES_PERMISSION_ANNOTATION);
 
         if (permissionAnnotation != null) {
-            validatePermissionAnnotationUsage(roundEnvironment, permissionAnnotation);
+            processingEnv.getMessager().printMessage(
+                Diagnostic.Kind.ERROR,
+                REQUIRES_PERMISSION_ANNOTATION + " no encontrado.",
+                element);
         }
+        
+        validatePermissionAnnotationUsage(roundEnvironment, permissionAnnotation);
 
         warnAboutUnprotectedEndpoints(roundEnvironment);
         return false;
@@ -52,9 +58,9 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
         for (Element element : roundEnvironment.getElementsAnnotatedWith(permissionAnnotation)) {
             if (element.getKind() != ElementKind.METHOD || !isController(element.getEnclosingElement())) {
                 processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.ERROR,
-                        "@RequiresPermission solo se puede usar en métodos de clases @Controller o @RestController.",
-                        element);
+                    Diagnostic.Kind.ERROR,
+                    "@RequiresPermission solo se puede usar en métodos de clases @Controller o @RestController.",
+                    element);
             }
         }
     }
@@ -74,9 +80,9 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
                 String endpointKey = typeElement.getQualifiedName() + "#" + method.getSimpleName();
                 if (warnedEndpoints.add(endpointKey)) {
                     processingEnv.getMessager().printMessage(
-                            Diagnostic.Kind.WARNING,
-                            "El endpoint HTTP no declara @RequiresPermission.",
-                            method);
+                        Diagnostic.Kind.WARNING,
+                        "El endpoint HTTP no declara @RequiresPermission.",
+                        method);
                 }
             }
         }

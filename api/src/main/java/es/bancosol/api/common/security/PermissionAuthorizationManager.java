@@ -2,6 +2,7 @@ package es.bancosol.api.common.security;
 
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -12,13 +13,12 @@ import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import lombok.AllArgsConstructor;
+
 @Component
+@AllArgsConstructor 
 public class PermissionAuthorizationManager implements AuthorizationManager<MethodInvocation> {
     private final PermissionAccessTrace permissionAccessTrace;
-
-    public PermissionAuthorizationManager(PermissionAccessTrace permissionAccessTrace) {
-        this.permissionAccessTrace = permissionAccessTrace;
-    }
 
     @Override
     public AuthorizationResult authorize(
