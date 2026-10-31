@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import javax.annotation.processing.Processor;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
@@ -14,12 +15,14 @@ import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import es.bancosol.api.security.processor.PermissionAnnotationProcessor;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PermissionAnnotationProcessorTests {
+    private static final String PERMISSION_ANNOTATION_PROCESSOR_CLASS =
+            "es.bancosol.api.security.processor.PermissionAnnotationProcessor";
+
     @Test
     void acceptsPermissionAnnotationOnControllerEndpoint() throws IOException {
         CompilationResult result = compileSource("example.ValidController", """
@@ -133,11 +136,23 @@ class PermissionAnnotationProcessorTests {
                     compilerOptions,
                     null,
                     List.of(sourceFile));
-            compilationTask.setProcessors(List.of(new PermissionAnnotationProcessor()));
+            compilationTask.setProcessors(List.of(createPermissionAnnotationProcessor()));
             boolean successful = Boolean.TRUE.equals(compilationTask.call());
             return new CompilationResult(successful, diagnostics.getDiagnostics());
         } finally {
             deleteDirectory(outputDirectory);
+        }
+    }
+
+    private Processor createPermissionAnnotationProcessor() {
+        try {
+            Class<?> processorClass = Class.forName(
+                    PERMISSION_ANNOTATION_PROCESSOR_CLASS,
+                    true,
+                    PermissionAnnotationProcessorTests.class.getClassLoader());
+            return Processor.class.cast(processorClass.getDeclaredConstructor().newInstance());
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Unable to load the permission annotation processor.", exception);
         }
     }
 
