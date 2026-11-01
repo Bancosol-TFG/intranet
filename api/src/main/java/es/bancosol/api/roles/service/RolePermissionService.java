@@ -2,6 +2,7 @@ package es.bancosol.api.roles.service;
 
 import java.time.Instant;
 import java.util.List;
+import es.bancosol.api.auth.service.PermissionChangeTracker;
 import es.bancosol.api.roles.dto.PermissionResponse;
 import es.bancosol.api.roles.entity.Permission;
 import es.bancosol.api.roles.entity.Role;
@@ -22,6 +23,7 @@ public class RolePermissionService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final PermissionChangeTracker permissionChangeTracker;
 
     public List<PermissionResponse> list(Integer roleId) {
         findRole(roleId);
@@ -49,10 +51,12 @@ public class RolePermissionService {
         if (previousAssignment != null) {
             previousAssignment.setDeletedAt(null);
             rolePermissionRepository.saveAndFlush(previousAssignment);
+            permissionChangeTracker.markChanged();
             return;
         }
 
         rolePermissionRepository.saveAndFlush(new RolePermission(role, permission));
+        permissionChangeTracker.markChanged();
     }
 
     @Transactional
@@ -60,7 +64,11 @@ public class RolePermissionService {
         findRole(roleId);
         findPermission(permissionId);
         rolePermissionRepository.findByRole_IdAndPermission_IdAndDeletedAtIsNull(roleId, permissionId)
-                .ifPresent(rolePermission -> rolePermission.setDeletedAt(Instant.now()));
+                .ifPresent(rolePermission -> {
+                    rolePermission.setDeletedAt(Instant.now());
+                    rolePermissionRepository.saveAndFlush(rolePermission);
+                    permissionChangeTracker.markChanged();
+                });
     }
 
     private Role findRole(Integer roleId) {

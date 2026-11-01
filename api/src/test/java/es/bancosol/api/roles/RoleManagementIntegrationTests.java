@@ -1,6 +1,7 @@
 package es.bancosol.api.roles;
 
 import java.util.UUID;
+import es.bancosol.api.auth.service.PermissionChangeTracker;
 import es.bancosol.api.roles.entity.Permission;
 import es.bancosol.api.roles.entity.Role;
 import es.bancosol.api.roles.repository.PermissionRepository;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -25,6 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -41,6 +45,9 @@ class RoleManagementIntegrationTests {
 
     @Autowired
     private RolePermissionRepository rolePermissionRepository;
+
+    @MockitoBean
+    private PermissionChangeTracker permissionChangeTracker;
 
     @Test
     void createsAndListsRolesForUsersWithTheRequiredPermissions() throws Exception {
@@ -134,6 +141,7 @@ class RoleManagementIntegrationTests {
         assertActiveAssignmentCount(role, permission, 1);
         assert rolePermissionRepository.findByRole_IdAndPermission_IdAndDeletedAtIsNotNull(
                 role.getId(), permission.getId()).isEmpty();
+        verify(permissionChangeTracker, times(3)).markChanged();
     }
 
     @Test
