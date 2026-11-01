@@ -39,11 +39,11 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
         TypeElement permissionAnnotation = processingEnv.getElementUtils()
                 .getTypeElement(REQUIRES_PERMISSION_ANNOTATION);
 
-        if (permissionAnnotation != null) {
+        if (permissionAnnotation == null) {
             processingEnv.getMessager().printMessage(
                 Diagnostic.Kind.ERROR,
-                REQUIRES_PERMISSION_ANNOTATION + " no encontrado.",
-                element);
+                REQUIRES_PERMISSION_ANNOTATION + " no encontrado.");
+            return false;
         }
         
         validatePermissionAnnotationUsage(roundEnvironment, permissionAnnotation);
