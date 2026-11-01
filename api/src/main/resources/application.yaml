@@ -5,6 +5,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -13,3 +18,8 @@ spring:
   flyway:
     sql-migration-prefix: v
     repeatable-sql-migration-prefix: r
+
+auth:
+  jwt-secret: ${JWT_SECRET}
+  admin-email: ${ADMIN_EMAIL:}
+  admin-password: ${ADMIN_PASSWORD:}
