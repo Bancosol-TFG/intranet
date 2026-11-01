@@ -26,6 +26,17 @@ Hasta que la autenticación aporte esas authorities, el prototipo mostrará el
 error de autorización. No se debe abrir la API ni simular una identidad para
 evitar esa denegación.
 
+## Primer administrador
+
+La migración asegura que exista el rol `ADMIN` y le concede los permisos
+necesarios para gestionar roles y asignaciones. No crea una cuenta ni concede
+al rol todos los permisos de la aplicación.
+
+La integración de autenticación crea la cuenta inicial cuando se configuran
+`ADMIN_EMAIL` y `ADMIN_PASSWORD`, y la vincula al rol `ADMIN`. Esa cuenta puede
+entrar al prototipo y asignar otros permisos desde la interfaz. No se definen
+credenciales predeterminadas en esta tarea.
+
 ## Comprobar
 
 Desde `frontend/`, ejecuta las pruebas del cliente de API y compila el

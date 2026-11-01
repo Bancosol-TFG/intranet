@@ -14,6 +14,7 @@ import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +29,9 @@ class PermissionCatalogIntegrationTests {
     @Autowired
     private PermissionCatalogSynchronizer permissionCatalogSynchronizer;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void createsEveryPermissionFromTheApplicationCatalog() {
         Arrays.stream(PermissionCode.values()).forEach(permissionCode -> {
@@ -36,6 +40,28 @@ class PermissionCatalogIntegrationTests {
             assertThat(permission.getDescription()).isEqualTo(permissionCode.getDescription());
             assertThat(permission.getDeletedAt()).isNull();
         });
+    }
+
+    @Test
+    void grantsRoleManagementPermissionsToTheInitialAdminRole() {
+        String[] adminPermissions = jdbcTemplate.queryForList("""
+                SELECT permissions.name
+                FROM roles
+                JOIN role_permissions ON role_permissions.role_id = roles.id
+                JOIN permissions ON permissions.id = role_permissions.permission_id
+                WHERE roles.name = 'ADMIN'
+                  AND roles.deleted_at IS NULL
+                  AND role_permissions.deleted_at IS NULL
+                  AND permissions.deleted_at IS NULL
+                """, String.class).toArray(String[]::new);
+
+        assertThat(adminPermissions).contains(
+                PermissionCode.ROLE_LIST.name(),
+                PermissionCode.ROLE_CREATE.name(),
+                PermissionCode.PERMISSION_LIST.name(),
+                PermissionCode.ROLE_PERMISSION_LIST.name(),
+                PermissionCode.ROLE_PERMISSION_ASSIGN.name(),
+                PermissionCode.ROLE_PERMISSION_REVOKE.name());
     }
 
     @Test
