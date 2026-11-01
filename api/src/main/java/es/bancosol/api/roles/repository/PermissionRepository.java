@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PermissionRepository extends JpaRepository<Permission, Integer> {
     Optional<Permission> findByName(String name);
     List<Permission> findByDeletedAtIsNull();
+    Optional<Permission> findByIdAndDeletedAtIsNull(Integer id);
+    List<Permission> findByDeletedAtIsNullOrderByNameAsc();
 }
