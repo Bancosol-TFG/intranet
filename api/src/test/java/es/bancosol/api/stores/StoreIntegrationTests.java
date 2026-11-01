@@ -7,6 +7,7 @@ import es.bancosol.api.stores.repository.ChainRepository;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
 import es.bancosol.api.stores.service.StoreService;
+import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class StoreIntegrationTests {
     @Autowired
     private MockMvc mockMvc;

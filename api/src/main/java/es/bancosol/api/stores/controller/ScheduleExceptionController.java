@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import es.bancosol.api.stores.dto.ScheduleExceptionRequest;
 import es.bancosol.api.stores.dto.ScheduleExceptionResponse;
 import es.bancosol.api.stores.service.ScheduleExceptionService;
+import es.bancosol.api.common.security.PermissionCode;
+import es.bancosol.api.common.security.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,7 @@ public class ScheduleExceptionController {
     private final ScheduleExceptionService service;
 
     @GetMapping
+    @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_LIST)
     public PagedModel<ScheduleExceptionResponse> list(@PathVariable Integer storeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -28,6 +31,7 @@ public class ScheduleExceptionController {
     }
 
     @PostMapping
+    @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public ScheduleExceptionResponse create(@PathVariable Integer storeId,
                                             @Valid @RequestBody ScheduleExceptionRequest request) {
@@ -35,12 +39,14 @@ public class ScheduleExceptionController {
     }
 
     @PutMapping("/{exceptionId}")
+    @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_UPDATE)
     public ScheduleExceptionResponse update(@PathVariable Integer storeId, @PathVariable Integer exceptionId,
                                             @Valid @RequestBody ScheduleExceptionRequest request) {
         return service.update(storeId, exceptionId, request);
     }
 
     @DeleteMapping("/{exceptionId}")
+    @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer storeId, @PathVariable Integer exceptionId) {
         service.delete(storeId, exceptionId);

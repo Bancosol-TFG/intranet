@@ -3,6 +3,7 @@ package es.bancosol.api.collaborator;
 import java.util.UUID;
 import es.bancosol.api.territory.entity.Locality;
 import es.bancosol.api.territory.repository.LocalityRepository;
+import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class CollaboratorIntegrationTests {
     @Autowired
     private MockMvc mockMvc;

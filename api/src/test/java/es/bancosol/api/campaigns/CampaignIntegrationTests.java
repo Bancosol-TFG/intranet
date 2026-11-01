@@ -6,6 +6,7 @@ import es.bancosol.api.campaigns.entity.Campaign;
 import es.bancosol.api.campaigns.entity.CampaignType;
 import es.bancosol.api.campaigns.repository.CampaignRepository;
 import es.bancosol.api.campaigns.repository.CampaignTypeRepository;
+import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class CampaignIntegrationTests {
     private static final LocalDate START_DATE = LocalDate.of(2026, 11, 2);
     private static final LocalDate END_DATE = LocalDate.of(2026, 11, 20);

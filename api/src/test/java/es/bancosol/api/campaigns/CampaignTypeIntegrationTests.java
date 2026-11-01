@@ -4,6 +4,7 @@ import java.util.UUID;
 import com.jayway.jsonpath.JsonPath;
 import es.bancosol.api.campaigns.entity.CampaignType;
 import es.bancosol.api.campaigns.repository.CampaignTypeRepository;
+import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class CampaignTypeIntegrationTests {
     @Autowired
     private MockMvc mockMvc;

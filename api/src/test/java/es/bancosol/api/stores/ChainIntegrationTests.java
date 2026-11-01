@@ -3,6 +3,7 @@ package es.bancosol.api.stores;
 import java.util.UUID;
 import es.bancosol.api.stores.entity.Chain;
 import es.bancosol.api.stores.repository.ChainRepository;
+import es.bancosol.api.common.security.WithAllPermissions;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class ChainIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
