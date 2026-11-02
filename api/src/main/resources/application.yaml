@@ -16,6 +16,7 @@ spring:
     show-sql: true
 
   flyway:
+    out-of-order: true
     sql-migration-prefix: v
     repeatable-sql-migration-prefix: r
 
