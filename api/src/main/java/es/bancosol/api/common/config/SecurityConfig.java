@@ -7,6 +7,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import es.bancosol.api.auth.service.AccessTokenService;
 import es.bancosol.api.auth.service.PermissionChangeTracker;
+import es.bancosol.api.common.security.PublicEndpointRequestMatcher;
 import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -47,7 +48,8 @@ public class SecurityConfig {
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            PublicEndpointRequestMatcher publicEndpointRequestMatcher) throws Exception {
         return http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -56,7 +58,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(server -> server.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter())))
                 .authorizeHttpRequests(requests -> requests
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/refresh", "/auth/logout").permitAll()
+                        .requestMatchers(publicEndpointRequestMatcher).permitAll()
                         .requestMatchers("/auth/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/users").access((authentication, context) ->
                                 new AuthorizationDecision(canCreateUsers(authentication)))

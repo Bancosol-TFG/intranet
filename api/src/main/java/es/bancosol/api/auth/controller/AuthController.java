@@ -7,6 +7,8 @@ import es.bancosol.api.auth.dto.ChangePasswordRequest;
 import es.bancosol.api.auth.dto.CurrentUserResponse;
 import es.bancosol.api.auth.dto.LoginRequest;
 import es.bancosol.api.auth.service.AuthService;
+import es.bancosol.api.common.security.Public;
+import es.bancosol.api.common.security.RequiresAuthentication;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,17 +28,20 @@ public class AuthController {
     private final AuthService service;
 
     @PostMapping("/login")
+    @Public
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         return respond(service.login(request), response);
     }
 
     @PostMapping("/refresh")
+    @Public
     public AuthResponse refresh(@CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
                                 HttpServletResponse response) {
         return respond(service.refresh(refreshToken), response);
     }
 
     @PostMapping("/logout")
+    @Public
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
                        HttpServletResponse response) {
@@ -45,6 +50,7 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
+    @RequiresAuthentication
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request,
                                HttpServletResponse response) {
@@ -53,6 +59,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @RequiresAuthentication
     public CurrentUserResponse me(@AuthenticationPrincipal Jwt jwt) {
         return service.currentUser(Integer.valueOf(jwt.getSubject()));
     }

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import es.bancosol.api.common.security.PermissionCode;
+import es.bancosol.api.common.security.RequiresPermission;
 import es.bancosol.api.campaigns.dto.CampaignTypeRequest;
 import es.bancosol.api.campaigns.dto.CampaignTypeResponse;
 import es.bancosol.api.campaigns.service.CampaignTypeService;
@@ -27,28 +29,33 @@ public class CampaignTypeController {
     private final CampaignTypeService service;
 
     @GetMapping
+    @RequiresPermission(PermissionCode.CAMPAIGN_TYPE_LIST)
     public PagedModel<CampaignTypeResponse> list(@RequestParam(required = false) String name, Pageable pageable) {
         return new PagedModel<>(service.list(name, pageable));
     }
 
     @GetMapping("/{campaignTypeId}")
+    @RequiresPermission(PermissionCode.CAMPAIGN_TYPE_READ)
     public CampaignTypeResponse get(@PathVariable Integer campaignTypeId) {
         return service.get(campaignTypeId);
     }
 
     @PostMapping
+    @RequiresPermission(PermissionCode.CAMPAIGN_TYPE_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public CampaignTypeResponse create(@Valid @RequestBody CampaignTypeRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{campaignTypeId}")
+    @RequiresPermission(PermissionCode.CAMPAIGN_TYPE_UPDATE)
     public CampaignTypeResponse update(@PathVariable Integer campaignTypeId,
             @Valid @RequestBody CampaignTypeRequest request) {
         return service.update(campaignTypeId, request);
     }
 
     @DeleteMapping("/{campaignTypeId}")
+    @RequiresPermission(PermissionCode.CAMPAIGN_TYPE_DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer campaignTypeId) {
         service.delete(campaignTypeId);

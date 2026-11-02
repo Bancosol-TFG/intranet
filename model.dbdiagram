@@ -1,5 +1,5 @@
 {
-  "version": "3.0.0",
+  "version": "2.0.0",
   "darkMode": true,
   "gridEnabling": false,
   "currentViewName": null,
@@ -7,18 +7,6 @@
     "detailLevel": "All",
     "relationshipMode": "All",
     "tablePositions": [
-      {
-        "name": "campaign_type",
-        "schemaName": "public",
-        "x": 991.7469029003845,
-        "y": 1400.485525324583
-      },
-      {
-        "name": "campaign",
-        "schemaName": "public",
-        "x": 666.7045237539838,
-        "y": 1545.5655509529902
-      },
       {
         "name": "report",
         "schemaName": "public",
@@ -35,7 +23,7 @@
         "name": "role",
         "schemaName": "public",
         "x": -553.2535309304001,
-        "y": 2143.547976152485
+        "y": 2396.1107136302676
       },
       {
         "name": "permission",
@@ -47,7 +35,7 @@
         "name": "user_role",
         "schemaName": "public",
         "x": -553.2535309304001,
-        "y": 2362.9542065544597
+        "y": 2142.382749157196
       },
       {
         "name": "role_permission",
@@ -56,22 +44,10 @@
         "y": 2613.2355148420993
       },
       {
-        "name": "collaborator",
-        "schemaName": "public",
-        "x": 193.0628886171438,
-        "y": 1264.374574440047
-      },
-      {
         "name": "collaborator_role",
         "schemaName": "public",
         "x": -185.61401198427637,
         "y": 1794.993009107567
-      },
-      {
-        "name": "contact",
-        "schemaName": "public",
-        "x": 666.7045237539838,
-        "y": 1232.374574440047
       },
       {
         "name": "collaborator_participation",
@@ -134,28 +110,52 @@
         "y": 2697.1819842887626
       },
       {
-        "name": "zone",
-        "schemaName": "public",
-        "x": 301.71376047295905,
-        "y": 2806.7283407429336
-      },
-      {
         "name": "zone_assignment",
         "schemaName": "public",
         "x": 707.7350401052691,
         "y": 2834.6199489416344
       },
       {
-        "name": "locality",
-        "schemaName": "public",
-        "x": 301.71376047295905,
-        "y": 1911.2924513234389
-      },
-      {
         "name": "chain",
         "schemaName": "public",
         "x": 301.71376047295905,
         "y": 3050.972166228568
+      },
+      {
+        "name": "collaborators",
+        "schemaName": "public",
+        "x": 635.2392578125,
+        "y": 677
+      },
+      {
+        "name": "contacts",
+        "schemaName": "public",
+        "x": 1198.478515625,
+        "y": 137
+      },
+      {
+        "name": "localities",
+        "schemaName": "public",
+        "x": 12,
+        "y": 950
+      },
+      {
+        "name": "campaign_types",
+        "schemaName": "public",
+        "x": 12,
+        "y": 1220
+      },
+      {
+        "name": "campaigns",
+        "schemaName": "public",
+        "x": 635.2392578125,
+        "y": 979
+      },
+      {
+        "name": "zones",
+        "schemaName": "public",
+        "x": 1198.478515625,
+        "y": 2207
       }
     ],
     "tableGroupCollapseStates": [],
