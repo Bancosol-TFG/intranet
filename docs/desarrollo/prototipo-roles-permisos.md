@@ -28,14 +28,15 @@ evitar esa denegación.
 
 ## Primer administrador
 
-La migración asegura que exista el rol `ADMIN` y le concede los permisos
-necesarios para gestionar roles y asignaciones. No crea una cuenta ni concede
-al rol todos los permisos de la aplicación.
+La migración asegura que exista el rol `ADMIN`. Al arrancar, `PermissionCatalogSynchronizer`
+le concede todos los permisos declarados en `PermissionCode` que todavía no tenga.
+Así, los permisos nuevos del catálogo también se asignan a `ADMIN` al desplegar.
+No crea una cuenta.
 
 La integración de autenticación crea la cuenta inicial cuando se configuran
 `ADMIN_EMAIL` y `ADMIN_PASSWORD`, y la vincula al rol `ADMIN`. Esa cuenta puede
-entrar al prototipo y asignar otros permisos desde la interfaz. No se definen
-credenciales predeterminadas en esta tarea.
+entrar al prototipo y gestionar roles y permisos. No se definen credenciales
+predeterminadas en esta tarea.
 
 ## Comprobar
 

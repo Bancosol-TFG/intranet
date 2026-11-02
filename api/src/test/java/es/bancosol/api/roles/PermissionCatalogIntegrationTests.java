@@ -2,10 +2,12 @@ package es.bancosol.api.roles;
 
 import java.time.Instant;
 import java.util.Arrays;
+import es.bancosol.api.auth.service.PermissionChangeTracker;
 import es.bancosol.api.common.security.PermissionCode;
 import es.bancosol.api.roles.entity.Permission;
 import es.bancosol.api.roles.repository.PermissionRepository;
 import es.bancosol.api.roles.service.PermissionCatalogSynchronizer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,14 @@ class PermissionCatalogIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @AfterEach
+    void clearPermissionChange() {
+        redisTemplate.delete(PermissionChangeTracker.LAST_CHANGE_KEY);
+    }
+
     @Test
     void createsEveryPermissionFromTheApplicationCatalog() {
         Arrays.stream(PermissionCode.values()).forEach(permissionCode -> {
@@ -43,7 +54,7 @@ class PermissionCatalogIntegrationTests {
     }
 
     @Test
-    void grantsRoleManagementPermissionsToTheInitialAdminRole() {
+    void grantsEveryCatalogPermissionToTheInitialAdminRole() {
         String[] adminPermissions = jdbcTemplate.queryForList("""
                 SELECT permissions.name
                 FROM roles
@@ -55,13 +66,31 @@ class PermissionCatalogIntegrationTests {
                   AND permissions.deleted_at IS NULL
                 """, String.class).toArray(String[]::new);
 
-        assertThat(adminPermissions).contains(
-                PermissionCode.ROLE_LIST.name(),
-                PermissionCode.ROLE_CREATE.name(),
-                PermissionCode.PERMISSION_LIST.name(),
-                PermissionCode.ROLE_PERMISSION_LIST.name(),
-                PermissionCode.ROLE_PERMISSION_ASSIGN.name(),
-                PermissionCode.ROLE_PERMISSION_REVOKE.name());
+        assertThat(adminPermissions)
+                .contains(Arrays.stream(PermissionCode.values()).map(PermissionCode::name).toArray(String[]::new));
+    }
+
+    @Test
+    void restoresCatalogPermissionRemovedFromAdminWhenSynchronizing() {
+        Integer adminRoleId = jdbcTemplate.queryForObject(
+                "SELECT id FROM roles WHERE name = 'ADMIN' AND deleted_at IS NULL", Integer.class);
+        Integer permissionId = jdbcTemplate.queryForObject(
+                "SELECT id FROM permissions WHERE name = ? AND deleted_at IS NULL",
+                Integer.class,
+                PermissionCode.ZONE_READ.name());
+        jdbcTemplate.update("""
+                UPDATE role_permissions
+                SET deleted_at = NOW()
+                WHERE role_id = ? AND permission_id = ? AND deleted_at IS NULL
+                """, adminRoleId, permissionId);
+
+        permissionCatalogSynchronizer.run(emptyArguments());
+
+        Integer activeAssignments = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM role_permissions
+                WHERE role_id = ? AND permission_id = ? AND deleted_at IS NULL
+                """, Integer.class, adminRoleId, permissionId);
+        assertThat(activeAssignments).isEqualTo(1);
     }
 
     @Test
