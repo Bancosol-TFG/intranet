@@ -48,6 +48,52 @@ class PermissionAnnotationProcessorTests {
     }
 
     @Test
+    void acceptsPublicAnnotationOnControllerEndpoint() throws IOException {
+        CompilationResult result = compileSource("example.PublicController", """
+                package example;
+
+                import es.bancosol.api.common.security.Public;
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class PublicController {
+                    @GetMapping("/health")
+                    @Public
+                    public String health() {
+                        return "ok";
+                    }
+                }
+                """);
+
+        assertThat(result.successful()).isTrue();
+        assertThat(result.diagnostics()).noneMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR);
+    }
+
+    @Test
+    void acceptsAuthenticationAnnotationOnControllerEndpoint() throws IOException {
+        CompilationResult result = compileSource("example.AuthenticatedController", """
+                package example;
+
+                import es.bancosol.api.common.security.RequiresAuthentication;
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class AuthenticatedController {
+                    @GetMapping("/me")
+                    @RequiresAuthentication
+                    public String currentUser() {
+                        return "user";
+                    }
+                }
+                """);
+
+        assertThat(result.successful()).isTrue();
+        assertThat(result.diagnostics()).noneMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR);
+    }
+
+    @Test
     void rejectsPermissionAnnotationOutsideController() throws IOException {
         CompilationResult result = compileSource("example.Service", """
                 package example;
@@ -66,11 +112,11 @@ class PermissionAnnotationProcessorTests {
         assertThat(result.successful()).isFalse();
         assertThat(result.diagnostics())
                 .anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR
-                        && diagnostic.getMessage(null).contains("solo se puede usar en métodos"));
+                        && diagnostic.getMessage(null).contains("etiquetas de acceso solo se pueden usar"));
     }
 
     @Test
-    void warnsWhenControllerEndpointHasNoPermissionAnnotation() throws IOException {
+    void rejectsControllerEndpointWithoutAccessAnnotation() throws IOException {
         CompilationResult result = compileSource("example.UnprotectedController", """
                 package example;
 
@@ -86,10 +132,59 @@ class PermissionAnnotationProcessorTests {
                 }
                 """);
 
-        assertThat(result.successful()).isTrue();
+        assertThat(result.successful()).isFalse();
         assertThat(result.diagnostics())
-                .anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.WARNING
-                        && diagnostic.getMessage(null).contains("no declara @RequiresPermission"));
+                .anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR
+                        && diagnostic.getMessage(null).contains("debe declarar exactamente una etiqueta de acceso"));
+    }
+
+    @Test
+    void rejectsControllerEndpointWithMultipleAccessAnnotations() throws IOException {
+        CompilationResult result = compileSource("example.ConflictingController", """
+                package example;
+
+                import es.bancosol.api.common.security.PermissionCode;
+                import es.bancosol.api.common.security.Public;
+                import es.bancosol.api.common.security.RequiresPermission;
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class ConflictingController {
+                    @GetMapping("/zones")
+                    @Public
+                    @RequiresPermission(PermissionCode.ZONE_LIST)
+                    public String list() {
+                        return "zones";
+                    }
+                }
+                """);
+
+        assertThat(result.successful()).isFalse();
+        assertThat(result.diagnostics())
+                .anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR
+                        && diagnostic.getMessage(null).contains("exactamente una etiqueta de acceso"));
+    }
+
+    @Test
+    void rejectsPublicAnnotationOutsideController() throws IOException {
+        CompilationResult result = compileSource("example.Service", """
+                package example;
+
+                import es.bancosol.api.common.security.Public;
+
+                public class Service {
+                    @Public
+                    public String getData() {
+                        return "data";
+                    }
+                }
+                """);
+
+        assertThat(result.successful()).isFalse();
+        assertThat(result.diagnostics())
+                .anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR
+                        && diagnostic.getMessage(null).contains("etiquetas de acceso solo se pueden usar"));
     }
 
     @Test

@@ -163,7 +163,7 @@ class RoleManagementIntegrationTests {
     void deniesRoleAccessWithoutAnAuthenticatedPrincipal() throws Exception {
         mockMvc.perform(get("/roles"))
                 .andExpect(unauthenticated())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     private void assertActiveAssignmentCount(Role role, Permission permission, int expectedCount) {

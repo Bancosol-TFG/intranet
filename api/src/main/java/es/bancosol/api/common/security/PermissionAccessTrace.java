@@ -15,4 +15,12 @@ public class PermissionAccessTrace {
     public void recordDeniedAccess(PermissionCode permissionCode, String endpoint) {
         log.warn("Permission access denied: permission={}, endpoint={}", permissionCode, endpoint);
     }
+
+    public void recordPublicAccess(String endpoint) {
+        log.info("Public endpoint accessed: endpoint={}", endpoint);
+    }
+
+    public void recordMissingAccessDeclaration(String endpoint) {
+        log.warn("Endpoint access denied because it has no explicit access declaration: endpoint={}", endpoint);
+    }
 }

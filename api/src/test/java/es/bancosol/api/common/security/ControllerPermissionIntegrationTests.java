@@ -40,6 +40,6 @@ class ControllerPermissionIntegrationTests {
     @Test
     @WithAnonymousUser
     void deniesZoneAccessWithoutAuthentication() throws Exception {
-        mockMvc.perform(get("/zones")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/zones")).andExpect(status().isUnauthorized());
     }
 }

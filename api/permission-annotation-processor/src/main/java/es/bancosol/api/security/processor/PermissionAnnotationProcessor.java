@@ -16,6 +16,12 @@ import javax.tools.Diagnostic;
 @SupportedSourceVersion(SourceVersion.RELEASE_25)
 public class PermissionAnnotationProcessor extends AbstractProcessor {
     private static final String REQUIRES_PERMISSION_ANNOTATION = "es.bancosol.api.common.security.RequiresPermission";
+    private static final String REQUIRES_AUTHENTICATION_ANNOTATION = "es.bancosol.api.common.security.RequiresAuthentication";
+    private static final String PUBLIC_ANNOTATION = "es.bancosol.api.common.security.Public";
+    private static final Set<String> ACCESS_ANNOTATIONS = Set.of(
+            REQUIRES_PERMISSION_ANNOTATION,
+            REQUIRES_AUTHENTICATION_ANNOTATION,
+            PUBLIC_ANNOTATION);
     private static final Set<String> CONTROLLER_ANNOTATIONS = Set.of(
             "org.springframework.stereotype.Controller",
             "org.springframework.web.bind.annotation.RestController");
@@ -27,7 +33,8 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
             "org.springframework.web.bind.annotation.PatchMapping",
             "org.springframework.web.bind.annotation.DeleteMapping");
 
-    private final Set<String> warnedEndpoints = new HashSet<>();
+    private final Set<String> validatedEndpoints = new HashSet<>();
+    private final Set<String> validatedAnnotations = new HashSet<>();
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
@@ -36,54 +43,74 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
-        TypeElement permissionAnnotation = processingEnv.getElementUtils()
-                .getTypeElement(REQUIRES_PERMISSION_ANNOTATION);
-
-        if (permissionAnnotation == null) {
-            processingEnv.getMessager().printMessage(
-                Diagnostic.Kind.ERROR,
-                REQUIRES_PERMISSION_ANNOTATION + " no encontrado.");
-            return false;
+        for (String accessAnnotation : ACCESS_ANNOTATIONS) {
+            TypeElement annotationElement = processingEnv.getElementUtils().getTypeElement(accessAnnotation);
+            if (annotationElement == null) {
+                processingEnv.getMessager().printMessage(
+                        Diagnostic.Kind.ERROR,
+                        accessAnnotation + " no encontrado.");
+                continue;
+            }
+            validateAccessAnnotationUsage(roundEnvironment, annotationElement, accessAnnotation);
         }
-        
-        validatePermissionAnnotationUsage(roundEnvironment, permissionAnnotation);
 
-        warnAboutUnprotectedEndpoints(roundEnvironment);
+        validateEndpointAccessDeclarations(roundEnvironment);
         return false;
     }
 
-    private void validatePermissionAnnotationUsage(
+    private void validateAccessAnnotationUsage(
             RoundEnvironment roundEnvironment,
-            TypeElement permissionAnnotation) {
-        for (Element element : roundEnvironment.getElementsAnnotatedWith(permissionAnnotation)) {
+            TypeElement annotationElement,
+            String annotationName) {
+        for (Element element : roundEnvironment.getElementsAnnotatedWith(annotationElement)) {
+            String annotationKey = annotationName + ":" + element;
+            if (!validatedAnnotations.add(annotationKey)) {
+                continue;
+            }
             if (element.getKind() != ElementKind.METHOD || !isController(element.getEnclosingElement())) {
                 processingEnv.getMessager().printMessage(
                     Diagnostic.Kind.ERROR,
-                    "@RequiresPermission solo se puede usar en métodos de clases @Controller o @RestController.",
+                    "Las etiquetas de acceso solo se pueden usar en métodos de clases @Controller o @RestController.",
                     element);
             }
         }
     }
 
-    private void warnAboutUnprotectedEndpoints(RoundEnvironment roundEnvironment) {
+    private void validateEndpointAccessDeclarations(RoundEnvironment roundEnvironment) {
         for (Element rootElement : roundEnvironment.getRootElements()) {
-            if (!(rootElement instanceof TypeElement typeElement) || !isController(typeElement)) {
-                continue;
-            }
+            validateTypeAndNestedEndpoints(rootElement);
+        }
+    }
 
+    private void validateTypeAndNestedEndpoints(Element element) {
+        if (element instanceof TypeElement typeElement && isController(typeElement)) {
             for (Element enclosedElement : typeElement.getEnclosedElements()) {
-                if (!(enclosedElement instanceof ExecutableElement method) || !isHttpEndpoint(method)
-                        || hasPermission(method)) {
+                if (!(enclosedElement instanceof ExecutableElement method) || !isHttpEndpoint(method)) {
                     continue;
                 }
 
-                String endpointKey = typeElement.getQualifiedName() + "#" + method.getSimpleName();
-                if (warnedEndpoints.add(endpointKey)) {
-                    processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.WARNING,
-                        "El endpoint HTTP no declara @RequiresPermission.",
-                        method);
+                String endpointKey = typeElement.getQualifiedName() + "#" + method;
+                if (!validatedEndpoints.add(endpointKey)) {
+                    continue;
                 }
+
+                long accessDeclarationCount = method.getAnnotationMirrors().stream()
+                        .map(annotationMirror -> annotationMirror.getAnnotationType().toString())
+                        .filter(ACCESS_ANNOTATIONS::contains)
+                        .count();
+                if (accessDeclarationCount != 1) {
+                    processingEnv.getMessager().printMessage(
+                            Diagnostic.Kind.ERROR,
+                            "El endpoint HTTP debe declarar exactamente una etiqueta de acceso: "
+                                    + "@RequiresPermission, @RequiresAuthentication o @Public.",
+                            method);
+                }
+            }
+        }
+
+        for (Element enclosedElement : element.getEnclosedElements()) {
+            if (enclosedElement.getKind().isClass() || enclosedElement.getKind().isInterface()) {
+                validateTypeAndNestedEndpoints(enclosedElement);
             }
         }
     }
@@ -100,9 +127,4 @@ public class PermissionAnnotationProcessor extends AbstractProcessor {
                 .anyMatch(HTTP_MAPPING_ANNOTATIONS::contains);
     }
 
-    private boolean hasPermission(ExecutableElement method) {
-        return method.getAnnotationMirrors().stream()
-                .anyMatch(annotationMirror -> annotationMirror.getAnnotationType().toString()
-                        .equals(REQUIRES_PERMISSION_ANNOTATION));
-    }
 }
