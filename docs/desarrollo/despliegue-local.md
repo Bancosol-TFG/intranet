@@ -73,7 +73,7 @@ ejemplo `http://localhost:8080`. La API acepta peticiones desde
 `http://localhost:5173`, el origen del frontend en desarrollo.
 
 La documentación interactiva de la API está en
-`http://localhost:${APP_PORT:-8080}/swagger-ui.html`; consulta [Swagger UI](swagger.md).
+`http://localhost:${APP_PORT:-8080}/swagger-ui`; consulta [Swagger UI](swagger.md).
 
 ## Arrancar y detener
 

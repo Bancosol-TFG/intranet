@@ -6,7 +6,7 @@ La API publica su especificación OpenAPI y una interfaz de Swagger UI para prob
 
 | Recurso | URL en local |
 | --- | --- |
-| Swagger UI | `http://localhost:${APP_PORT:-8080}/swagger-ui.html` |
+| Swagger UI | `http://localhost:${APP_PORT:-8080}/swagger-ui` |
 | Especificación OpenAPI (JSON) | `http://localhost:${APP_PORT:-8080}/v3/api-docs` |
 
 Ambas rutas son públicas. La variable `SWAGGER_ENABLED` (por defecto `true` en `.env.example`) las activa o desactiva; con `false`, las dos responden 404.
