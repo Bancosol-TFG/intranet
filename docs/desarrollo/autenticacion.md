@@ -6,14 +6,16 @@ La API autentica con un token de acceso JWT de 15 minutos y un token de refresco
 
 | Método y ruta | Acceso | Uso |
 | --- | --- | --- |
-| `POST /auth/login` | Público | Inicia sesión con `email`, `password` y `client` (`WEB` o `MOBILE`). |
-| `POST /auth/refresh` | Cookie de refresco | Rota el token de refresco y devuelve un token de acceso nuevo. |
-| `POST /auth/logout` | Público | Revoca la sesión de la cookie. |
-| `POST /auth/change-password` | Autenticado | Cambia la contraseña y revoca todas las sesiones. |
-| `GET /auth/me` | Autenticado | Devuelve el usuario actual. |
-| `POST /users` | Permiso `users:create` | Crea una cuenta y devuelve una sola vez su contraseña temporal. |
+| `POST /auth/login` | `@Public` | Inicia sesión con `email`, `password` y `client` (`WEB` o `MOBILE`). |
+| `POST /auth/refresh` | `@Public` y cookie de refresco | Rota el token de refresco y devuelve un token de acceso nuevo. |
+| `POST /auth/logout` | `@Public` | Revoca la sesión de la cookie. |
+| `POST /auth/change-password` | `@RequiresAuthentication` | Cambia la contraseña y revoca todas las sesiones. |
+| `GET /auth/me` | `@RequiresAuthentication` | Devuelve el usuario actual. |
+| `POST /users` | `@RequiresAuthentication` y permiso `users:create` | Crea una cuenta y devuelve una sola vez su contraseña temporal. |
 
-El resto de endpoints exige un token válido (401). Las restricciones por rol de cada módulo llegarán con la issue #50.
+Cada método de endpoint en un controller debe declarar exactamente una anotación de acceso: `@Public`, `@RequiresAuthentication` o `@RequiresPermission`. La compilación falla si falta la anotación, se usan varias o se coloca una fuera de un controller. En ejecución, la API también deniega con 403 los endpoints sin una declaración válida.
+
+`@Public` permite peticiones sin autenticación. `@RequiresAuthentication` exige una sesión autenticada. `@RequiresPermission` exige la authority exacta indicada en el catálogo `PermissionCode`; sin token la API responde 401 y sin permiso responde 403.
 
 Mientras una cuenta tenga la contraseña temporal, solo puede usar `/auth/*`; el resto responde 403.
 

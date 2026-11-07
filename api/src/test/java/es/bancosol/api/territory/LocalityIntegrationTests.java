@@ -3,6 +3,7 @@ package es.bancosol.api.territory;
 import java.util.UUID;
 import es.bancosol.api.territory.entity.Locality;
 import es.bancosol.api.territory.repository.LocalityRepository;
+import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -12,7 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +21,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@WithMockUser
 @AutoConfigureMockMvc
 @Transactional
+@WithAllPermissions
 class LocalityIntegrationTests {
     @Autowired private MockMvc mockMvc;
     @Autowired private LocalityRepository repository;
