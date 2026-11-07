@@ -8,9 +8,11 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface StoreRepository extends JpaRepository<Store, Integer> {
     @Query("SELECT store FROM Store store WHERE (:chainId IS NULL OR store.chain.id = :chainId) "
+            + "AND (:zoneId IS NULL OR store.zone.id = :zoneId) "
             + "AND LOWER(store.name) LIKE LOWER(CONCAT('%', :name, '%'))")
-    Page<Store> search(Integer chainId, String name, Pageable pageable);
+    Page<Store> search(Integer chainId, Integer zoneId, String name, Pageable pageable);
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Integer id);
     boolean existsByChainIdAndDeletedAtIsNull(Integer chainId);
+    boolean existsByZoneIdAndDeletedAtIsNull(Integer zoneId);
 }

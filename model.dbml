@@ -187,7 +187,7 @@ Table store {
   name string [not null, note: 'Único entre tiendas no borradas']
   address string [not null]
   checkout_shelfs integer [not null]
-  zone_id int [ref: < zones.id]
+  zone_id int [ref: > zones.id]
 
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]

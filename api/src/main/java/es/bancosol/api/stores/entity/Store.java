@@ -2,6 +2,7 @@ package es.bancosol.api.stores.entity;
 
 import java.time.Instant;
 import es.bancosol.api.stores.entity.Chain;
+import es.bancosol.api.territory.entity.Zone;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,11 @@ public class Store {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "chain_id", nullable = false)
     private Chain chain;
+
+    @Setter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "zone_id")
+    private Zone zone;
 
     @Setter
     @Column(nullable = false)

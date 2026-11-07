@@ -7,6 +7,8 @@ import es.bancosol.api.stores.repository.ChainRepository;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
 import es.bancosol.api.stores.service.StoreService;
+import es.bancosol.api.territory.entity.Zone;
+import es.bancosol.api.territory.repository.ZoneRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,6 +44,39 @@ class StoreIntegrationTests {
     private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private ZoneRepository zoneRepository;
+
+    @Test
+    void managesStoreZoneAndPreventsDeletingAnAssignedZone() throws Exception {
+        Chain chain = chain();
+        Zone firstZone = zoneRepository.save(new Zone(uniqueName(), "A"));
+        Zone secondZone = zoneRepository.save(new Zone(uniqueName(), "B"));
+        String storeName = uniqueName();
+        String created = mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON)
+                        .content(body(storeName, chain.getId(), firstZone.getId())))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.zone.id").value(firstZone.getId()))
+                .andReturn().getResponse().getContentAsString();
+        Integer storeId = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        mockMvc.perform(get("/stores").param("zoneId", firstZone.getId().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(1));
+        mockMvc.perform(get("/stores").param("zoneId", secondZone.getId().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(0));
+        mockMvc.perform(delete("/zones/{zoneId}", firstZone.getId())).andExpect(status().isConflict());
+        mockMvc.perform(put("/stores/{storeId}", storeId).contentType(MediaType.APPLICATION_JSON)
+                        .content(body(storeName, chain.getId(), secondZone.getId())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.zone.id").value(secondZone.getId()));
+        mockMvc.perform(delete("/zones/{zoneId}", firstZone.getId())).andExpect(status().isNoContent());
+        mockMvc.perform(put("/stores/{storeId}", storeId).contentType(MediaType.APPLICATION_JSON)
+                        .content(body(storeName, chain.getId(), firstZone.getId())))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/stores/{storeId}", storeId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.zone.id").value(secondZone.getId()));
+        mockMvc.perform(put("/stores/{storeId}", storeId).contentType(MediaType.APPLICATION_JSON)
+                        .content(body(storeName, chain.getId())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.zone").isEmpty());
+        mockMvc.perform(delete("/zones/{zoneId}", secondZone.getId())).andExpect(status().isNoContent());
+    }
 
     @Test
     void createsAndListsStoreLinkedToChain() throws Exception {
@@ -221,5 +256,9 @@ class StoreIntegrationTests {
 
     private String body(String name, Integer chainId) {
         return "{\"name\":\"" + name + "\",\"address\":\"Address\",\"checkoutShelfs\":0,\"chainId\":" + chainId + "}";
+    }
+
+    private String body(String name, Integer chainId, Integer zoneId) {
+        return body(name, chainId).replace("}", ",\"zoneId\":" + zoneId + "}");
     }
 }

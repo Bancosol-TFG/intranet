@@ -14,6 +14,8 @@ La interfaz web solicita `/api/zones`; el proxy de desarrollo retira `/api` ante
 
 Las consultas a una zona inexistente o eliminada responden `404`. Un nombre duplicado, incluso si pertenece a una zona eliminada, responde `409`. El código puede repetirse.
 
+Una zona con tiendas activas no se puede borrar: la API responde `409`. Las tiendas asociadas se consultan con `GET /stores?zoneId={zoneId}`; la asignación es opcional y se gestiona desde el recurso de tiendas.
+
 ## Interfaz
 
 Abre `/zones` para buscar, paginar y mantener zonas. El formulario permite crear y editar; la interfaz solicita confirmación antes del borrado.

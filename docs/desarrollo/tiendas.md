@@ -35,7 +35,7 @@ Los errores usan el manejo por defecto de Spring. Temporalmente, la configuraci�
 
 ## Tiendas
 
-Las tiendas se guardan en la tabla `stores`. Localidades (`locality_id`) y zonas (`zone_id`) quedan pendientes y no forman parte de la tabla ni del contrato actual.
+Las tiendas se guardan en la tabla `stores`. Cada tienda puede tener una zona activa; la relación con localidades (`locality_id`) queda pendiente.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
@@ -49,11 +49,13 @@ Para crear o editar, envía `{"name":"Tienda centro","address":"Calle principal,
 
 La respuesta contiene `id`, `name`, `address`, `checkoutShelfs` y `chain`, con `id` y `code` de la cadena. `GET /stores?page=0&size=10&sort=name,asc&chainId=1&name=centro` admite filtros opcionales combinables: `chainId` exacto y `name` parcial sin distinguir mayúsculas. Usa la misma estructura `content` y `page` que las cadenas.
 
+Para asociar una zona, incluye `zoneId` en el alta o la edición. La zona debe existir y estar activa; si se omite o es `null`, la tienda queda sin zona. La respuesta incluye `zone` con `id`, `name` y `code`, o `null` si no tiene zona. `GET /stores?zoneId=1` permite consultar las tiendas activas de una zona y combinar el filtro con los demás. No se puede dar de baja una zona que tenga tiendas activas: la API responde 409.
+
 ### Borrado y errores de tiendas
 
 El borrado lógico registra `deleted_at`; las tiendas borradas quedan fuera de listados, detalle, edición y borrado. El nombre distingue mayúsculas y es único solo entre tiendas no borradas, mediante `uq_stores_name`, por lo que puede reutilizarse tras la baja. Se conservan `created_at` y `updated_at`.
 
-- 400: campos obligatorios ausentes, nulos o vacíos, cajas negativas o cadena inexistente o borrada. Una cadena inválida no guarda cambios.
+- 400: campos obligatorios ausentes, nulos o vacíos, cajas negativas, cadena inexistente o borrada, o zona inexistente o borrada. Una relación inválida no guarda cambios.
 - 404: tienda inexistente o borrada en detalle, edición o borrado.
 - 409: nombre ya utilizado por otra tienda no borrada en alta o edición.
 

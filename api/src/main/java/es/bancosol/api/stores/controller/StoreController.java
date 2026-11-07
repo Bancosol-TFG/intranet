@@ -18,8 +18,9 @@ public class StoreController {
 
     @GetMapping
     public PagedModel<StoreResponse> list(@RequestParam(required = false) Integer chainId,
+                                         @RequestParam(required = false) Integer zoneId,
                                          @RequestParam(required = false) String name, Pageable pageable) {
-        return new PagedModel<>(service.list(chainId, name, pageable));
+        return new PagedModel<>(service.list(chainId, zoneId, name, pageable));
     }
 
     @GetMapping("/{storeId}")
