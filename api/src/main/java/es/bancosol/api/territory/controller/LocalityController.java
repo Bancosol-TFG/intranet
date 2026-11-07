@@ -3,6 +3,8 @@ package es.bancosol.api.territory.controller;
 import es.bancosol.api.territory.dto.LocalityRequest;
 import es.bancosol.api.territory.dto.LocalityResponse;
 import es.bancosol.api.territory.service.LocalityService;
+import es.bancosol.api.common.security.PermissionCode;
+import es.bancosol.api.common.security.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +19,7 @@ public class LocalityController {
     private final LocalityService service;
 
     @GetMapping
+    @RequiresPermission(PermissionCode.LOCALITY_LIST)
     public PagedModel<LocalityResponse> list(@RequestParam(required = false) String name,
                                              @RequestParam(required = false) String postalCode,
                                              Pageable pageable) {
@@ -24,22 +27,26 @@ public class LocalityController {
     }
 
     @GetMapping("/{localityId}")
+    @RequiresPermission(PermissionCode.LOCALITY_READ)
     public LocalityResponse get(@PathVariable Integer localityId) {
         return service.get(localityId);
     }
 
     @PostMapping
+    @RequiresPermission(PermissionCode.LOCALITY_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public LocalityResponse create(@Valid @RequestBody LocalityRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{localityId}")
+    @RequiresPermission(PermissionCode.LOCALITY_UPDATE)
     public LocalityResponse update(@PathVariable Integer localityId, @Valid @RequestBody LocalityRequest request) {
         return service.update(localityId, request);
     }
 
     @DeleteMapping("/{localityId}")
+    @RequiresPermission(PermissionCode.LOCALITY_DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer localityId) {
         service.delete(localityId);

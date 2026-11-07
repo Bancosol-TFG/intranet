@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AuthIntegrationTests {
     private static final String PASSWORD = "contrasena-valida";
+    private static final String TEST_ZONE_ROLE = "AUTH_TEST_ZONE_READER";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
@@ -46,6 +47,14 @@ class AuthIntegrationTests {
     void rejectsProtectedEndpointWithoutValidToken() throws Exception {
         mockMvc.perform(get("/zones")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/zones").header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void requiresAuthenticationOnAuthEndpointsNotMarkedPublic() throws Exception {
+        mockMvc.perform(get("/auth/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/auth/change-password").contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -144,7 +153,29 @@ class AuthIntegrationTests {
     private String createUser(boolean mustChangePassword) {
         User user = new User("Prueba", null, null, uniqueEmail(), passwordEncoder.encode(PASSWORD));
         user.setMustChangePassword(mustChangePassword);
-        return userRepository.save(user).getEmail();
+        User createdUser = userRepository.saveAndFlush(user);
+        assignZoneListPermission(createdUser.getId());
+        return createdUser.getEmail();
+    }
+
+    private void assignZoneListPermission(Integer userId) {
+        jdbcTemplate.update("""
+                INSERT INTO roles (name) VALUES (?)
+                ON CONFLICT (name) WHERE deleted_at IS NULL DO NOTHING
+                """, TEST_ZONE_ROLE);
+        jdbcTemplate.update("""
+                INSERT INTO role_permissions (role_id, permission_id)
+                SELECT roles.id, permissions.id
+                FROM roles
+                CROSS JOIN permissions
+                WHERE roles.name = ? AND permissions.name = 'ZONE_LIST'
+                ON CONFLICT (role_id, permission_id) WHERE deleted_at IS NULL DO NOTHING
+                """, TEST_ZONE_ROLE);
+        jdbcTemplate.update("""
+                INSERT INTO user_roles (user_id, role_id)
+                SELECT ?, roles.id FROM roles WHERE roles.name = ?
+                ON CONFLICT (user_id, role_id) WHERE deleted_at IS NULL DO NOTHING
+                """, userId, TEST_ZONE_ROLE);
     }
 
     private MockHttpServletResponse login(String email, String password, String client) throws Exception {
