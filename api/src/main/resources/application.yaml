@@ -32,3 +32,4 @@ springdoc:
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
+    persist-authorization: true

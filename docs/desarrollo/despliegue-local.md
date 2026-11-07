@@ -72,6 +72,9 @@ El frontend llama a la API directamente con la URL de `VITE_BACKEND_URL`, por
 ejemplo `http://localhost:8080`. La API acepta peticiones desde
 `http://localhost:5173`, el origen del frontend en desarrollo.
 
+La documentación interactiva de la API está en
+`http://localhost:${APP_PORT:-8080}/swagger-ui.html`; consulta [Swagger UI](swagger.md).
+
 ## Arrancar y detener
 
 Para construir las imágenes necesarias y arrancar los cuatro servicios en primer
