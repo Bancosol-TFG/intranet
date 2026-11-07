@@ -2,7 +2,7 @@
 
 La API permite consultar, crear, actualizar y borrar zonas desde `/zones`. El borrado es lógico: las zonas eliminadas dejan de aparecer en consultas, pero el nombre permanece reservado por la restricción única global.
 
-La interfaz web solicita `/api/zones`; el proxy de desarrollo retira `/api` antes de reenviar la petición al backend.
+La interfaz web usa la URL base configurada en `VITE_BACKEND_URL`. Si se configura como `/api`, el proxy de desarrollo retira ese prefijo antes de reenviar la petición al backend.
 
 ## API
 

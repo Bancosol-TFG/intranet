@@ -30,7 +30,7 @@ El borrado es lógico: conserva la fila y registra `deleted_at`. Las cadenas bor
 - 404: cadena inexistente o borrada en detalle, edición o borrado.
 - 409: código ya utilizado por otra cadena no borrada en alta o edición, o intento de borrar una cadena con tiendas no borradas.
 
-Los errores usan el manejo por defecto de Spring. Temporalmente, la configuración de seguridad permite todas las peticiones sin credenciales, desactiva CSRF, HTTP Basic y el formulario de acceso y usa sesiones `STATELESS`. Las issues #35–#37 posponen la declaración de roles.
+Los errores usan el manejo por defecto de Spring. Los endpoints exigen una sesión autenticada y, si corresponde, el cambio de contraseña inicial (ver [autenticación](autenticacion.md)). La autorización detallada por rol y permiso está pendiente de integración.
 
 
 ## Tiendas
