@@ -5,6 +5,8 @@ import es.bancosol.api.collaborator.dto.CollaboratorResponse;
 import es.bancosol.api.collaborator.dto.ContactRequest;
 import es.bancosol.api.collaborator.dto.ContactResponse;
 import es.bancosol.api.collaborator.service.CollaboratorService;
+import es.bancosol.api.common.security.PermissionCode;
+import es.bancosol.api.common.security.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ public class CollaboratorController {
     private final CollaboratorService service;
 
     @GetMapping
+    @RequiresPermission(PermissionCode.COLLABORATOR_LIST)
     public PagedModel<CollaboratorResponse> list(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Integer localityId,
@@ -36,17 +39,20 @@ public class CollaboratorController {
     }
 
     @GetMapping("/{collaboratorId}")
+    @RequiresPermission(PermissionCode.COLLABORATOR_READ)
     public CollaboratorResponse get(@PathVariable Integer collaboratorId) {
         return service.get(collaboratorId);
     }
 
     @PostMapping
+    @RequiresPermission(PermissionCode.COLLABORATOR_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public CollaboratorResponse create(@Valid @RequestBody CollaboratorRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{collaboratorId}")
+    @RequiresPermission(PermissionCode.COLLABORATOR_UPDATE)
     public CollaboratorResponse update(
             @PathVariable Integer collaboratorId,
             @Valid @RequestBody CollaboratorRequest request) {
@@ -54,17 +60,20 @@ public class CollaboratorController {
     }
 
     @DeleteMapping("/{collaboratorId}")
+    @RequiresPermission(PermissionCode.COLLABORATOR_DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer collaboratorId) {
         service.delete(collaboratorId);
     }
 
     @GetMapping("/{collaboratorId}/contacts")
+    @RequiresPermission(PermissionCode.CONTACT_LIST)
     public PagedModel<ContactResponse> listContacts(@PathVariable Integer collaboratorId, Pageable pageable) {
         return new PagedModel<>(service.listContacts(collaboratorId, pageable));
     }
 
     @GetMapping("/{collaboratorId}/contacts/{contactId}")
+    @RequiresPermission(PermissionCode.CONTACT_READ)
     public ContactResponse getContact(
             @PathVariable Integer collaboratorId,
             @PathVariable Integer contactId) {
@@ -72,6 +81,7 @@ public class CollaboratorController {
     }
 
     @PostMapping("/{collaboratorId}/contacts")
+    @RequiresPermission(PermissionCode.CONTACT_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
     public ContactResponse createContact(
             @PathVariable Integer collaboratorId,
@@ -80,6 +90,7 @@ public class CollaboratorController {
     }
 
     @PutMapping("/{collaboratorId}/contacts/{contactId}")
+    @RequiresPermission(PermissionCode.CONTACT_UPDATE)
     public ContactResponse updateContact(
             @PathVariable Integer collaboratorId,
             @PathVariable Integer contactId,
@@ -88,6 +99,7 @@ public class CollaboratorController {
     }
 
     @DeleteMapping("/{collaboratorId}/contacts/{contactId}")
+    @RequiresPermission(PermissionCode.CONTACT_DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteContact(
             @PathVariable Integer collaboratorId,
