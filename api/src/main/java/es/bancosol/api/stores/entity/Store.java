@@ -3,6 +3,7 @@ package es.bancosol.api.stores.entity;
 import java.time.Instant;
 import es.bancosol.api.stores.entity.Chain;
 import es.bancosol.api.territory.entity.Zone;
+import es.bancosol.api.territory.entity.Locality;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,11 @@ public class Store {
     private Zone zone;
 
     @Setter
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "locality_id", nullable = false)
+    private Locality locality;
+
+    @Setter
     @Column(nullable = false)
     private String name;
 
@@ -54,10 +60,11 @@ public class Store {
     @Setter
     private Instant deletedAt;
 
-    public Store(String name, String address, Integer checkoutShelfs, Chain chain) {
+    public Store(String name, String address, Integer checkoutShelfs, Chain chain, Locality locality) {
         this.name = name;
         this.address = address;
         this.checkoutShelfs = checkoutShelfs;
         this.chain = chain;
+        this.locality = locality;
     }
 }

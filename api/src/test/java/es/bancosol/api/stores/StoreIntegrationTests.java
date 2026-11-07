@@ -9,6 +9,8 @@ import es.bancosol.api.stores.repository.StoreRepository;
 import es.bancosol.api.stores.service.StoreService;
 import es.bancosol.api.territory.entity.Zone;
 import es.bancosol.api.territory.repository.ZoneRepository;
+import es.bancosol.api.territory.entity.Locality;
+import es.bancosol.api.territory.repository.LocalityRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,6 +48,40 @@ class StoreIntegrationTests {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private ZoneRepository zoneRepository;
+    @Autowired
+    private LocalityRepository localityRepository;
+
+    @Test
+    void managesStoreLocalityAndPreventsDeletingAnAssignedLocality() throws Exception {
+        Chain chain = chain();
+        Locality firstLocality = locality();
+        Locality secondLocality = locality();
+        String name = uniqueName();
+        String created = mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithLocality(name, chain.getId(), firstLocality.getId())))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.locality.id").value(firstLocality.getId()))
+                .andReturn().getResponse().getContentAsString();
+        Integer storeId = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        mockMvc.perform(get("/stores").param("localityId", firstLocality.getId().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(1));
+        mockMvc.perform(get("/stores").param("localityId", secondLocality.getId().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(0));
+        mockMvc.perform(delete("/localities/{localityId}", firstLocality.getId())).andExpect(status().isConflict());
+        mockMvc.perform(put("/stores/{storeId}", storeId).contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithLocality(name, chain.getId(), secondLocality.getId())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.locality.id").value(secondLocality.getId()));
+        mockMvc.perform(delete("/localities/{localityId}", firstLocality.getId())).andExpect(status().isNoContent());
+        mockMvc.perform(put("/stores/{storeId}", storeId).contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithLocality(name, chain.getId(), firstLocality.getId())))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithLocality(uniqueName(), chain.getId(), 987654321)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/stores/{storeId}", storeId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.locality.id").value(secondLocality.getId()));
+        mockMvc.perform(delete("/stores/{storeId}", storeId)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/localities/{localityId}", secondLocality.getId())).andExpect(status().isNoContent());
+    }
 
     @Test
     void managesStoreZoneAndPreventsDeletingAnAssignedZone() throws Exception {
@@ -186,7 +222,7 @@ class StoreIntegrationTests {
     @ParameterizedTest
     @ValueSource(strings = {"{}", "\"name\":null", "\"name\":\"\"", "\"name\":\"   \"",
             "\"address\":null", "\"address\":\"\"", "\"address\":\"   \"",
-            "\"checkoutShelfs\":null", "\"checkoutShelfs\":-1", "\"chainId\":null"})
+            "\"checkoutShelfs\":null", "\"checkoutShelfs\":-1", "\"chainId\":null", "\"localityId\":null"})
     void rejectsInvalidFieldsOnCreateAndUpdate(String invalidField) throws Exception {
         Store existing = store(uniqueName(), chain());
         String payload = body(uniqueName(), existing.getChain().getId());
@@ -247,7 +283,7 @@ class StoreIntegrationTests {
     }
 
     private Store store(String name, Chain chain) {
-        return repository.save(new Store(name, "Address", 0, chain));
+        return repository.save(new Store(name, "Address", 0, chain, locality()));
     }
 
     private String uniqueName() {
@@ -255,10 +291,20 @@ class StoreIntegrationTests {
     }
 
     private String body(String name, Integer chainId) {
-        return "{\"name\":\"" + name + "\",\"address\":\"Address\",\"checkoutShelfs\":0,\"chainId\":" + chainId + "}";
+        return "{\"name\":\"" + name + "\",\"address\":\"Address\",\"checkoutShelfs\":0,\"chainId\":" + chainId
+                + ",\"localityId\":" + locality().getId() + "}";
     }
 
     private String body(String name, Integer chainId, Integer zoneId) {
         return body(name, chainId).replace("}", ",\"zoneId\":" + zoneId + "}");
+    }
+
+    private Locality locality() {
+        return localityRepository.save(new Locality(uniqueName(), "29001"));
+    }
+
+    private String bodyWithLocality(String name, Integer chainId, Integer localityId) {
+        return "{\"name\":\"" + name + "\",\"address\":\"Address\",\"checkoutShelfs\":0,\"chainId\":" + chainId
+                + ",\"localityId\":" + localityId + "}";
     }
 }

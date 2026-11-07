@@ -6,5 +6,5 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 public record StoreRequest(@NotBlank String name, @NotBlank String address,
                            @NotNull @PositiveOrZero Integer checkoutShelfs, @NotNull Integer chainId,
-                           Integer zoneId) {
+                           Integer zoneId, @NotNull Integer localityId) {
 }

@@ -35,7 +35,7 @@ Los errores usan el manejo por defecto de Spring. Temporalmente, la configuraci�
 
 ## Tiendas
 
-Las tiendas se guardan en la tabla `stores`. Cada tienda puede tener una zona activa; la relación con localidades (`locality_id`) queda pendiente.
+Las tiendas se guardan en la tabla `stores`. Cada tienda pertenece a una localidad activa y puede tener una zona activa.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
@@ -45,17 +45,31 @@ Las tiendas se guardan en la tabla `stores`. Cada tienda puede tener una zona ac
 | PUT | `/stores/{storeId}` | 200, tienda actualizada |
 | DELETE | `/stores/{storeId}` | 204, sin cuerpo |
 
-Para crear o editar, envía `{"name":"Tienda centro","address":"Calle principal, 1","checkoutShelfs":0,"chainId":1}`. Todos los campos son obligatorios: `name` y `address` no pueden estar vacíos ni contener solo espacios; `checkoutShelfs` debe ser un entero mayor o igual que cero. La cadena debe existir y no estar borrada. La edición permite cambiar de cadena.
+Para crear o editar, envía `{"name":"Tienda centro","address":"Calle principal, 1","checkoutShelfs":0,"chainId":1,"localityId":1}`. Todos los campos son obligatorios: `name` y `address` no pueden estar vacíos ni contener solo espacios; `checkoutShelfs` debe ser un entero mayor o igual que cero. La cadena y la localidad deben existir y no estar borradas. La edición permite cambiar ambas relaciones.
 
 La respuesta contiene `id`, `name`, `address`, `checkoutShelfs` y `chain`, con `id` y `code` de la cadena. `GET /stores?page=0&size=10&sort=name,asc&chainId=1&name=centro` admite filtros opcionales combinables: `chainId` exacto y `name` parcial sin distinguir mayúsculas. Usa la misma estructura `content` y `page` que las cadenas.
 
 Para asociar una zona, incluye `zoneId` en el alta o la edición. La zona debe existir y estar activa; si se omite o es `null`, la tienda queda sin zona. La respuesta incluye `zone` con `id`, `name` y `code`, o `null` si no tiene zona. `GET /stores?zoneId=1` permite consultar las tiendas activas de una zona y combinar el filtro con los demás. No se puede dar de baja una zona que tenga tiendas activas: la API responde 409.
 
+La respuesta incluye `locality` con `id`, `name` y `postalCode`. `GET /stores?localityId=1` permite consultar las tiendas activas de una localidad. Una localidad utilizada por tiendas activas no se puede dar de baja y responde 409.
+
+### Migración de tiendas existentes
+
+La migración exige una localidad en todas las tiendas, incluidas las dadas de baja. Si ya existen tiendas, se detiene sin asignar valores. Antes de reintentarla, prepara la columna en la base de datos y asigna a cada tienda su localidad real; las tiendas activas deben apuntar a localidades activas:
+
+```sql
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS locality_id INTEGER;
+SELECT id, name, address, deleted_at FROM stores WHERE locality_id IS NULL;
+UPDATE stores SET locality_id = <id_localidad> WHERE id = <id_tienda>;
+```
+
+Repite el `UPDATE` con los identificadores correctos para cada tienda y comprueba que la consulta no devuelve filas. Reinicia la API para que Flyway complete la migración, compruebe la referencia y haga obligatoria la columna.
+
 ### Borrado y errores de tiendas
 
 El borrado lógico registra `deleted_at`; las tiendas borradas quedan fuera de listados, detalle, edición y borrado. El nombre distingue mayúsculas y es único solo entre tiendas no borradas, mediante `uq_stores_name`, por lo que puede reutilizarse tras la baja. Se conservan `created_at` y `updated_at`.
 
-- 400: campos obligatorios ausentes, nulos o vacíos, cajas negativas, cadena inexistente o borrada, o zona inexistente o borrada. Una relación inválida no guarda cambios.
+- 400: campos obligatorios ausentes, nulos o vacíos, cajas negativas, cadena o localidad inexistente o borrada, o zona inexistente o borrada. Una relación inválida no guarda cambios.
 - 404: tienda inexistente o borrada en detalle, edición o borrado.
 - 409: nombre ya utilizado por otra tienda no borrada en alta o edición.
 

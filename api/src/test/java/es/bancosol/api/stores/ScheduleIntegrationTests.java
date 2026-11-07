@@ -9,6 +9,8 @@ import es.bancosol.api.stores.entity.Schedule;
 import es.bancosol.api.stores.repository.ScheduleRepository;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
+import es.bancosol.api.territory.entity.Locality;
+import es.bancosol.api.territory.repository.LocalityRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,6 +41,8 @@ class ScheduleIntegrationTests {
     private ScheduleRepository repository;
     @Autowired
     private StoreRepository storeRepository;
+    @Autowired
+    private LocalityRepository localityRepository;
     @Autowired
     private ChainRepository chainRepository;
     @Autowired
@@ -178,7 +182,8 @@ class ScheduleIntegrationTests {
     private Store store() {
         String name = UUID.randomUUID().toString();
         Chain chain = chainRepository.save(new Chain(name));
-        return storeRepository.save(new Store(name, "Address", 0, chain));
+        return storeRepository.save(new Store(name, "Address", 0, chain,
+                localityRepository.save(new Locality(name, "29001"))));
     }
 
     private Schedule slot(Store store, int weekDay, String opening, String closing) {
