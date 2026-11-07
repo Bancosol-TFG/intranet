@@ -26,6 +26,7 @@ auth:
   admin-password: ${ADMIN_PASSWORD:}
 
 springdoc:
+  default-flat-param-object: true
   api-docs:
     enabled: ${SWAGGER_ENABLED:true}
     path: /v3/api-docs

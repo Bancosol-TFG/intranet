@@ -21,6 +21,10 @@ La especificación incluye el título *Intranet Bancosol API*, la versión del `
 
 Sin token, los endpoints protegidos responden 401.
 
+### Paginación
+
+Los listados paginados muestran `page`, `size` y `sort` como parámetros separados de la URL, gracias a `springdoc.default-flat-param-object: true`. `sort` usa el formato `propiedad,asc` o `propiedad,desc`, por ejemplo `name,asc`.
+
 ### Contraseña temporal
 
 Si la cuenta tiene una contraseña temporal, como el administrador inicial de [Autenticación](autenticacion.md#primer-administrador), el resto de endpoints responde 403. Autoriza con el token, llama a `POST /auth/change-password` y repite el login con la contraseña nueva: el cambio revoca todas las sesiones.

@@ -7,6 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -45,6 +47,13 @@ class SwaggerIntegrationTests {
                 .andExpect(jsonPath("$.paths['/auth/refresh'].post.security").isEmpty())
                 .andExpect(jsonPath("$.paths['/auth/logout'].post.security").isEmpty())
                 .andExpect(jsonPath("$.paths['/auth/me'].get.security").doesNotExist());
+    }
+
+    @Test
+    void documentsPaginationAsSeparateQueryParameters() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(jsonPath("$.paths['/stores'].get.parameters[*].name").value(hasItems("page", "size", "sort")))
+                .andExpect(jsonPath("$.paths['/stores'].get.parameters[?(@.name == 'pageable')]").value(empty()));
     }
 
     @Test
