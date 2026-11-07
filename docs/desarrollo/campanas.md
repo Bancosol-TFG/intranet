@@ -54,6 +54,8 @@ Para crear o editar, envía `{"name":"Gran Recogida","campaignTypeId":1,"startDa
 
 El borrado es lógico y conserva `deleted_at`. Las campañas borradas no aparecen en los listados ni están disponibles para detalle, edición o borrado. Mientras una campaña no borrada use un tipo, ese tipo no se puede borrar.
 
+La creación o edición de una campaña y la baja de su tipo bloquean el tipo durante la transacción. Así, si ambas operaciones coinciden, no se puede dejar una campaña activa asociada a un tipo dado de baja.
+
 - 400: campos ausentes, `name` vacío o compuesto solo por espacios, o fecha de fin anterior a la de inicio en alta o edición.
 - 404: campaña inexistente o borrada, o tipo inexistente o borrado, en detalle, alta o edición.
 - 409: intento de borrar un tipo asociado a una campaña no borrada.
