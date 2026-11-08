@@ -28,15 +28,13 @@ evitar esa denegación.
 
 ## Primer administrador
 
-La migración asegura que exista el rol `ADMIN`. Al arrancar, `PermissionCatalogSynchronizer`
-le concede todos los permisos declarados en `PermissionCode` que todavía no tenga.
-Así, los permisos nuevos del catálogo también se asignan a `ADMIN` al desplegar.
-No crea una cuenta.
+La carga inicial de `IF_EMPTY` y cada sincronización `FORCE` leen desde YAML el
+catálogo de roles y permisos; `ADMIN` incluye los permisos declarados en
+`admin.yaml`. La migración actual no siembra ese catálogo. La creación de la
+cuenta inicial es independiente de la sincronización y depende de `ADMIN_EMAIL`
+y `ADMIN_PASSWORD`.
 
-La integración de autenticación crea la cuenta inicial cuando se configuran
-`ADMIN_EMAIL` y `ADMIN_PASSWORD`, y la vincula al rol `ADMIN`. Esa cuenta puede
-entrar al prototipo y gestionar roles y permisos. No se definen credenciales
-predeterminadas en esta tarea.
+Consulta [Roles y permisos](roles-permisos.md) para más detalles.
 
 ## Comprobar
 

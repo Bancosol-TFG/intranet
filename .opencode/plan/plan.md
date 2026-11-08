@@ -198,12 +198,13 @@ Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`
 
 **Verificación:** suite completa del backend aprobada: 219 pruebas, cero fallos y cero errores, contra PostgreSQL y Redis temporales. `git diff --check` correcto. No se usaron ni modificaron `.env`, `volumes/` ni la base persistente de Compose.
 
-### Fase 8 — Documentación y cierre
+### Fase 8 — Documentación y cierre (completada)
 
-- Crear `docs/desarrollo/roles-permisos.md` con estructura, ejemplos, formato, modos, variables obligatorias y resolución de errores.
-- Actualizar `docs/desarrollo/autenticacion.md`, `docs/desarrollo/prototipo-roles-permisos.md`, `docs/desarrollo/migraciones.md` y `docs/index.md`.
-- Comprobar documentación con `make docs-build`.
-- Ejecutar backend en el entorno Compose indicado por `AGENTS.md` y revisar diferencias de modo `CHECK` antes de preparar el cambio para revisión humana.
+- Creada `docs/desarrollo/roles-permisos.md` con la estructura YAML, ejemplos, modos, configuración por perfil, errores frecuentes y separación entre sincronización del catálogo y bootstrap de la cuenta `ADMIN`.
+- Actualizadas las guías de autenticación, prototipo y migraciones, y enlazada la guía nueva desde `docs/index.md`.
+- Ejecutado el backend en Compose con PostgreSQL y Redis temporales: `IF_EMPTY` aplicó las 13 migraciones e inicializó 56 permisos, 5 roles y 56 asignaciones; el siguiente arranque en `CHECK` confirmó la paridad con 56 endpoints.
+
+**Verificación:** el build Zensical terminó sin incidencias con `docker compose run --rm --no-deps docs python -m zensical build --config-file zensical.toml --clean` (no hay `make` ni Zensical instalados en el host). `git diff --check` correcto. No se modificaron `.env`, `volumes/` ni la base persistente local.
 
 ## Matriz de pruebas de aceptación
 

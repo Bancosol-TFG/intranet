@@ -27,6 +27,8 @@ Si `ADMIN_EMAIL` y `ADMIN_PASSWORD` están vacías, no se crea una cuenta de boo
 
 La cuenta solo se crea si el correo no existe: cambiar estas variables después no modifica una cuenta existente. Son credenciales solo para desarrollo; fuera de ese entorno hay que usar otras o dejarlas vacías.
 
+Para los modos de arranque y la configuración de roles y permisos, incluida la asignación de `USER_CREATE`, consulta la [guía de roles y permisos](roles-permisos.md).
+
 ## Cambios de roles y permisos
 
 El código que modifique roles o permisos debe llamar a `PermissionChangeTracker.markChanged()`. Los tokens de acceso anteriores a ese momento reciben 401 y el cliente los renueva.
