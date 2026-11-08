@@ -177,7 +177,7 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Verificación:** PostgreSQL 17 aislado aplicó las 13 migraciones hasta `2611082044`; Hibernate validó el esquema y el arranque en `CHECK` pasó con 56 permisos, cinco roles y paridad exacta. La consulta posterior confirmó `initialized = FALSE`, 56 asignaciones de `ADMIN`, cero asignaciones para los otros roles y ausencia de `users:create`. `PermissionCatalogIntegrationTests`: cinco pruebas aprobadas; `git diff --check` correcto. No se alteró la base local persistente ni `.env`.
 
-### Fase 7 — Pruebas (paralelizable por grupos tras integrar las fases 2–6)
+### Fase 7 — Pruebas (completada)
 
 **Agente A: parser/validador** — casos de errores YAML, línea/clave, duplicados, formato y referencias.
 
@@ -188,6 +188,15 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 **Integrador:** concurrencia PostgreSQL, orden de runners, perfiles, prueba global backend y revisión final.
 
 Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`, `PermissionAnnotationProcessorTests`, `PermissionSecurityConfigurationTests`, `ControllerPermissionIntegrationTests` y `WithAllPermissionsSecurityContextFactory` según los cambios.
+
+- Reforzadas las pruebas del parser para comprobar archivo, línea y clave raíz en YAML inválido; los casos de claves duplicadas, formato, referencias desconocidas y demás validaciones ya estaban cubiertos.
+- Añadidas pruebas de rollback de la carga inicial ante un error de validación, baja lógica de membresías al retirar roles con `FORCE` y reactivación sin restaurar esas membresías.
+- Verificados `USER_CREATE`, la ausencia de permisos requeridos por endpoints y las advertencias de permisos sin endpoint o sin rol.
+- Ampliadas las pruebas de integración PostgreSQL para la carga inicial y posterior de `IF_EMPTY`, la ausencia de escrituras en `CHECK`, el comportamiento de `OFF`, la sincronización concurrente y la conservación de cambios de roles en tiempo de ejecución. Añadidas comprobaciones del orden de runners y de la configuración de perfiles.
+
+**Archivos:** `PermissionCatalogLoaderTests.java`, `PermissionCatalogSynchronizerTests.java`, `RolePermissionCatalogDatabaseCheckerTests.java`, `RolePermissionCatalogCheckerTests.java`, `PermissionAnnotationProcessorTests.java`, `ControllerPermissionIntegrationTests.java`, `PermissionCatalogIntegrationTests.java`, `RoleManagementIntegrationTests.java`, `ApiApplicationTests.java` y este plan.
+
+**Verificación:** suite completa del backend aprobada: 219 pruebas, cero fallos y cero errores, contra PostgreSQL y Redis temporales. `git diff --check` correcto. No se usaron ni modificaron `.env`, `volumes/` ni la base persistente de Compose.
 
 ### Fase 8 — Documentación y cierre
 

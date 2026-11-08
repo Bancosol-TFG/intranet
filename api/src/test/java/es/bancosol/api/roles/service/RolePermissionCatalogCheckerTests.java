@@ -34,6 +34,9 @@ class RolePermissionCatalogCheckerTests {
                 .extracting(RolePermissionCatalogChecker.EndpointPermission::describe)
                 .containsExactly("GET /records (CheckerController#read)",
                         "POST /records (CheckerController#create)");
+        assertThat(checker.findPermissionEndpoints())
+                .extracting(RolePermissionCatalogChecker.EndpointPermission::permissionCode)
+                .containsOnly(PermissionCode.USER_CREATE);
     }
 
     @Test

@@ -8,12 +8,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -191,6 +201,31 @@ class PermissionCatalogSynchronizerTests {
         verify(catalogRepository).markInitialized();
         assertThat(TransactionSynchronizationManager.isSynchronizationActive()).isFalse();
         verifyNoMoreInteractions(catalogRepository, databaseChecker, catalogChecker, permissionChangeTracker);
+    }
+
+    @Test
+    void failedInitialValidationRollsBackCatalogInitialization() {
+        RolePermissionCatalog catalog = new RolePermissionCatalogLoader().load();
+        CatalogValidationException validationException = new CatalogValidationException("invalid catalog state");
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        TransactionStatus transactionStatus = mock(TransactionStatus.class);
+        when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
+        setSyncMode("IF_EMPTY");
+        when(catalogRepository.isInitialized()).thenReturn(false);
+        when(catalogRepository.initializeCatalog(catalog)).thenReturn(true);
+        doThrow(validationException).when(databaseChecker).checkRoles(catalog);
+
+        ProxyFactory proxyFactory = new ProxyFactory(synchronizer);
+        proxyFactory.addAdvice(new TransactionInterceptor(transactionManager,
+                new AnnotationTransactionAttributeSource()));
+        ApplicationRunner transactionalSynchronizer = (ApplicationRunner) proxyFactory.getProxy();
+
+        assertThatThrownBy(() -> transactionalSynchronizer.run(null)).isSameAs(validationException);
+
+        verify(transactionManager).rollback(transactionStatus);
+        verify(transactionManager, never()).commit(transactionStatus);
+        verify(catalogRepository, never()).markInitialized();
+        verifyNoInteractions(permissionChangeTracker);
     }
 
     private void setSyncMode(String syncMode) {

@@ -51,7 +51,7 @@ class RolePermissionCatalogLoaderTests {
                 "roles/admin.yaml", "name: ADMIN\npermissions: []\n"))
                 .isInstanceOf(CatalogValidationException.class)
                 .hasMessageContaining("YAML inválido")
-                .hasMessageContaining("permissions/broken.yaml");
+                .hasMessageContaining("permissions/broken.yaml:4 [$]");
     }
 
     @Test
