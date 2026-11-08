@@ -21,6 +21,7 @@ services:
 
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      ROLES_AND_PERMISSION_SYNC: ${ROLES_AND_PERMISSION_SYNC:?Set ROLES_AND_PERMISSION_SYNC in .env (IF_EMPTY, FORCE, CHECK or OFF)}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME}

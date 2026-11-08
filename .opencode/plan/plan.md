@@ -6,7 +6,7 @@ Versionar permisos y el catálogo inicial de roles en YAML, conservar los enums 
 
 ## Decisiones acordadas
 
-- Modos obligatorios, sin valor predeterminado: `IF_EMPTY`, `FORCE`, `CHECK` y `OFF`.
+- Modos válidos de `ROLES_AND_PERMISSION_SYNC`: `IF_EMPTY`, `FORCE`, `CHECK` y `OFF`. Desarrollo requiere el valor explícito; el perfil de producción usa `IF_EMPTY` por defecto y permite sobrescribirlo desde el entorno.
 - `CHECK` es el modo de comparación estricta: no modifica la BD y falla si los permisos de los enums, los archivos YAML y la BD no coinciden; también exige igualdad exacta entre roles y asignaciones YAML/BD, considerando solo filas activas e ignorando IDs y campos de auditoría. Es adecuado cuando el despliegue requiere paridad y no admite cambios de roles en tiempo de ejecución.
 - `OFF` no carga ni valida YAML ni realiza la comparación global enum ↔ YAML ↔ BD. Se conserva el checker independiente de endpoints contra BD: si una anotación requiere un permiso que no existe en BD, el arranque falla. También puede emitir warnings basados solo en datos de BD.
 - `IF_EMPTY` carga el catálogo cuando el marcador persistido indica que no está inicializado. En esa primera carga valida permisos, roles y asignaciones; después valida la igualdad de permisos enum/YAML/BD, pero tolera diferencias de roles y asignaciones YAML/BD introducidas en tiempo de ejecución.
@@ -134,17 +134,20 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Verificación:** 18 pruebas unitarias enfocadas aprobadas (`PermissionAnnotationProcessorTests`, `PermissionSecurityConfigurationTests` y `RolePermissionCatalogCheckerTests`); `git diff --check` sin errores. No se ejecutaron pruebas con PostgreSQL ni `make docs-build`: Docker no estaba iniciado y `make`/`zensical` no están disponibles en el entorno.
 
-### Fase 4 — Configuración y perfiles (paralelizable con Fases 2–3)
+### Fase 4 — Configuración y perfiles (completada)
 
 **Agente C: configuración**
 
-- Definir una propiedad requerida para `ROLES_AND_PERMISSION_SYNC`, sin fallback en YAML ni en perfiles.
-- Añadir `application-dev.yaml` y `application-prod.yaml`; el despliegue debe proporcionar `ROLES_AND_PERMISSION_SYNC` explícitamente. Usar `CHECK` cuando se exige paridad; usar `IF_EMPTY` u `OFF` si se permiten cambios de roles en tiempo de ejecución. No introducir un valor predeterminado oculto.
-- Actualizar `.env.example` con un modo de desarrollo explícito y `compose.yml` para pasarlo a la API.
-- No modificar `.env`; indicar en la documentación que cada desarrollador debe añadir allí el valor requerido.
-- Añadir configuración de pruebas explícita, sin relajar el requisito de producción.
+- Definida `roles-and-permission-sync` mediante `${ROLES_AND_PERMISSION_SYNC}` en la configuración común y `dev`; producción usa `IF_EMPTY` por defecto en `application-prod.yaml` y permite sobrescribirlo desde el entorno.
+- Añadidos `application-dev.yaml` y `application-prod.yaml`; `CHECK` puede configurarse explícitamente cuando se exige paridad, mientras que `IF_EMPTY`/`OFF` permiten cambios de roles en tiempo de ejecución.
+- Añadido `ROLES_AND_PERMISSION_SYNC=IF_EMPTY` a `.env.example` y pasado el valor desde Compose con un error claro si falta.
+- No se modificó `.env`; `docs/desarrollo/despliegue-local.md` indica que cada desarrollador debe añadir la variable a su propio archivo.
+- Añadida configuración de pruebas explícita con `IF_EMPTY` y una prueba que comprueba el valor cargado, independiente del valor predeterminado del perfil de producción.
+- Añadidos metadatos de configuración y sugerencias para `IF_EMPTY`, `FORCE`, `CHECK` y `OFF`, con `IF_EMPTY` como valor predeterminado del perfil de producción.
 
-**Archivos:** `api/src/main/resources/application.yaml`, `application-dev.yaml`, `application-prod.yaml`, `.env.example`, `compose.yml` y, si procede, `api/src/test/resources/application-test.yaml`.
+**Archivos:** `api/src/main/resources/application.yaml`, `application-dev.yaml`, `application-prod.yaml`, `META-INF/additional-spring-configuration-metadata.json`, `.env.example`, `compose.yml`, `api/src/test/resources/application.properties`, `api/src/test/java/es/bancosol/api/ApiApplicationTests.java` y `docs/desarrollo/despliegue-local.md`.
+
+**Verificación:** `docker compose config --quiet` pasó con los cuatro valores permitidos; `git diff --check` sin errores. La prueba de contexto no llegó a su aserción porque Flyway encontró `2610301403` aplicada en la BD local pero ausente en el repositorio; no se modificó la BD. No se ejecutó `make docs-build` porque `make`/`zensical` no están disponibles.
 
 ### Fase 5 — Sincronizador transaccional (secuencial tras Fases 0–4)
 
@@ -204,7 +207,7 @@ Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`
 - Permiso utilizado por endpoint ausente en enum/YAML/BD cuando el modo realiza esas comprobaciones; el mensaje debe identificar permiso y endpoint.
 - Diferencia de rol o asignaciones entre YAML y BD en `CHECK`.
 - Arranque en `CHECK` después de que una operación de API haya cambiado los roles o sus asignaciones respecto de YAML.
-- `ROLES_AND_PERMISSION_SYNC` ausente o fuera de `IF_EMPTY|FORCE|CHECK|OFF`.
+- `ROLES_AND_PERMISSION_SYNC` fuera de `IF_EMPTY|FORCE|CHECK|OFF`, o ausente al activar `dev`; el perfil `prod` usa `IF_EMPTY` si no se proporciona una sobrescritura.
 
 ### Deben advertir, no fallar
 
@@ -229,7 +232,7 @@ Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`
 ## Riesgos y decisiones operativas
 
 1. **Cambios de roles en tiempo de ejecución:** `CHECK` fallará ante diferencias YAML/BD y `FORCE` las sobrescribirá; el despliegue debe seleccionar `IF_EMPTY` u `OFF` si quiere conservarlas. `IF_EMPTY` no detecta divergencias posteriores de roles/asignaciones.
-2. **Producción con `CHECK`:** una BD nueva debe llegar poblada mediante Flyway antes del arranque.
+2. **Producción:** el perfil predetermina `IF_EMPTY`; si se requiere paridad estricta, el despliegue debe sobrescribirlo con `CHECK`, y una BD nueva debe llegar poblada mediante Flyway.
 3. **Membresías futuras:** al retirar un rol se eliminan lógicamente sus filas `user_roles`. Si se añaden asignaciones de alcance (tienda/colaborador), habrá que definir su retiro dentro de la fase que incorpore esas tablas.
 
 ## Orden recomendado de ejecución

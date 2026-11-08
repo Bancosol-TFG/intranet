@@ -18,7 +18,7 @@ Se elige la autoridad según el modo y se conservan los endpoints actuales para 
 - `CHECK` no escribe y exige igualdad exacta de permisos enum/YAML/BD y de roles/asignaciones YAML/BD, considerando solo filas activas e ignorando IDs y campos de auditoría. Un cambio en tiempo de ejecución incompatible hará fallar un arranque en este modo.
 - `FORCE` reconcilia PostgreSQL con YAML. Retira lógicamente las entidades y asignaciones no declaradas, incluidas las membresías activas de usuarios a un rol retirado. Si el rol se declara de nuevo, esas membresías no se restauran automáticamente.
 - `OFF` no carga YAML ni realiza la comparación global del enum, pero conserva el checker endpoint → BD y la autorización normal durante cada solicitud.
-- El despliegue debe seleccionar explícitamente `ROLES_AND_PERMISSION_SYNC`. Para conservar cambios de roles en tiempo de ejecución debe usar `IF_EMPTY` después de la inicialización o `OFF`; `CHECK` exige paridad y `FORCE` vuelve a imponer YAML.
+- Para conservar cambios de roles en tiempo de ejecución se usa `IF_EMPTY` después de la inicialización o `OFF`; `CHECK` exige paridad y `FORCE` vuelve a imponer YAML. El perfil de producción usa `IF_EMPTY` por defecto y permite una sobrescritura del despliegue.
 
 ## Consecuencias
 

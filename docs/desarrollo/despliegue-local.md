@@ -27,7 +27,10 @@ Edita `.env` y define estas variables obligatorias:
 | `DB_NAME` | Nombre de la base de datos que crea PostgreSQL. |
 | `DB_USER` | Usuario de PostgreSQL. |
 | `DB_PASSWORD` | Contraseña del usuario de PostgreSQL. |
+| `ROLES_AND_PERMISSION_SYNC` | Modo de sincronización de roles y permisos: `IF_EMPTY`, `FORCE`, `CHECK` u `OFF`. Es obligatorio en desarrollo; se recomienda `IF_EMPTY`. |
 | `VITE_BACKEND_URL` | URL base de la API que usa el frontend, por ejemplo `http://localhost:8080`. |
+
+Cada persona debe incluir `ROLES_AND_PERMISSION_SYNC` en su propio `.env`. La plantilla `.env.example` propone `IF_EMPTY`; si ya tienes un `.env`, añade la variable manualmente. El perfil de producción usa `IF_EMPTY` por defecto y acepta una sobrescritura mediante la variable de entorno. Usa `CHECK` para exigir paridad estricta con el catálogo, o `IF_EMPTY`/`OFF` si necesitas conservar cambios de roles en tiempo de ejecución. `FORCE` vuelve a imponer el catálogo declarado.
 
 Los puertos publicados en el equipo local son opcionales. Si no los defines,
 Compose usa estos valores:

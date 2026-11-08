@@ -1,0 +1,33 @@
+{
+  "properties": [
+    {
+      "name": "roles-and-permission-sync",
+      "type": "java.lang.String",
+      "defaultValue": "IF_EMPTY",
+      "description": "Modo de sincronización del catálogo de roles y permisos. El perfil de producción usa IF_EMPTY por defecto; desarrollo requiere definir ROLES_AND_PERMISSION_SYNC y el despliegue puede sobrescribir el valor."
+    }
+  ],
+  "hints": [
+    {
+      "name": "roles-and-permission-sync",
+      "values": [
+        {
+          "value": "IF_EMPTY",
+          "description": "Inicializa el catálogo una sola vez; después permite cambios de roles y asignaciones en tiempo de ejecución."
+        },
+        {
+          "value": "FORCE",
+          "description": "Reconcilia permisos, roles y asignaciones con YAML y elimina lógicamente lo no declarado."
+        },
+        {
+          "value": "CHECK",
+          "description": "No modifica la base de datos y exige paridad exacta de permisos, roles y asignaciones."
+        },
+        {
+          "value": "OFF",
+          "description": "No carga YAML ni compara globalmente los catálogos; comprueba en la base de datos los permisos requeridos por endpoints."
+        }
+      ]
+    }
+  ]
+}
