@@ -36,6 +36,20 @@ class PermissionSecurityConfigurationTests {
     }
 
     @Test
+    void permitsAndTracesAuthenticationWithUserCreatePermission() {
+        PermissionAccessTrace permissionAccessTrace = mock(PermissionAccessTrace.class);
+
+        try (AnnotationConfigApplicationContext context = createContext(permissionAccessTrace)) {
+            SecurityContextHolder.getContext().setAuthentication(authenticationWith("USER_CREATE"));
+
+            String result = context.getBean(SecuredEndpoint.class).createUser();
+
+            assertThat(result).isEqualTo("user");
+            verify(permissionAccessTrace).recordAllowedAccess(PermissionCode.USER_CREATE, "SecuredEndpoint#createUser");
+        }
+    }
+
+    @Test
     void deniesAndTracesAuthenticationWithoutRequiredPermission() {
         PermissionAccessTrace permissionAccessTrace = mock(PermissionAccessTrace.class);
 
@@ -83,6 +97,11 @@ class PermissionSecurityConfigurationTests {
         @RequiresPermission(PermissionCode.ZONE_READ)
         public String readZone() {
             return "zone";
+        }
+
+        @RequiresPermission(PermissionCode.USER_CREATE)
+        public String createUser() {
+            return "user";
         }
     }
 }

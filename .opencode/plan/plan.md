@@ -117,20 +117,22 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Verificación:** siete pruebas de `RolePermissionCatalogLoaderTests` aprobadas; `git diff --check` sin errores.
 
-### Fase 3 — Enum y comprobación de endpoints (paralelizable con Fase 2)
+### Fase 3 — Enum y comprobación de endpoints (completada)
 
 **Agente B: seguridad**
 
-- Conservar `common/security/PermissionCode.java` y crear una comparación por nombres entre el enum y el catálogo YAML.
-- Recorrer los handlers HTTP registrados mediante `RequestMappingHandlerMapping`; usar la anotación de permisos y registrar método HTTP, ruta y controlador/método.
-- En todos los modos, comprobar que cada permiso requerido por un endpoint existe en BD. En `IF_EMPTY`, `FORCE` y `CHECK`, comprobar además que está en enum y YAML y que ambos catálogos coinciden.
-- Cambiar `UserController.create` para usar `USER_CREATE` en `@RequiresPermission`; retirar el string `users:create` de `SecurityConfig`, preservando el control `isReady`.
-- Añadir `USER_CREATE` a `PermissionCode` y al archivo YAML correspondiente.
-- Actualizar `PermissionAuthorizationManager`, `PermissionAccessTrace` y las pruebas de anotaciones para el nombre normalizado.
-- En modos que leen YAML, emitir warning por permisos declarados pero no usados por endpoints. En todos los modos, emitir warning por permisos activos de BD sin ningún rol asignado.
-- Emitir log explícito de éxito con conteos por archivo, total de permisos, roles y endpoints comprobados.
+- Añadido `USER_CREATE` a `PermissionCode`; `UserController.create` usa `@RequiresPermission(PermissionCode.USER_CREATE)`.
+- Retirado el permiso legacy de `SecurityConfig`; `isReady` sigue protegiendo todos los endpoints no públicos.
+- `PermissionAuthorizationManager` y `PermissionAccessTrace` siguen trabajando con `PermissionCode`; sus pruebas verifican el permiso normalizado sin lógica especial para el nombre legacy.
+- Implementado `RolePermissionCatalogChecker`, que recorre los handlers de `RequestMappingHandlerMapping` y conserva método HTTP, ruta y controlador/método.
+- El comprobador expone el control endpoint → BD para todos los modos y la comparación enum↔YAML para los modos que cargan catálogo. No se integra todavía con un runner; se conectará en la Fase 5.
+- En modos con catálogo, advierte de permisos YAML sin endpoint; en `OFF`, advierte de permisos activos en BD sin endpoint. Todos los modos advierten de permisos activos sin rol activo.
+- Registra resultados con conteos por archivo, permisos, roles y endpoints.
+- Actualizadas las pruebas de autorización y `docs/desarrollo/autenticacion.md` para `USER_CREATE`.
 
 **Archivos relacionados:** `common/security/RequiresPermission.java`, `PermissionAuthorizationManager.java`, `PermissionAccessTrace.java`, `common/config/SecurityConfig.java`, `users/controller/UserController.java` y `api/permission-annotation-processor/.../PermissionAnnotationProcessor.java` si sus pruebas o validaciones requieren adaptación.
+
+**Verificación:** 18 pruebas unitarias enfocadas aprobadas (`PermissionAnnotationProcessorTests`, `PermissionSecurityConfigurationTests` y `RolePermissionCatalogCheckerTests`); `git diff --check` sin errores. No se ejecutaron pruebas con PostgreSQL ni `make docs-build`: Docker no estaba iniciado y `make`/`zensical` no están disponibles en el entorno.
 
 ### Fase 4 — Configuración y perfiles (paralelizable con Fases 2–3)
 

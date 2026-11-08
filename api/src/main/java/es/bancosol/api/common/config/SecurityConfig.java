@@ -1,7 +1,6 @@
 package es.bancosol.api.common.config;
 
 import java.nio.charset.StandardCharsets;
-import java.util.function.Supplier;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -12,7 +11,6 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -43,7 +41,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String CREATE_USERS_PERMISSION = "users:create";
 
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 
@@ -60,8 +57,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(publicEndpointRequestMatcher).permitAll()
                         .requestMatchers("/auth/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/users").access((authentication, context) ->
-                                new AuthorizationDecision(canCreateUsers(authentication)))
                         .anyRequest().access((authentication, context) ->
                                 new AuthorizationDecision(isReady(authentication.get()))))
                 .build();
@@ -103,12 +98,6 @@ public class SecurityConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
         return converter;
-    }
-
-    private boolean canCreateUsers(Supplier<? extends Authentication> authentication) {
-        Authentication current = authentication.get();
-        return isReady(current) && current.getAuthorities().stream()
-                .anyMatch(authority -> CREATE_USERS_PERMISSION.equals(authority.getAuthority()));
     }
 
     private boolean isReady(Authentication authentication) {
