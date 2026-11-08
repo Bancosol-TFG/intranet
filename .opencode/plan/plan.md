@@ -167,18 +167,17 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Verificación:** 31 pruebas unitarias enfocadas aprobadas (`PermissionCatalogSynchronizerTests`, `RolePermissionCatalogDatabaseCheckerTests`, `AdminBootstrapRunnerTests`, `RolePermissionCatalogLoaderTests` y `RolePermissionCatalogCheckerTests`); compilación de API y `git diff --check` correctos. No se ejecutó `PermissionCatalogIntegrationTests`: faltan `DB_HOST`, `DB_PORT` y `DB_NAME` en el entorno host y la migración del marcador corresponde a la Fase 6.
 
-### Fase 6 — Flyway y modelo (secuencial tras Fase 0)
+### Fase 6 — Flyway y modelo (completada)
 
-**Responsable sugerido:** agente con foco en BD.
+- Creada `v2611082044__sembrar_catalogo_roles_permisos.sql`, sin editar migraciones previas. Añade el marcador singleton con `id = 1`, la restricción correspondiente y la fila inicial con `initialized = FALSE`.
+- Normalizada la semilla activa `users:create` a `USER_CREATE` actualizando la misma fila, por lo que se conserva su relación en `role_permissions`.
+- Sembrados los 56 permisos con sus descripciones exactas de YAML, los cinco roles aprobados y las 56 asignaciones de `ADMIN`; los otros roles quedan sin asignaciones.
+- Actualizado `model.dbml`. La migración deja el catálogo poblado para `CHECK`; los despliegues que admitan cambios de roles en tiempo de ejecución deben seleccionar `IF_EMPTY` u `OFF`.
+- Ajustadas dos pruebas de integración para limpiar el contexto JPA antes de volver a leer cambios aplicados directamente por JDBC.
 
-- Crear una migración nueva con prefijo `v` y versión `YYMMDDHHmm`; no editar migraciones existentes.
-- Incluir la tabla singleton `role_permission_catalog_state` con `id = 1` e `initialized BOOLEAN NOT NULL`, inicialmente `FALSE`.
-- Normalizar la semilla legacy `users:create` a `USER_CREATE`, preservando la relación de `role_permissions`.
-- Añadir la migración de datos que deje sembrados permisos, roles y asignaciones aprobados para entornos que arrancan en `CHECK`.
-- Actualizar `model.dbml` si la migración añade una tabla o cambia el esquema.
-- Definir la carga inicial de producción: una BD que arranque en `CHECK` debe llegar poblada mediante Flyway. Los despliegues que admitan cambios de roles en tiempo de ejecución deben seleccionar explícitamente `IF_EMPTY` u `OFF`.
+**Verificación:** PostgreSQL 17 aislado aplicó las 13 migraciones hasta `2611082044`; Hibernate validó el esquema y el arranque en `CHECK` pasó con 56 permisos, cinco roles y paridad exacta. La consulta posterior confirmó `initialized = FALSE`, 56 asignaciones de `ADMIN`, cero asignaciones para los otros roles y ausencia de `users:create`. `PermissionCatalogIntegrationTests`: cinco pruebas aprobadas; `git diff --check` correcto. No se alteró la base local persistente ni `.env`.
 
-### Fase 7 — Pruebas (paralelizable por grupos tras integrar las fases 2–5)
+### Fase 7 — Pruebas (paralelizable por grupos tras integrar las fases 2–6)
 
 **Agente A: parser/validador** — casos de errores YAML, línea/clave, duplicados, formato y referencias.
 

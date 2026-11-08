@@ -7,6 +7,7 @@ import es.bancosol.api.common.security.PermissionCode;
 import es.bancosol.api.roles.entity.Permission;
 import es.bancosol.api.roles.repository.PermissionRepository;
 import es.bancosol.api.roles.service.PermissionCatalogSynchronizer;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = "roles-and-permission-sync=FORCE")
 @Transactional
 class PermissionCatalogIntegrationTests {
+    @Autowired
+    private EntityManager entityManager;
+
     @Autowired
     private PermissionRepository permissionRepository;
 
@@ -99,6 +103,7 @@ class PermissionCatalogIntegrationTests {
         permissionRepository.saveAndFlush(permission);
 
         permissionCatalogSynchronizer.run(emptyArguments());
+        entityManager.clear();
 
         Permission synchronizedPermission = permissionRepository.findByName(permissionCode.name()).orElseThrow();
         assertThat(synchronizedPermission.getDeletedAt()).isNull();
@@ -111,6 +116,7 @@ class PermissionCatalogIntegrationTests {
         permissionRepository.saveAndFlush(new Permission(extraPermissionName, "Permiso desconocido"));
 
         permissionCatalogSynchronizer.run(emptyArguments());
+        entityManager.clear();
 
         assertThat(permissionRepository.findByName(extraPermissionName))
                 .hasValueSatisfying(permission -> assertThat(permission.getDeletedAt()).isNotNull());
