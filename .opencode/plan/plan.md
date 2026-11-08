@@ -2,30 +2,33 @@
 
 ## Objetivo
 
-Versionar permisos y roles en YAML, conservar los enums como catálogo del código y mantenerlos sincronizados con PostgreSQL según `ROLES_SYNC_MODE`. El arranque validará la coherencia de los catálogos y de los permisos usados por los endpoints, salvo en el modo `OFF`.
+Versionar permisos y el catálogo inicial de roles en YAML, conservar los enums como catálogo del código y gestionar su relación con PostgreSQL según `ROLES_AND_PERMISSION_SYNC`. Los endpoints de gestión de roles siguen permitiendo cambios en tiempo de ejecución. `IF_EMPTY` tolera esos cambios una vez inicializado el catálogo; `CHECK` exige paridad exacta y `FORCE` vuelve a imponer YAML. `OFF` omite la comparación global, pero todos los modos validan los permisos usados por los endpoints contra PostgreSQL.
 
 ## Decisiones acordadas
 
 - Modos obligatorios, sin valor predeterminado: `IF_EMPTY`, `FORCE`, `CHECK` y `OFF`.
-- `CHECK` es el modo de producción: no modifica la BD y falla si los permisos de los enums, los archivos YAML y la BD no coinciden; también valida roles y asignaciones declarados en YAML contra la BD.
+- `CHECK` es el modo de comparación estricta: no modifica la BD y falla si los permisos de los enums, los archivos YAML y la BD no coinciden; también exige igualdad exacta entre roles y asignaciones YAML/BD, considerando solo filas activas e ignorando IDs y campos de auditoría. Es adecuado cuando el despliegue requiere paridad y no admite cambios de roles en tiempo de ejecución.
 - `OFF` no carga ni valida YAML ni realiza la comparación global enum ↔ YAML ↔ BD. Se conserva el checker independiente de endpoints contra BD: si una anotación requiere un permiso que no existe en BD, el arranque falla. También puede emitir warnings basados solo en datos de BD.
-- `IF_EMPTY` carga el catálogo solo cuando no está inicializado; `FORCE` lo reconcilia con los archivos y hace soft delete de lo que ya no está declarado.
-- Se conserva `PermissionCode` y se comprueba la igualdad enum ↔ YAML ↔ BD en los modos que leen catálogos.
+- `IF_EMPTY` carga el catálogo cuando el marcador persistido indica que no está inicializado. En esa primera carga valida permisos, roles y asignaciones; después valida la igualdad de permisos enum/YAML/BD, pero tolera diferencias de roles y asignaciones YAML/BD introducidas en tiempo de ejecución.
+- `FORCE` reconcilia permisos, roles y asignaciones con YAML, reactiva o crea lo declarado y hace soft delete de lo que ya no está declarado.
+- Se conservan los mutadores REST existentes para crear roles y cambiar sus permisos. En `IF_EMPTY` tras la carga inicial y en `OFF`, la BD admite esos cambios; `CHECK` falla ante diferencias y `FORCE` las revierte en el siguiente arranque.
+- Al retirar por `FORCE` un rol ausente de YAML, también se hace soft delete de sus membresías activas en `user_roles`; si el rol se declara de nuevo, esas membresías no se restauran automáticamente.
+- Se conserva `PermissionCode` y se comprueba la igualdad enum ↔ YAML ↔ BD de permisos en `IF_EMPTY`, `FORCE` y `CHECK`. En `IF_EMPTY`, la igualdad de roles/asignaciones solo se comprueba durante la carga inicial.
 - Los permisos sin endpoints asociados generan warning. Los permisos sin ningún rol asociado también generan warning.
 - Se normaliza el permiso legado `users:create` a `USER_CREATE`.
-- El formato de permisos sigue el patrón de recurso y operación que se acuerde, por ejemplo `STORE_LIST`, `STORE_READ`, `STORE_CREATE`, `STORE_UPDATE`, `STORE_DELETE`; se permiten formatos especiales si quedan documentados y validados.
+- Los permisos usan el formato `RECURSO_OPERACIÓN` en mayúsculas; el último segmento identifica la operación y el recurso puede ser compuesto, como `ROLE_PERMISSION`. Las operaciones admitidas son `LIST`, `READ`, `CREATE`, `UPDATE`, `DELETE`, `ASSIGN` y `REVOKE`. `USER_CREATE` reemplaza el permiso legado `users:create`; no se acuerdan otras excepciones.
 - No se consulta ni se migra la BD actual: se asume que el entorno de desarrollo se va a resetear. Las migraciones ya aplicadas no se editan; los cambios de BD se hacen con una nueva migración Flyway.
 
 ## Semántica de arranque por modo
 
-| Modo | Lee YAML | Comprueba catálogos enum/YAML/BD | Escribe en BD | Endpoint → BD | Comportamiento |
-| --- | --- | --- | --- | --- | --- |
-| `IF_EMPTY` | Sí | Sí | Solo en primera inicialización | Sí | Carga roles, permisos y asignaciones desde el catálogo cuando no existe una inicialización previa. Luego valida el resultado. |
-| `FORCE` | Sí | Sí | Sí | Sí | Realinea permisos, roles y asignaciones; crea/reactiva lo declarado y hace soft delete de lo ausente. Después verifica el resultado. |
-| `CHECK` | Sí | Sí | No | Sí | Exige igualdad entre permisos enum/YAML/BD, y entre roles/asignaciones YAML/BD. Falla con diferencias y detalle del elemento afectado. |
-| `OFF` | No | No | No | Sí | No abre archivos de catálogo. Comprueba en BD que los permisos requeridos por los endpoints existen; opera con datos de BD/JWT. |
+| Modo | Lee YAML | Compara permisos enum/YAML/BD | Compara roles/asignaciones YAML/BD | Escribe en BD | Endpoint → BD | Comportamiento |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IF_EMPTY` | Sí | Sí | Solo durante la carga inicial | Solo durante la carga inicial | Sí | Con marcador no inicializado, carga roles, permisos y asignaciones, valida el resultado y marca la inicialización en la misma transacción. Con marcador inicializado, no compara roles/asignaciones para permitir cambios mediante API; sí valida YAML, permisos enum/YAML/BD y endpoints contra BD. |
+| `FORCE` | Sí | Sí | Sí | Sí | Sí | Realinea permisos, roles y asignaciones; crea/reactiva lo declarado y hace soft delete de lo ausente, incluidas las membresías de usuarios asociadas a roles retirados. Después verifica el resultado. |
+| `CHECK` | Sí | Sí | Sí, igualdad exacta | No | Sí | Exige igualdad entre permisos enum/YAML/BD y entre roles/asignaciones YAML/BD. Falla con diferencias y detalle del elemento afectado. |
+| `OFF` | No | No | No | No | Sí | No abre archivos YAML ni hace comparación global del enum. Comprueba en BD que los permisos requeridos por los endpoints existen y conserva la autorización normal en cada solicitud. |
 
-En `IF_EMPTY`, las migraciones actuales insertan `ADMIN` y permisos de bootstrap, por lo que no basta comprobar `roles.count == 0`. Antes de implementar hay que definir el marcador de catálogo inicializado o una comprobación equivalente. Preferencia: un marcador persistido introducido por una migración Flyway, actualizado en la transacción de carga.
+`IF_EMPTY` usa un marcador persistido, creado por Flyway en estado no inicializado; las filas bootstrap como `ADMIN` no cambian ese estado. La primera carga y el cambio del marcador a inicializado son atómicos. Si el marcador ya está inicializado, los cambios de roles/asignaciones realizados mediante API se conservan y no se comparan con YAML; los permisos siguen sujetos a igualdad enum/YAML/BD. La carga inicial no elimina filas no declaradas: las diferencias impiden completar la inicialización y revierten la transacción; la reconciliación destructiva corresponde a `FORCE`.
 
 ## Estructura objetivo
 
@@ -67,23 +70,26 @@ permissions:
 
 La lista de permisos es global entre archivos. Los archivos de rol declaran explícitamente todas sus asignaciones. Los campos de auditoría e identificadores de BD no van en YAML.
 
+Cada archivo de permisos tiene la forma `permissions: [{name, description}]`; cada archivo de rol contiene un único `name` y una lista `permissions` de nombres. Los nombres de permisos son globalmente únicos y cada referencia de rol debe existir en el catálogo. La descripción pertenece al permiso; los roles no incorporan campos de BD ni auditoría.
+
 ## Fases y reparto posible entre agentes
 
 Las tareas se pueden repartir entre varios agentes solo en las fases indicadas como paralelizables. Un agente integrador debe revisar los contratos compartidos y ejecutar las pruebas al final. No iniciar tareas dependientes hasta cerrar sus decisiones previas.
 
-### Fase 0 — Contratos y criterios de aceptación (secuencial)
+### Fase 0 — Contratos y criterios de aceptación (completada)
 
 **Responsable sugerido:** agente integrador / equipo.
 
-- Confirmar semántica exacta de `IF_EMPTY`, especialmente el marcador y las filas bootstrap que crean las migraciones actuales.
-- Fijar nombres de permisos y excepciones al patrón `RECURSO_OPERACIÓN`.
-- Decidir si `CHECK` exige igualdad exacta de roles y asignaciones, además de permisos.
-- Resolver el conflicto entre roles estáticos y los endpoints mutadores existentes (`RoleController`, `RolePermissionService`), teniendo en cuenta `docs/adr/0020-responsabilidad-gestion-roles.md`.
-- Acordar el comportamiento de `OFF`: no inspeccionar YAML ni enums; conservar el control de autorización normal en las solicitudes.
+- Se acordó el marcador persistido de `IF_EMPTY`, su carga única y la tolerancia posterior a cambios de roles/asignaciones realizados mediante API.
+- Se fijó `RECURSO_OPERACIÓN`, las operaciones admitidas y la normalización de `users:create` a `USER_CREATE`.
+- Se acordó que `CHECK` exige igualdad exacta de roles y asignaciones además de permisos.
+- Se conservan los mutadores de `RoleController` y `RolePermissionService`; los modos para permitir cambios de roles en tiempo de ejecución son `IF_EMPTY` y `OFF`. La decisión queda registrada en [ADR-0022](../../docs/adr/0022-gestion-de-roles-con-catalogo-versionado.md), junto a los ADR-0012 y ADR-0020.
+- Se acordó que `OFF` no carga YAML ni compara globalmente el enum, pero conserva el checker endpoint → BD y la autorización normal por solicitud.
+- Se acordó hacer soft delete de `user_roles` cuando `FORCE` retire un rol.
 
-**Salida:** contrato de configuración, esquema YAML y lista de criterios de aceptación aprobados.
+**Salida:** contrato de configuración, esquema YAML y criterios de aceptación aprobados, reflejados en esta tabla, la estructura YAML y la matriz siguiente.
 
-### Fase 1 — Catálogos estáticos (paralelizable tras Fase 0)
+### Fase 1 — Catálogos YAML (paralelizable tras Fase 0)
 
 **Agente A: permisos**
 
@@ -94,7 +100,7 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Agente B: roles**
 
-- Crear `api/src/main/resources/security/roles/*.yaml`, un rol por archivo.
+- Crear `api/src/main/resources/security/roles/*.yaml`, un rol inicial por archivo. Estos roles y asignaciones inicializan `IF_EMPTY` y son la referencia estricta de `CHECK` y `FORCE`; `IF_EMPTY` tras su inicialización y `OFF` admiten cambios por API.
 - Incluir `ADMIN` y el conjunto explícito de permisos que debe tener.
 - Asegurar que cada referencia existe en el catálogo de permisos.
 
@@ -130,8 +136,8 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Agente C: configuración**
 
-- Definir una propiedad requerida para `ROLES_SYNC_MODE`, sin fallback en YAML ni en perfiles.
-- Añadir `application-dev.yaml` y `application-prod.yaml`; el perfil de producción recibirá `ROLES_SYNC_MODE=CHECK` desde el despliegue, no desde un valor predeterminado oculto.
+- Definir una propiedad requerida para `ROLES_AND_PERMISSION_SYNC`, sin fallback en YAML ni en perfiles.
+- Añadir `application-dev.yaml` y `application-prod.yaml`; el despliegue debe proporcionar `ROLES_AND_PERMISSION_SYNC` explícitamente. Usar `CHECK` cuando se exige paridad; usar `IF_EMPTY` u `OFF` si se permiten cambios de roles en tiempo de ejecución. No introducir un valor predeterminado oculto.
 - Actualizar `.env.example` con un modo de desarrollo explícito y `compose.yml` para pasarlo a la API.
 - No modificar `.env`; indicar en la documentación que cada desarrollador debe añadir allí el valor requerido.
 - Añadir configuración de pruebas explícita, sin relajar el requisito de producción.
@@ -145,9 +151,10 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 - Reemplazar `roles/service/PermissionCatalogSynchronizer.java` por un sincronizador de permisos, roles y asignaciones.
 - Implementar `IF_EMPTY`, `FORCE`, `CHECK` y `OFF` según la tabla de semántica.
 - Hacer el trabajo de BD en una sola transacción; usar advisory lock transaccional PostgreSQL para serializar instancias concurrentes.
-- En `FORCE`, upsert/reactivar por nombre, reconciliar asignaciones de cada rol y hacer soft delete de ausentes; nunca borrar físicamente.
+- En la primera carga de `IF_EMPTY`, poblar el catálogo declarado sin borrar ausentes; validar el resultado y actualizar el marcador en la transacción. En arranques posteriores, tolerar diferencias de roles/asignaciones introducidas en tiempo de ejecución, sin relajar la comparación de permisos.
+- En `FORCE`, upsert/reactivar por nombre, reconciliar asignaciones de cada rol, hacer soft delete de ausentes y retirar las membresías `user_roles` de roles eliminados; nunca borrar físicamente.
 - En `CHECK`, comparar sin escribir y fallar con diferencias concretas.
-- En `OFF`, no cargar recursos YAML ni validar el catálogo enum contra archivos/BD.
+- En `OFF`, no cargar recursos YAML ni hacer comparación global enum/YAML/BD.
 - En `OFF`, sí ejecutar el checker endpoint → BD y las advertencias que solo requieran consultar BD.
 - Invalidar tokens solo si hubo cambios y después del commit mediante `PermissionChangeTracker`.
 - Ordenar el runner antes de `AdminBootstrapRunner` y fallar con mensaje claro si hace falta `ADMIN` y no está configurado.
@@ -159,11 +166,11 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 **Responsable sugerido:** agente con foco en BD.
 
 - Crear una migración nueva con prefijo `v` y versión `YYMMDDHHmm`; no editar migraciones existentes.
-- Incluir el marcador de inicialización de catálogo si se aprueba esa opción.
+- Incluir el marcador persistido de inicialización del catálogo, inicialmente no inicializado.
 - Normalizar la semilla legacy `users:create` a `USER_CREATE`, preservando la relación de `role_permissions`.
-- Añadir la migración de datos que deje sembrado el catálogo aprobado para entornos de producción que arrancan en `CHECK`.
+- Añadir la migración de datos que deje sembrados permisos, roles y asignaciones aprobados para entornos que arrancan en `CHECK`.
 - Actualizar `model.dbml` si la migración añade una tabla o cambia el esquema.
-- Definir la carga inicial de producción: la aplicación usará `CHECK`, por lo que una BD nueva debe llegar previamente poblada mediante Flyway.
+- Definir la carga inicial de producción: una BD que arranque en `CHECK` debe llegar poblada mediante Flyway. Los despliegues que admitan cambios de roles en tiempo de ejecución deben seleccionar explícitamente `IF_EMPTY` u `OFF`.
 
 ### Fase 7 — Pruebas (paralelizable por grupos tras integrar las fases 2–5)
 
@@ -191,9 +198,11 @@ Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`
 - YAML inválido, clave duplicada, permiso duplicado dentro de un archivo o entre archivos.
 - Nombre de permiso/rol inválido, rol duplicado, campo obligatorio ausente o referencia de permiso desconocida.
 - Diferencia enum ↔ YAML en `IF_EMPTY`, `FORCE` o `CHECK`.
+- En la carga inicial de `IF_EMPTY`, diferencias entre roles/asignaciones declarados y el resultado en BD, o filas activas sobrantes que impidan la paridad inicial.
 - Permiso utilizado por endpoint ausente en enum/YAML/BD cuando el modo realiza esas comprobaciones; el mensaje debe identificar permiso y endpoint.
 - Diferencia de rol o asignaciones entre YAML y BD en `CHECK`.
-- `ROLES_SYNC_MODE` ausente o fuera de `IF_EMPTY|FORCE|CHECK|OFF`.
+- Arranque en `CHECK` después de que una operación de API haya cambiado los roles o sus asignaciones respecto de YAML.
+- `ROLES_AND_PERMISSION_SYNC` ausente o fuera de `IF_EMPTY|FORCE|CHECK|OFF`.
 
 ### Deben advertir, no fallar
 
@@ -204,22 +213,22 @@ Actualizar `PermissionCatalogIntegrationTests`, `RoleManagementIntegrationTests`
 ### Deben pasar
 
 - Arranque desde una BD de desarrollo reiniciada con `IF_EMPTY`.
+- Carga inicial `IF_EMPTY` con las filas bootstrap existentes en Flyway, sin inferir inicialización por el conteo de roles.
+- Arranques posteriores con `IF_EMPTY` después de crear un rol o cambiar sus permisos por API; las diferencias de roles/asignaciones introducidas en tiempo de ejecución no bloquean el inicio.
 - Dos ejecuciones consecutivas sin duplicados ni cambios secundarios.
 - `FORCE` crea, actualiza, reactiva y soft-deletea correctamente dentro de una transacción.
+- `FORCE` retira también las membresías `user_roles` de roles ausentes; volver a declarar el rol no restaura esas membresías.
 - Dos instancias concurrentes terminan con un catálogo consistente.
 - `CHECK` con enum, YAML, roles y BD iguales; sin escrituras.
 - `OFF` arranca sin abrir ni validar archivos de catálogo.
 - `OFF` falla si falta en BD un permiso requerido por un endpoint y advierte de permisos activos sin rol.
 - Al fallar una sincronización, no quedan cambios parciales.
 
-## Riesgos y puntos pendientes
+## Riesgos y decisiones operativas
 
-1. **Roles gestionados también por endpoints:** la API actual permite crear roles y cambiar asignaciones. `FORCE` puede retirar esos cambios y `CHECK` los marcará como diferencia. Decidir antes de implementar si se mantienen, se limitan o los archivos pasan a ser la única fuente autorizada. Revisar ADR-0020.
-2. **Semántica exacta de `IF_EMPTY`:** las migraciones preinsertan `ADMIN`; necesita marcador o tratamiento explícito de bootstrap legado.
-3. **Comportamiento de `OFF`:** este plan asume que no lee YAML ni hace comparación global de catálogos, pero conserva el checker endpoint → BD y las advertencias consultables solo desde BD.
-4. **Nombres especiales:** validar si `USER_CREATE` sigue el formato final acordado para permisos de usuario.
-5. **Soft delete de membresías:** confirmar si al retirar un rol del YAML se hacen soft delete sus asignaciones de usuarios y cómo se tratan las tablas de alcance (tienda/colaborador) cuando estén implementadas.
-6. **Producción:** `CHECK` no puede inicializar una BD vacía; la migración de datos Flyway debe preceder al arranque.
+1. **Cambios de roles en tiempo de ejecución:** `CHECK` fallará ante diferencias YAML/BD y `FORCE` las sobrescribirá; el despliegue debe seleccionar `IF_EMPTY` u `OFF` si quiere conservarlas. `IF_EMPTY` no detecta divergencias posteriores de roles/asignaciones.
+2. **Producción con `CHECK`:** una BD nueva debe llegar poblada mediante Flyway antes del arranque.
+3. **Membresías futuras:** al retirar un rol se eliminan lógicamente sus filas `user_roles`. Si se añaden asignaciones de alcance (tienda/colaborador), habrá que definir su retiro dentro de la fase que incorpore esas tablas.
 
 ## Orden recomendado de ejecución
 
