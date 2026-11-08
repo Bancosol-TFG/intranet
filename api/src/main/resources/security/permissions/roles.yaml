@@ -1,0 +1,13 @@
+permissions:
+  - name: ROLE_LIST
+    description: Consultar el listado de roles
+  - name: ROLE_CREATE
+    description: Crear roles
+  - name: PERMISSION_LIST
+    description: Consultar el catálogo de permisos
+  - name: ROLE_PERMISSION_LIST
+    description: Consultar los permisos de un rol
+  - name: ROLE_PERMISSION_ASSIGN
+    description: Asignar permisos a un rol
+  - name: ROLE_PERMISSION_REVOKE
+    description: Retirar permisos de un rol

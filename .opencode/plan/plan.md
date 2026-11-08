@@ -89,22 +89,21 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Salida:** contrato de configuración, esquema YAML y criterios de aceptación aprobados, reflejados en esta tabla, la estructura YAML y la matriz siguiente.
 
-### Fase 1 — Catálogos YAML (paralelizable tras Fase 0)
+### Fase 1 — Catálogos YAML (completada)
 
 **Agente A: permisos**
 
-- Crear `api/src/main/resources/security/permissions/*.yaml`.
-- Trasladar al YAML los nombres y descripciones del enum, agrupados por área.
-- Normalizar `users:create` a `USER_CREATE`.
-- Comprobar que no se omite ni duplica ningún permiso.
+- Creados seis archivos agrupados por área en `api/src/main/resources/security/permissions/`.
+- Incluidos los 55 permisos del enum y el permiso normalizado `USER_CREATE`, con descripciones en español.
+- Comprobada la ausencia de permisos omitidos o duplicados.
 
 **Agente B: roles**
 
-- Crear `api/src/main/resources/security/roles/*.yaml`, un rol inicial por archivo. Estos roles y asignaciones inicializan `IF_EMPTY` y son la referencia estricta de `CHECK` y `FORCE`; `IF_EMPTY` tras su inicialización y `OFF` admiten cambios por API.
-- Incluir `ADMIN` y el conjunto explícito de permisos que debe tener.
-- Asegurar que cada referencia existe en el catálogo de permisos.
+- Creados cinco archivos en `api/src/main/resources/security/roles/`: `ADMIN`, `VOLUNTEER`, `STORE-MANAGER`, `COORDINATOR` y `COLLABORATOR-MANAGER`.
+- `ADMIN` declara los 56 permisos; los otros cuatro roles declaran una lista de permisos vacía, sin asignaciones inventadas.
+- Comprobado que cada referencia existente está en el catálogo de permisos y no se repite.
 
-**Integración:** comparar los dos catálogos y cerrar nombres/campos antes de empezar la sincronización.
+**Integración completada:** los 56 permisos del catálogo coinciden con el enum más `USER_CREATE`; `ADMIN` incluye todos exactamente una vez y los cinco roles tienen forma de catálogo válida. Los nombres, descripciones y referencias se verificaron automáticamente. No se ejecutaron pruebas de aplicación en esta fase.
 
 ### Fase 2 — Parser y validador estático (paralelizable con Fase 3)
 

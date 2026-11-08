@@ -1,0 +1,21 @@
+permissions:
+  - name: COLLABORATOR_LIST
+    description: Consultar el listado de colaboradores
+  - name: COLLABORATOR_READ
+    description: Consultar un colaborador
+  - name: COLLABORATOR_CREATE
+    description: Crear colaboradores
+  - name: COLLABORATOR_UPDATE
+    description: Modificar colaboradores
+  - name: COLLABORATOR_DELETE
+    description: Eliminar colaboradores
+  - name: CONTACT_LIST
+    description: Consultar el listado de contactos
+  - name: CONTACT_READ
+    description: Consultar un contacto
+  - name: CONTACT_CREATE
+    description: Crear contactos
+  - name: CONTACT_UPDATE
+    description: Modificar contactos
+  - name: CONTACT_DELETE
+    description: Eliminar contactos
