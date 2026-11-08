@@ -2,6 +2,12 @@ package es.bancosol.api.campaigns;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import es.bancosol.api.campaigns.dto.CampaignRequest;
+import es.bancosol.api.campaigns.service.CampaignService;
+import es.bancosol.api.campaigns.service.CampaignTypeService;
 import es.bancosol.api.campaigns.entity.Campaign;
 import es.bancosol.api.campaigns.entity.CampaignType;
 import es.bancosol.api.campaigns.repository.CampaignRepository;
@@ -18,8 +24,13 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -41,6 +52,43 @@ class CampaignIntegrationTests {
     private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private CampaignService campaignService;
+    @Autowired
+    private CampaignTypeService campaignTypeService;
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void concurrentTypeDeletionWaitsForCampaignCreation() throws Exception {
+        Integer typeId = jdbcTemplate.queryForObject(
+                "INSERT INTO campaign_types (name) VALUES (?) RETURNING id", Integer.class, uniqueName());
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var deletion = transactionTemplate.execute(status -> {
+                campaignTypeRepository.findForUpdate(typeId).orElseThrow();
+                var pendingDeletion = executor.submit(() -> {
+                    try {
+                        campaignTypeService.delete(typeId);
+                        return HttpStatus.NO_CONTENT;
+                    } catch (ResponseStatusException exception) {
+                        return exception.getStatusCode();
+                    }
+                });
+                assertThatThrownBy(() -> pendingDeletion.get(300, TimeUnit.MILLISECONDS))
+                        .isInstanceOf(TimeoutException.class);
+                campaignService.create(new CampaignRequest(uniqueName(), typeId, START_DATE, END_DATE));
+                return pendingDeletion;
+            });
+            assertThat(deletion.get(10, TimeUnit.SECONDS)).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM campaigns WHERE campaign_type_id = ? AND deleted_at IS NULL",
+                    Integer.class, typeId)).isEqualTo(1);
+        } finally {
+            jdbcTemplate.update("DELETE FROM campaigns WHERE campaign_type_id = ?", typeId);
+            jdbcTemplate.update("DELETE FROM campaign_types WHERE id = ?", typeId);
+        }
+    }
 
     @Test
     void createsAndListsCampaignWithoutCredentials() throws Exception {

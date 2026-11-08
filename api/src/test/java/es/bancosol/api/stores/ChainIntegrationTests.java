@@ -6,6 +6,8 @@ import es.bancosol.api.stores.repository.ChainRepository;
 import es.bancosol.api.common.security.WithAllPermissions;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
+import es.bancosol.api.territory.entity.Locality;
+import es.bancosol.api.territory.repository.LocalityRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +35,8 @@ class ChainIntegrationTests {
     private ChainRepository repository;
     @Autowired
     private StoreRepository storeRepository;
+    @Autowired
+    private LocalityRepository localityRepository;
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -155,8 +159,9 @@ class ChainIntegrationTests {
     @Test
     void blocksDeletionUntilAllStoresAreSoftDeleted() throws Exception {
         Chain chain = repository.save(new Chain(uniqueCode()));
-        Store first = storeRepository.save(new Store(uniqueCode(), "Address", 0, chain));
-        Store second = storeRepository.save(new Store(uniqueCode(), "Address", 1, chain));
+        Locality locality = localityRepository.save(new Locality(uniqueCode(), "29001"));
+        Store first = storeRepository.save(new Store(uniqueCode(), "Address", 0, chain, locality));
+        Store second = storeRepository.save(new Store(uniqueCode(), "Address", 1, chain, locality));
         mockMvc.perform(delete("/chains/{chainId}", chain.getId())).andExpect(status().isConflict());
         entityManager.flush();
         assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM chains WHERE id = ?", java.sql.Timestamp.class,

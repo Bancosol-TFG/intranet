@@ -5,6 +5,7 @@ import es.bancosol.api.territory.dto.ZoneRequest;
 import es.bancosol.api.territory.dto.ZoneResponse;
 import es.bancosol.api.territory.entity.Zone;
 import es.bancosol.api.territory.repository.ZoneRepository;
+import es.bancosol.api.stores.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class ZoneService {
     private final ZoneRepository repository;
+    private final StoreRepository storeRepository;
 
     public Page<ZoneResponse> list(String name, String code, Pageable pageable) {
         return repository.search(normalizeFilter(name), normalizeFilter(code), pageable).map(ZoneResponse::from);
@@ -57,6 +59,9 @@ public class ZoneService {
     public void delete(Integer zoneId) {
         Zone zone = repository.findForUpdate(zoneId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (storeRepository.existsByZoneIdAndDeletedAtIsNull(zoneId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT);
+        }
         zone.setDeletedAt(Instant.now());
     }
 
