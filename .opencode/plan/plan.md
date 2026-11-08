@@ -105,16 +105,17 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Integración completada:** los 56 permisos del catálogo coinciden con el enum más `USER_CREATE`; `ADMIN` incluye todos exactamente una vez y los cinco roles tienen forma de catálogo válida. Los nombres, descripciones y referencias se verificaron automáticamente. No se ejecutaron pruebas de aplicación en esta fase.
 
-### Fase 2 — Parser y validador estático (paralelizable con Fase 3)
+### Fase 2 — Parser y validador estático (completada)
 
 **Agente A: catálogo YAML**
 
-- Crear en `api/src/main/java/es/bancosol/api/roles/service/` el loader y el validador del catálogo.
-- Cargar recursos desde el classpath, ordenarlos determinísticamente y conservar archivo/línea/clave de origen.
-- Validar sintaxis, claves duplicadas, campos obligatorios, formato, duplicados globales, referencias desconocidas y catálogos vacíos.
-- Fallar antes de cualquier escritura en BD si la configuración es inválida.
+- Implementados `RolePermissionCatalogLoader` y `RolePermissionCatalogValidator`, con records de catálogo en `roles/dto/`.
+- Cargar recursos desde el classpath en orden determinista y conservar archivo, línea y clave de origen.
+- Validar sintaxis, claves YAML duplicadas, campos y tipos obligatorios, formato, duplicados globales, referencias desconocidas y catálogos globales vacíos.
+- Usar SnakeYAML en modo seguro y validar todo en memoria, sin integrar todavía un runner ni escribir en BD.
+- Añadidas pruebas unitarias de carga válida, orden, origen y errores de validación.
 
-**Archivos relacionados:** records/DTO de catálogo bajo `roles/dto/` solo si ayudan a separar parseo y dominio.
+**Verificación:** siete pruebas de `RolePermissionCatalogLoaderTests` aprobadas; `git diff --check` sin errores.
 
 ### Fase 3 — Enum y comprobación de endpoints (paralelizable con Fase 2)
 
