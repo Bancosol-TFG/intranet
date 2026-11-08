@@ -72,6 +72,20 @@ class RolePermissionCatalogCheckerTests {
     }
 
     @Test
+    void rejectsPermissionDescriptionDifferencesBetweenEnumAndCatalog() throws Exception {
+        RolePermissionCatalog catalog = catalogWithChangedDescription(PermissionCode.USER_CREATE.name(),
+                "Descripción alterada");
+        RolePermissionCatalogChecker checker = checker(mapping(), List.of(), List.of());
+
+        assertThatThrownBy(() -> checker.checkCatalog(catalog))
+                .isInstanceOf(CatalogValidationException.class)
+                .hasMessageContaining("descripciones distintas")
+                .hasMessageContaining("USER_CREATE")
+                .hasMessageContaining("PermissionCode='Dar de alta cuentas de usuario'")
+                .hasMessageContaining("YAML='Descripción alterada'");
+    }
+
+    @Test
     @ExtendWith(OutputCaptureExtension.class)
     void warnsAboutUnusedCatalogPermissionAndDatabasePermissionWithoutRole(CapturedOutput output) throws Exception {
         Permission unusedPermission = new Permission("ZONE_LIST", "Consultar zonas");
@@ -145,6 +159,16 @@ class RolePermissionCatalogCheckerTests {
         return new RolePermissionCatalog(
                 java.util.stream.Stream.concat(catalog.permissions().stream(), java.util.stream.Stream.of(extraPermission))
                         .toList(), catalog.roles());
+    }
+
+    private RolePermissionCatalog catalogWithChangedDescription(String permissionName, String description) {
+        RolePermissionCatalog catalog = new RolePermissionCatalogLoader().load();
+        return new RolePermissionCatalog(catalog.permissions().stream()
+                .map(permission -> permission.name().equals(permissionName)
+                        ? new CatalogPermission(permission.name(), description, permission.nameSource(),
+                                permission.descriptionSource())
+                        : permission)
+                .toList(), catalog.roles());
     }
 
     @RestController

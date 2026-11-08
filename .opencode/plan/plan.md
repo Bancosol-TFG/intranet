@@ -28,7 +28,7 @@ Versionar permisos y el catálogo inicial de roles en YAML, conservar los enums 
 | `CHECK` | Sí | Sí | Sí, igualdad exacta | No | Sí | Exige igualdad entre permisos enum/YAML/BD y entre roles/asignaciones YAML/BD. Falla con diferencias y detalle del elemento afectado. |
 | `OFF` | No | No | No | No | Sí | No abre archivos YAML ni hace comparación global del enum. Comprueba en BD que los permisos requeridos por los endpoints existen y conserva la autorización normal en cada solicitud. |
 
-`IF_EMPTY` usa un marcador persistido, creado por Flyway en estado no inicializado; las filas bootstrap como `ADMIN` no cambian ese estado. La primera carga y el cambio del marcador a inicializado son atómicos. Si el marcador ya está inicializado, los cambios de roles/asignaciones realizados mediante API se conservan y no se comparan con YAML; los permisos siguen sujetos a igualdad enum/YAML/BD. La carga inicial no elimina filas no declaradas: las diferencias impiden completar la inicialización y revierten la transacción; la reconciliación destructiva corresponde a `FORCE`.
+`IF_EMPTY` usa el marcador singleton `role_permission_catalog_state` creado por Flyway con `id = 1` e `initialized = FALSE`; las filas bootstrap como `ADMIN` no cambian ese estado. La primera carga y el cambio del marcador a inicializado son atómicos. Si el marcador ya está inicializado, los cambios de roles/asignaciones realizados mediante API se conservan y no se comparan con YAML; los permisos siguen sujetos a igualdad enum/YAML/BD. La carga inicial no elimina filas no declaradas: las diferencias impiden completar la inicialización y revierten la transacción; la reconciliación destructiva corresponde a `FORCE`.
 
 ## Estructura objetivo
 
@@ -149,29 +149,30 @@ Las tareas se pueden repartir entre varios agentes solo en las fases indicadas c
 
 **Verificación:** `docker compose config --quiet` pasó con los cuatro valores permitidos; `git diff --check` sin errores. La prueba de contexto no llegó a su aserción porque Flyway encontró `2610301403` aplicada en la BD local pero ausente en el repositorio; no se modificó la BD. No se ejecutó `make docs-build` porque `make`/`zensical` no están disponibles.
 
-### Fase 5 — Sincronizador transaccional (secuencial tras Fases 0–4)
+### Fase 5 — Sincronizador transaccional (implementada; integración PostgreSQL pendiente de Fase 6)
 
 **Responsable sugerido:** agente de backend/integrador.
 
-- Reemplazar `roles/service/PermissionCatalogSynchronizer.java` por un sincronizador de permisos, roles y asignaciones.
-- Implementar `IF_EMPTY`, `FORCE`, `CHECK` y `OFF` según la tabla de semántica.
-- Hacer el trabajo de BD en una sola transacción; usar advisory lock transaccional PostgreSQL para serializar instancias concurrentes.
-- En la primera carga de `IF_EMPTY`, poblar el catálogo declarado sin borrar ausentes; validar el resultado y actualizar el marcador en la transacción. En arranques posteriores, tolerar diferencias de roles/asignaciones introducidas en tiempo de ejecución, sin relajar la comparación de permisos.
-- En `FORCE`, upsert/reactivar por nombre, reconciliar asignaciones de cada rol, hacer soft delete de ausentes y retirar las membresías `user_roles` de roles eliminados; nunca borrar físicamente.
-- En `CHECK`, comparar sin escribir y fallar con diferencias concretas.
-- En `OFF`, no cargar recursos YAML ni hacer comparación global enum/YAML/BD.
-- En `OFF`, sí ejecutar el checker endpoint → BD y las advertencias que solo requieran consultar BD.
-- Invalidar tokens solo si hubo cambios y después del commit mediante `PermissionChangeTracker`.
-- Ordenar el runner antes de `AdminBootstrapRunner` y fallar con mensaje claro si hace falta `ADMIN` y no está configurado.
+- Reemplazado `PermissionCatalogSynchronizer` por un runner transaccional con los cuatro modos y validación explícita de valores.
+- Añadido `RolePermissionCatalogRepository` con advisory lock PostgreSQL, marcador singleton y operaciones idempotentes de carga inicial y reconciliación.
+- `IF_EMPTY` carga sin borrar ausentes y marca el estado en la misma transacción; en arranques posteriores conserva roles/asignaciones runtime y comprueba la paridad exacta de permisos.
+- `FORCE` reconcilia y reactiva por nombre, retira lógicamente filas ausentes y membresías de usuarios a roles retirados; `CHECK` compara sin escrituras persistentes.
+- `OFF` no carga YAML ni compara el catálogo global y ejecuta el checker endpoint → BD.
+- Ampliado `RolePermissionCatalogChecker` para comparar nombres y descripciones entre `PermissionCode` y YAML. Añadido `RolePermissionCatalogDatabaseChecker` para paridad exacta de nombres/descripciones de permisos y de roles/asignaciones activas con diferencias concretas.
+- La invalidación de tokens se registra solo cuando hay cambios y se ejecuta después del commit mediante `PermissionChangeTracker`.
+- El runner precede a `AdminBootstrapRunner`; el bootstrap falla con un mensaje claro ante credenciales incompletas o ausencia de un único rol `ADMIN` activo.
+- Ajustados los tests de integración al modo `FORCE` y documentado el bootstrap de `ADMIN` en `docs/desarrollo/autenticacion.md`.
 
-**Archivos relacionados:** `roles/service/`, `roles/repository/RoleRepository.java`, `PermissionRepository.java`, `RolePermissionRepository.java`, entidades necesarias, `auth/service/PermissionChangeTracker.java` y `users/service/AdminBootstrapRunner.java`.
+**Archivos:** `api/src/main/java/es/bancosol/api/roles/service/PermissionCatalogSynchronizer.java`, `RolePermissionCatalogDatabaseChecker.java`, `api/src/main/java/es/bancosol/api/roles/repository/RolePermissionCatalogRepository.java`, `api/src/main/java/es/bancosol/api/users/service/AdminBootstrapRunner.java`, pruebas de `roles/` y `users/service/`, `docs/desarrollo/autenticacion.md` y este plan.
+
+**Verificación:** 31 pruebas unitarias enfocadas aprobadas (`PermissionCatalogSynchronizerTests`, `RolePermissionCatalogDatabaseCheckerTests`, `AdminBootstrapRunnerTests`, `RolePermissionCatalogLoaderTests` y `RolePermissionCatalogCheckerTests`); compilación de API y `git diff --check` correctos. No se ejecutó `PermissionCatalogIntegrationTests`: faltan `DB_HOST`, `DB_PORT` y `DB_NAME` en el entorno host y la migración del marcador corresponde a la Fase 6.
 
 ### Fase 6 — Flyway y modelo (secuencial tras Fase 0)
 
 **Responsable sugerido:** agente con foco en BD.
 
 - Crear una migración nueva con prefijo `v` y versión `YYMMDDHHmm`; no editar migraciones existentes.
-- Incluir el marcador persistido de inicialización del catálogo, inicialmente no inicializado.
+- Incluir la tabla singleton `role_permission_catalog_state` con `id = 1` e `initialized BOOLEAN NOT NULL`, inicialmente `FALSE`.
 - Normalizar la semilla legacy `users:create` a `USER_CREATE`, preservando la relación de `role_permissions`.
 - Añadir la migración de datos que deje sembrados permisos, roles y asignaciones aprobados para entornos que arrancan en `CHECK`.
 - Actualizar `model.dbml` si la migración añade una tabla o cambia el esquema.

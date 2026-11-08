@@ -9,22 +9,18 @@ import es.bancosol.api.roles.repository.PermissionRepository;
 import es.bancosol.api.roles.service.PermissionCatalogSynchronizer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = "roles-and-permission-sync=FORCE")
 @Transactional
-@ExtendWith(OutputCaptureExtension.class)
 class PermissionCatalogIntegrationTests {
     @Autowired
     private PermissionRepository permissionRepository;
@@ -54,7 +50,7 @@ class PermissionCatalogIntegrationTests {
     }
 
     @Test
-    void grantsEveryCatalogPermissionToTheInitialAdminRole() {
+    void grantsExactlyTheCatalogPermissionsToTheInitialAdminRole() {
         String[] adminPermissions = jdbcTemplate.queryForList("""
                 SELECT permissions.name
                 FROM roles
@@ -67,7 +63,8 @@ class PermissionCatalogIntegrationTests {
                 """, String.class).toArray(String[]::new);
 
         assertThat(adminPermissions)
-                .contains(Arrays.stream(PermissionCode.values()).map(PermissionCode::name).toArray(String[]::new));
+                .containsExactlyInAnyOrder(Arrays.stream(PermissionCode.values()).map(PermissionCode::name)
+                        .toArray(String[]::new));
     }
 
     @Test
@@ -109,15 +106,14 @@ class PermissionCatalogIntegrationTests {
     }
 
     @Test
-    void preservesAndWarnsAboutPermissionsNotDeclaredInTheCatalog(CapturedOutput output) {
+    void softDeletesPermissionsNotDeclaredInTheCatalog() {
         String extraPermissionName = "PERMISSION_NOT_IN_CATALOG";
         permissionRepository.saveAndFlush(new Permission(extraPermissionName, "Permiso desconocido"));
 
         permissionCatalogSynchronizer.run(emptyArguments());
 
-        assertThat(permissionRepository.findByName(extraPermissionName)).isPresent();
-        assertThat(output).contains("Database permission '" + extraPermissionName
-                + "' is not declared in PermissionCode.");
+        assertThat(permissionRepository.findByName(extraPermissionName))
+                .hasValueSatisfying(permission -> assertThat(permission.getDeletedAt()).isNotNull());
     }
 
     private ApplicationArguments emptyArguments() {

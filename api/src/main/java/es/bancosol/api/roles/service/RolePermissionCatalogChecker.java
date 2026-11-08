@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import es.bancosol.api.common.security.PermissionCode;
 import es.bancosol.api.common.security.RequiresPermission;
 import es.bancosol.api.roles.dto.RolePermissionCatalog;
@@ -97,19 +98,25 @@ public class RolePermissionCatalogChecker {
     }
 
     private void checkEnumMatchesCatalog(RolePermissionCatalog catalog) {
-        Set<String> enumNames = Arrays.stream(PermissionCode.values())
-                .map(PermissionCode::name)
-                .collect(java.util.stream.Collectors.toSet());
-        Set<String> catalogNames = catalog.permissions().stream()
-                .map(permission -> permission.name())
-                .collect(java.util.stream.Collectors.toSet());
-        Set<String> missingFromCatalog = new HashSet<>(enumNames);
-        missingFromCatalog.removeAll(catalogNames);
-        Set<String> missingFromEnum = new HashSet<>(catalogNames);
-        missingFromEnum.removeAll(enumNames);
-        if (!missingFromCatalog.isEmpty() || !missingFromEnum.isEmpty()) {
+        Map<String, String> enumDescriptions = new TreeMap<>();
+        Arrays.stream(PermissionCode.values()).forEach(permissionCode ->
+                enumDescriptions.put(permissionCode.name(), permissionCode.getDescription()));
+        Map<String, String> catalogDescriptions = new TreeMap<>();
+        catalog.permissions().forEach(permission -> catalogDescriptions.put(permission.name(), permission.description()));
+        Set<String> missingFromCatalog = new TreeSet<>(enumDescriptions.keySet());
+        missingFromCatalog.removeAll(catalogDescriptions.keySet());
+        Set<String> missingFromEnum = new TreeSet<>(catalogDescriptions.keySet());
+        missingFromEnum.removeAll(enumDescriptions.keySet());
+        List<String> descriptionDifferences = enumDescriptions.entrySet().stream()
+                .filter(entry -> catalogDescriptions.containsKey(entry.getKey())
+                        && !entry.getValue().equals(catalogDescriptions.get(entry.getKey())))
+                .map(entry -> entry.getKey() + " (PermissionCode='" + entry.getValue() + "', YAML='"
+                        + catalogDescriptions.get(entry.getKey()) + "')")
+                .toList();
+        if (!missingFromCatalog.isEmpty() || !missingFromEnum.isEmpty() || !descriptionDifferences.isEmpty()) {
             throw new CatalogValidationException("El enum PermissionCode y el catálogo YAML no coinciden: "
-                    + "faltan en YAML=" + missingFromCatalog + ", faltan en PermissionCode=" + missingFromEnum + ".");
+                    + "faltan en YAML=" + missingFromCatalog + ", faltan en PermissionCode=" + missingFromEnum
+                    + ", descripciones distintas=" + descriptionDifferences + ".");
         }
     }
 
