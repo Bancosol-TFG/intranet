@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import "./stores.css";
 
+import { ApiError } from "../../shared/api/client";
 import { defaultExceptionRange } from "./scheduleDates";
 import type { ScheduleException } from "./storesTypes";
 import { useScheduleExceptions, type ExceptionDayInput } from "./useScheduleExceptions";
@@ -67,7 +68,12 @@ export function ScheduleExceptions({ storeId }: Props) {
   function submitDay(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editor || busy) return;
-    saveMutation.mutate(editor, { onSuccess: () => setEditor(null) });
+    saveMutation.mutate(editor, {
+      onSuccess: () => setEditor(null),
+      onError: (error) => {
+        if (error instanceof ApiError && error.status === 409) setEditor(null);
+      },
+    });
   }
 
   function cancelEditing() {
@@ -109,6 +115,11 @@ export function ScheduleExceptions({ storeId }: Props) {
           onSubmit={submitDay}
           onCancel={cancelEditing}
         />
+      )}
+      {!editor && saveMutation.isError && (
+        <p className="error-message" role="alert">
+          No se ha guardado la excepción. Revisa el listado actualizado y vuelve a editar el día.
+        </p>
       )}
 
       <div className="exceptions-saved">

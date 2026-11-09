@@ -7,6 +7,24 @@ import type {
   ScheduleExceptionRequest,
 } from "./storesTypes";
 
+export type ReplaceExceptionDayRequest = {
+  originalDate: string | null;
+  date: string;
+  closed: boolean;
+  slots: { id?: number; openingTime: string; closingTime: string }[];
+  expected: ScheduleException[];
+};
+
+function replaceDay(
+  storeId: number,
+  input: ReplaceExceptionDayRequest,
+): Promise<ScheduleException[]> {
+  return request(`/stores/${storeId}/schedule-exceptions/day`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
 function listExceptions(
   storeId: number,
   filters: ScheduleExceptionFilters,
@@ -50,6 +68,7 @@ function getEffectiveSchedule(storeId: number, date: string): Promise<EffectiveS
 }
 
 export const scheduleExceptionsApi = {
+  replaceDay,
   list: listExceptions,
   create: createException,
   update: updateException,

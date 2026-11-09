@@ -145,7 +145,7 @@ Las excepciones de `schedule_exceptions` sustituyen todo el horario semanal de u
 
 En la página de horarios, «Añadir excepción» abre el formulario. Selecciona una fecha y marca «Cerrado todo el día» para indicar un cierre. Si la tienda abre, deja la casilla desmarcada y pulsa «Añadir tramo» para introducir cada hora de apertura y cierre. Puedes quitar un tramo antes de guardar.
 
-El listado permite filtrar por fechas, editar un día, eliminar un tramo o borrar todas las excepciones de un día. El horario efectivo muestra para una fecha si se aplica una excepción o el horario semanal. Si falla una operación que modifica varios tramos, comprueba el listado actualizado: algunas modificaciones pueden haberse guardado antes del error.
+El listado permite filtrar por fechas, editar un día, eliminar un tramo o borrar todas las excepciones de un día. El horario efectivo muestra para una fecha si se aplica una excepción o el horario semanal. La edición del día completo se guarda de forma transaccional; si otra persona cambia el día, se rechaza la operación y se actualiza el listado para volver a intentarlo.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
@@ -153,6 +153,11 @@ El listado permite filtrar por fechas, editar un día, eliminar un tramo o borra
 | POST | `/stores/{storeId}/schedule-exceptions` | 201, excepción creada |
 | PUT | `/stores/{storeId}/schedule-exceptions/{exceptionId}` | 200, excepción actualizada |
 | DELETE | `/stores/{storeId}/schedule-exceptions/{exceptionId}` | 204, baja lógica |
+| PUT | `/stores/{storeId}/schedule-exceptions/day` | 200, sustituye atómicamente la excepción de un día |
+
+La vista guarda un día completo mediante `PUT /stores/{storeId}/schedule-exceptions/day`. Envía `originalDate` (fecha anterior, o `null` para un día nuevo), `date`, `closed`, `slots` y `expected`. Cada tramo de `slots` contiene `openingTime`, `closingTime` y, al conservar un tramo existente, `id`. Para un cierre, `slots` es una lista vacía. Para eliminar todas las excepciones de un día existente, envía `closed: false` y `slots: []`. `expected` contiene las filas originales completas (`id`, `date`, `closed`, `openingTime`, `closingTime`) o una lista vacía para un día nuevo. Si otra operación cambió esas filas o la fecha de destino ya tiene excepciones, devuelve 409 sin guardar el cambio. Para acceder se requieren los permisos `SCHEDULE_EXCEPTION_CREATE`, `SCHEDULE_EXCEPTION_UPDATE` y `SCHEDULE_EXCEPTION_DELETE`.
+
+El backend bloquea la tienda, valida el resultado completo y guarda la sustitución en una transacción. La vista usa el borrado individual para un único tramo; para eliminar un día con varios tramos usa la sustitución transaccional.
 
 Para abrir, envía `{"date":"2031-05-12","closed":false,"openingTime":"10:00","closingTime":"14:00"}`. Para cerrar, envía `{"date":"2031-05-12","closed":true}` sin horas o con ambas a `null`. POST y PUT devuelven `id`, `date`, `closed`, `openingTime` y `closingTime`. La fecha y `closed` son obligatorios. Un tramo abierto exige ambas horas y cierre posterior a apertura en el mismo día.
 

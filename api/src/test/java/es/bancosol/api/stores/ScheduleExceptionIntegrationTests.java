@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -55,6 +56,99 @@ class ScheduleExceptionIntegrationTests {
     private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void replacesAdjacentSlotsAsOneDayWithoutTransientOverlap() throws Exception {
+        Store store = store();
+        ScheduleException first = slot(store, DATE, false, "09:00", "12:00");
+        ScheduleException second = slot(store, DATE, false, "12:00", "15:00");
+        String expected = snapshot(first) + "," + snapshot(second);
+        String slots = "{\"id\":" + first.getId() + ",\"openingTime\":\"09:00\",\"closingTime\":\"13:00\"},"
+                + "{\"id\":" + second.getId() + ",\"openingTime\":\"13:00\",\"closingTime\":\"15:00\"}";
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                        .content(dayBody(DATE, DATE, false, slots, expected)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(first.getId()))
+                .andExpect(jsonPath("$[0].closingTime", startsWith("13:00")))
+                .andExpect(jsonPath("$[1].id").value(second.getId()));
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.findByStoreIdAndDateOrderByOpeningTimeAsc(store.getId(), DATE))
+                .extracting(ScheduleException::getClosingTime)
+                .containsExactly(LocalTime.of(13, 0), LocalTime.of(15, 0));
+    }
+
+    @Test
+    void rejectsOverlapAndStaleChangesWithoutModifyingTheDay() throws Exception {
+        Store store = store();
+        ScheduleException first = slot(store, DATE, false, "09:00", "12:00");
+        ScheduleException second = slot(store, DATE, false, "12:00", "15:00");
+        String expected = snapshot(first) + "," + snapshot(second);
+        String overlap = "{\"id\":" + first.getId() + ",\"openingTime\":\"09:00\",\"closingTime\":\"13:00\"},"
+                + "{\"id\":" + second.getId() + ",\"openingTime\":\"12:00\",\"closingTime\":\"15:00\"}";
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, DATE, false, overlap, expected))).andExpect(status().isConflict());
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, DATE, true, "", snapshot(first)))).andExpect(status().isConflict());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.findByStoreIdAndDateOrderByOpeningTimeAsc(store.getId(), DATE))
+                .extracting(ScheduleException::getClosingTime)
+                .containsExactly(LocalTime.of(12, 0), LocalTime.of(15, 0));
+    }
+
+    @Test
+    void movesAnExceptionDayAndRejectsAnOccupiedDestination() throws Exception {
+        Store store = store();
+        ScheduleException existing = slot(store, DATE, false, "09:00", "12:00");
+        LocalDate occupiedDate = DATE.plusDays(1);
+        slot(store, occupiedDate, true, null, null);
+        String requestedSlot = "{\"id\":" + existing.getId()
+                + ",\"openingTime\":\"09:00\",\"closingTime\":\"12:00\"}";
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, occupiedDate, false, requestedSlot, snapshot(existing))))
+                .andExpect(status().isConflict());
+        LocalDate freeDate = DATE.plusDays(2);
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, freeDate, false, requestedSlot, snapshot(existing))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].date").value(freeDate.toString()));
+    }
+
+    @Test
+    void replacesSlotsWithClosureThenRemovesTheWholeDay() throws Exception {
+        Store store = store();
+        ScheduleException first = slot(store, DATE, false, "09:00", "12:00");
+        ScheduleException second = slot(store, DATE, false, "12:00", "15:00");
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, DATE, true, "", snapshot(first) + "," + snapshot(second))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].closed").value(true));
+        entityManager.flush();
+        entityManager.clear();
+        var closure = repository.findByStoreIdAndDateOrderByOpeningTimeAsc(store.getId(), DATE).getFirst();
+        mockMvc.perform(put(path(store) + "/day").contentType(MediaType.APPLICATION_JSON)
+                .content(dayBody(DATE, DATE, false, "", snapshot(closure))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.findByStoreIdAndDateOrderByOpeningTimeAsc(store.getId(), DATE)).isEmpty();
+    }
+
+    @Test
+    void requiresEveryExceptionWritePermission() throws Exception {
+        Store store = store();
+        String[] permissions = {"SCHEDULE_EXCEPTION_CREATE", "SCHEDULE_EXCEPTION_UPDATE", "SCHEDULE_EXCEPTION_DELETE"};
+        for (int missing = 0; missing < permissions.length; missing++) {
+            String[] granted = new String[2];
+            int index = 0;
+            for (int candidate = 0; candidate < permissions.length; candidate++) {
+                if (candidate != missing) granted[index++] = permissions[candidate];
+            }
+            mockMvc.perform(put(path(store) + "/day").with(user("test").authorities(
+                            new org.springframework.security.core.authority.SimpleGrantedAuthority(granted[0]),
+                            new org.springframework.security.core.authority.SimpleGrantedAuthority(granted[1])))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(dayBody(null, DATE, true, "", ""))).andExpect(status().isForbidden());
+        }
+    }
 
     @Test
     void createsAdjacentSlotsAndPaginatesWithInclusiveFiltersAndDefaultOrder() throws Exception {
@@ -289,5 +383,17 @@ class ScheduleExceptionIntegrationTests {
         return "{\"date\":\"" + date + "\",\"closed\":" + closed + ",\"openingTime\":"
                 + (opening == null ? "null" : "\"" + opening + "\"") + ",\"closingTime\":"
                 + (closing == null ? "null" : "\"" + closing + "\"") + "}";
+    }
+
+    private String snapshot(ScheduleException row) {
+        return "{\"id\":" + row.getId() + ",\"date\":\"" + row.getDate() + "\",\"closed\":" + row.isClosed()
+                + ",\"openingTime\":" + (row.getOpeningTime() == null ? "null" : "\"" + row.getOpeningTime() + "\"")
+                + ",\"closingTime\":" + (row.getClosingTime() == null ? "null" : "\"" + row.getClosingTime() + "\"") + "}";
+    }
+
+    private String dayBody(LocalDate originalDate, LocalDate date, boolean closed, String slots, String expected) {
+        return "{\"originalDate\":" + (originalDate == null ? "null" : "\"" + originalDate + "\"")
+                + ",\"date\":\"" + date + "\",\"closed\":" + closed + ",\"slots\":[" + slots
+                + "],\"expected\":[" + expected + "]}";
     }
 }

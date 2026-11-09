@@ -27,6 +27,27 @@ function mockResponse(body: unknown, status = 200) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("schedule exceptions API", () => {
+  it("replaces a whole exception day in one request", async () => {
+    const fetchMock = mockResponse([]);
+    const input = {
+      originalDate: null,
+      date: "2026-12-20",
+      closed: false,
+      slots: [
+        { openingTime: "10:00", closingTime: "15:00" },
+        { openingTime: "17:00", closingTime: "21:00" },
+      ],
+      expected: [],
+    };
+    await expect(scheduleExceptionsApi.replaceDay(8, input)).resolves.toEqual([]);
+    expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe(
+      "/stores/8/schedule-exceptions/day",
+    );
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  });
   it("sends the date range, pagination and stable ordering", async () => {
     const result = { content: [], page: { size: 100, number: 1, totalElements: 0, totalPages: 0 } };
     const fetchMock = mockResponse(result);

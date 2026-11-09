@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { scheduleExceptionsApi } from "./scheduleExceptionsApi";
-import type { ScheduleException, ScheduleExceptionRequest } from "./storesTypes";
+import type { ScheduleException } from "./storesTypes";
 
 export type ExceptionDayInput = {
   date: string;
@@ -39,47 +39,15 @@ async function saveExceptionDay(storeId: number, day: ExceptionDayInput) {
     }
   }
 
-  const retainedIds = new Set(
-    day.closed
-      ? day.existing.filter((row) => row.closed).map((row) => row.id)
-      : slots.flatMap((slot) => (slot.id === undefined ? [] : [slot.id])),
-  );
-  for (const row of day.existing) {
-    if (!retainedIds.has(row.id)) await scheduleExceptionsApi.delete(storeId, row.id);
-  }
-
-  if (day.closed) {
-    const input: ScheduleExceptionRequest = {
-      date: day.date,
-      closed: true,
-      openingTime: null,
-      closingTime: null,
-    };
-    const existingClosure = day.existing.find((row) => row.closed);
-    if (!existingClosure) await scheduleExceptionsApi.create(storeId, input);
-    else if (existingClosure.date !== day.date)
-      await scheduleExceptionsApi.update(storeId, existingClosure.id, input);
-    return;
-  }
-
-  for (const slot of slots) {
-    const input: ScheduleExceptionRequest = {
-      date: day.date,
-      closed: false,
-      openingTime: slot.openingTime,
-      closingTime: slot.closingTime,
-    };
-    const existing = day.existing.find((row) => row.id === slot.id && !row.closed);
-    if (!existing) {
-      await scheduleExceptionsApi.create(storeId, input);
-    } else if (
-      existing.date !== day.date ||
-      existing.openingTime?.slice(0, 5) !== slot.openingTime ||
-      existing.closingTime?.slice(0, 5) !== slot.closingTime
-    ) {
-      await scheduleExceptionsApi.update(storeId, existing.id, input);
-    }
-  }
+  return scheduleExceptionsApi.replaceDay(storeId, {
+    originalDate: day.existing[0]?.date ?? null,
+    date: day.date,
+    closed: day.closed,
+    slots: day.closed
+      ? []
+      : slots.map(({ id, openingTime, closingTime }) => ({ id, openingTime, closingTime })),
+    expected: day.existing,
+  });
 }
 
 export function useScheduleExceptions(storeId: number, from: string, to: string) {
@@ -101,8 +69,26 @@ export function useScheduleExceptions(storeId: number, from: string, to: string)
   });
   const deleteMutation = useMutation({
     mutationFn: async (exceptionIds: number[]) => {
-      for (const exceptionId of exceptionIds)
-        await scheduleExceptionsApi.delete(storeId, exceptionId);
+      if (exceptionIds.length === 1) {
+        await scheduleExceptionsApi.delete(storeId, exceptionIds[0]);
+        return;
+      }
+      const expected = (exceptionsQuery.data ?? []).filter((row) => exceptionIds.includes(row.id));
+      const date = expected[0]?.date;
+      if (
+        !date ||
+        expected.length !== exceptionIds.length ||
+        expected.some((row) => row.date !== date)
+      ) {
+        throw new Error("Las excepciones han cambiado. Actualiza el listado e inténtalo de nuevo.");
+      }
+      await scheduleExceptionsApi.replaceDay(storeId, {
+        originalDate: date,
+        date,
+        closed: false,
+        slots: [],
+        expected,
+      });
     },
     onSettled: refreshSchedules,
   });

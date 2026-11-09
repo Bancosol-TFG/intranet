@@ -23,6 +23,7 @@ vi.mock("./schedulesApi", () => ({
 vi.mock("./scheduleExceptionsApi", () => ({
   scheduleExceptionsApi: {
     list: vi.fn(),
+    replaceDay: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -85,10 +86,7 @@ beforeEach(() => {
 describe("schedule exceptions", () => {
   it("creates two opening slots on the selected date", async () => {
     const user = userEvent.setup();
-    vi.mocked(scheduleExceptionsApi.create).mockImplementation(async (_storeId, input) => ({
-      id: 20,
-      ...input,
-    }));
+    vi.mocked(scheduleExceptionsApi.replaceDay).mockResolvedValue([]);
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Añadir excepción" }));
     await user.type(screen.getByLabelText("Fecha de excepción"), "2031-05-12");
@@ -107,38 +105,35 @@ describe("schedule exceptions", () => {
     await user.type(screen.getByLabelText("Apertura del tramo 2"), "17:00");
     await user.type(screen.getByLabelText("Cierre del tramo 2"), "21:00");
     await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
-    await waitFor(() => expect(scheduleExceptionsApi.create).toHaveBeenCalledTimes(2));
-    expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
-      date: "2031-05-12",
-      closed: false,
-      openingTime: "10:00",
-      closingTime: "15:00",
-    });
-    expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
-      date: "2031-05-12",
-      closed: false,
-      openingTime: "17:00",
-      closingTime: "21:00",
-    });
+    await waitFor(() =>
+      expect(scheduleExceptionsApi.replaceDay).toHaveBeenCalledWith(8, {
+        originalDate: null,
+        date: "2031-05-12",
+        closed: false,
+        expected: [],
+        slots: [
+          { id: undefined, openingTime: "10:00", closingTime: "15:00" },
+          { id: undefined, openingTime: "17:00", closingTime: "21:00" },
+        ],
+      }),
+    );
   });
 
   it("creates a closure without hours", async () => {
     const user = userEvent.setup();
-    vi.mocked(scheduleExceptionsApi.create).mockImplementation(async (_storeId, input) => ({
-      id: 20,
-      ...input,
-    }));
+    vi.mocked(scheduleExceptionsApi.replaceDay).mockResolvedValue([]);
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Añadir excepción" }));
     await user.type(screen.getByLabelText("Fecha de excepción"), "2031-05-12");
     await user.click(screen.getByRole("checkbox", { name: "Cerrado todo el día" }));
     await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
     await waitFor(() =>
-      expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
+      expect(scheduleExceptionsApi.replaceDay).toHaveBeenCalledWith(8, {
+        originalDate: null,
         date: "2031-05-12",
         closed: true,
-        openingTime: null,
-        closingTime: null,
+        slots: [],
+        expected: [],
       }),
     );
   });
@@ -164,13 +159,24 @@ describe("schedule exceptions", () => {
       ],
       page: { size: 100, number: 0, totalElements: 2, totalPages: 1 },
     });
-    vi.mocked(scheduleExceptionsApi.delete).mockResolvedValue(undefined);
+    vi.mocked(scheduleExceptionsApi.replaceDay).mockResolvedValue([]);
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Editar día" }));
     await user.click(screen.getByRole("button", { name: "Quitar tramo 2" }));
     await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
-    await waitFor(() => expect(scheduleExceptionsApi.delete).toHaveBeenCalledWith(8, 21));
-    expect(scheduleExceptionsApi.update).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(scheduleExceptionsApi.replaceDay).toHaveBeenCalledWith(8, {
+        originalDate: "2031-05-12",
+        date: "2031-05-12",
+        closed: false,
+        slots: [{ id: 20, openingTime: "10:00", closingTime: "15:00" }],
+        expected: expect.arrayContaining([
+          expect.objectContaining({ id: 20 }),
+          expect.objectContaining({ id: 21 }),
+        ]),
+      }),
+    );
+    expect(scheduleExceptionsApi.delete).not.toHaveBeenCalled();
   });
 
   it("shows the source and hours of an effective exception", async () => {
@@ -184,6 +190,28 @@ describe("schedule exceptions", () => {
     renderPage();
     expect(await screen.findByText("Origen: Excepción")).toBeInTheDocument();
     expect(screen.getByText("10:00–15:00")).toBeInTheDocument();
+  });
+
+  it("closes the stale editor and refreshes the list after a conflict", async () => {
+    const user = userEvent.setup();
+    const existing = {
+      id: 20,
+      date: "2031-05-12",
+      closed: false as const,
+      openingTime: "10:00:00",
+      closingTime: "15:00:00",
+    };
+    vi.mocked(scheduleExceptionsApi.list).mockResolvedValue({
+      content: [existing],
+      page: { size: 100, number: 0, totalElements: 1, totalPages: 1 },
+    });
+    vi.mocked(scheduleExceptionsApi.replaceDay).mockRejectedValue(new ApiError(409, "Conflict"));
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Editar día" }));
+    await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Revisa el listado actualizado");
+    expect(screen.queryByRole("form", { name: "Editar excepción" })).not.toBeInTheDocument();
+    expect(scheduleExceptionsApi.list).toHaveBeenCalledTimes(2);
   });
 });
 afterEach(() => vi.restoreAllMocks());
