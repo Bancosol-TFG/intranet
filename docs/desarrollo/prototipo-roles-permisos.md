@@ -1,50 +1,9 @@
-# Prototipo temporal de roles y permisos
+# Gestión de roles y permisos
 
-`frontend/roles-permissions-prototype/` es un subproyecto temporal para probar
-la gestión de roles y permisos. En breve habrá que adaptarlo e integrarlo en el
-frontend principal. No se debe mantener como una aplicación separada a largo
-plazo.
+La gestión de roles y permisos está integrada en la aplicación principal, en la ruta `/roles`. Inicia sesión y abre «Roles y permisos» en la navegación. La vista permite crear roles y consultar, asignar o retirar los permisos del catálogo. Solo se cargan los primeros 100 roles, ordenados por nombre.
 
-El prototipo no modifica las rutas ni los componentes compartidos del frontend
-principal. Tampoco implementa login ni simula credenciales.
+La API comprueba cada operación: `ROLE_LIST`, `ROLE_CREATE`, `PERMISSION_LIST`, `ROLE_PERMISSION_LIST`, `ROLE_PERMISSION_ASSIGN` y `ROLE_PERMISSION_REVOKE`. Una respuesta 403 indica que la sesión no tiene el permiso necesario. La renovación y el cierre de sesión caducada utilizan el cliente compartido.
 
-## Ejecutar
+La migración garantiza la existencia del rol `ADMIN`; `PermissionCatalogSynchronizer` le asigna los permisos declarados que le falten. La cuenta inicial se crea al configurar `ADMIN_EMAIL` y `ADMIN_PASSWORD`, sin credenciales predeterminadas. Consulta [autenticación](autenticacion.md) para el inicio de sesión y la configuración.
 
-Arranca la API y PostgreSQL con el entorno local. Desde `frontend/`, inicia el
-prototipo con:
-
-```sh
-pnpm exec vite --config roles-permissions-prototype/vite.config.ts --host 0.0.0.0 --port 5174
-```
-
-Abre `http://localhost:5174`. El servidor reenvía las peticiones `/api` a
-`http://localhost:8080`. Para cambiar el destino, define
-`VITE_API_PROXY_TARGET`.
-
-La API exige una autenticación con los permisos de gestión correspondientes.
-Hasta que la autenticación aporte esas authorities, el prototipo mostrará el
-error de autorización. No se debe abrir la API ni simular una identidad para
-evitar esa denegación.
-
-## Primer administrador
-
-La migración asegura que exista el rol `ADMIN`. Al arrancar, `PermissionCatalogSynchronizer`
-le concede todos los permisos declarados en `PermissionCode` que todavía no tenga.
-Así, los permisos nuevos del catálogo también se asignan a `ADMIN` al desplegar.
-No crea una cuenta.
-
-La integración de autenticación crea la cuenta inicial cuando se configuran
-`ADMIN_EMAIL` y `ADMIN_PASSWORD`, y la vincula al rol `ADMIN`. Esa cuenta puede
-entrar al prototipo y gestionar roles y permisos. No se definen credenciales
-predeterminadas en esta tarea.
-
-## Comprobar
-
-Desde `frontend/`, ejecuta las pruebas del cliente de API y compila el
-prototipo:
-
-```sh
-pnpm exec vitest run --config roles-permissions-prototype/vite.config.ts
-pnpm exec tsc --noEmit --project roles-permissions-prototype/tsconfig.json
-pnpm exec vite build --config roles-permissions-prototype/vite.config.ts
-```
+Desde `frontend/`, ejecuta `pnpm check`, `pnpm test` y `pnpm build`. Comprueba también el flujo con una sesión autorizada y otra sin permisos.

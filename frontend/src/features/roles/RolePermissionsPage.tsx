@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, rolesApi, type Permission, type Role } from "./roles-api";
+import { ApiError } from "../../shared/api/client";
+import { rolesApi, type Permission, type Role } from "./rolesApi";
+import "./roles.css";
 
 export function RolePermissionsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -8,6 +10,7 @@ export function RolePermissionsPage() {
   const [loadedRoleId, setLoadedRoleId] = useState("");
   const [assignedPermissionIds, setAssignedPermissionIds] = useState<number[]>([]);
   const [pendingPermissionIds, setPendingPermissionIds] = useState<number[]>([]);
+  const [assignmentError, setAssignmentError] = useState(false);
   const [roleName, setRoleName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingRole, setIsCreatingRole] = useState(false);
@@ -65,6 +68,7 @@ export function RolePermissionsPage() {
         if (isActive) {
           setErrorMessage(displayError(error));
           setAssignedPermissionIds([]);
+          setAssignmentError(true);
           setLoadedRoleId(selectedRoleId);
         }
       });
@@ -84,7 +88,14 @@ export function RolePermissionsPage() {
       const createdRole = await rolesApi.createRole(roleName.trim());
       const rolesResponse = await rolesApi.listRoles();
       setRoles(rolesResponse.content);
-      setSelectedRoleId(String(createdRole.id));
+      setAssignmentError(false);
+      setLoadedRoleId("");
+      setAssignedPermissionIds([]);
+      setSelectedRoleId(
+        rolesResponse.content.some((role) => role.id === createdRole.id)
+          ? String(createdRole.id)
+          : "",
+      );
       setRoleName("");
       setStatusMessage(`Se ha creado el rol «${createdRole.name}».`);
     } catch (error: unknown) {
@@ -122,9 +133,8 @@ export function RolePermissionsPage() {
   }
 
   return (
-    <main className="page">
+    <main className="page roles-page">
       <header className="page-header">
-        <p className="eyebrow">Prototipo temporal</p>
         <h1>Gestión de roles y permisos</h1>
         <p>Selecciona un rol para consultar y modificar los permisos que tiene asignados.</p>
       </header>
@@ -146,7 +156,7 @@ export function RolePermissionsPage() {
             <p className="eyebrow">Acceso</p>
             <h2 id="roles-heading">Roles</h2>
           </div>
-          <span className="item-count">{roles.length} cargados</span>
+          <span className="item-count">{roles.length} cargados (máximo 100)</span>
         </div>
 
         <form className="role-form" onSubmit={createRole}>
@@ -161,7 +171,12 @@ export function RolePermissionsPage() {
               required
               value={roleName}
             />
-            <button disabled={isCreatingRole || !roleName.trim()} type="submit">
+            <button
+              disabled={
+                isLoading || isCreatingRole || pendingPermissionIds.length > 0 || !roleName.trim()
+              }
+              type="submit"
+            >
               {isCreatingRole ? "Creando…" : "Crear rol"}
             </button>
           </div>
@@ -171,11 +186,16 @@ export function RolePermissionsPage() {
           Rol seleccionado
         </label>
         <select
-          disabled={isLoading || roles.length === 0}
+          disabled={
+            isLoading || roles.length === 0 || pendingPermissionIds.length > 0 || isCreatingRole
+          }
           id="role-select"
           onChange={(event) => {
             setErrorMessage("");
             setStatusMessage("");
+            setAssignmentError(false);
+            setLoadedRoleId("");
+            setAssignedPermissionIds([]);
             setSelectedRoleId(event.target.value);
           }}
           value={selectedRoleId}
@@ -198,7 +218,12 @@ export function RolePermissionsPage() {
                 "Selecciona un rol"}
             </h2>
           </div>
-          <span className="item-count">{assignedPermissionIds.length} asignados</span>
+          <span className="item-count">
+            {loadedRoleId === selectedRoleId && !assignmentError
+              ? assignedPermissionIds.length
+              : "—"}{" "}
+            asignados
+          </span>
         </div>
 
         {isLoading && <p role="status">Cargando roles y permisos…</p>}
@@ -214,7 +239,13 @@ export function RolePermissionsPage() {
                 <label className="permission-item" key={permission.id}>
                   <input
                     checked={isAssigned}
-                    disabled={!selectedRoleId || isLoadingAssignments || isPending}
+                    disabled={
+                      !selectedRoleId ||
+                      isLoadingAssignments ||
+                      assignmentError ||
+                      isPending ||
+                      isCreatingRole
+                    }
                     onChange={(event) =>
                       updatePermissionAssignment(permission, event.target.checked)
                     }
@@ -242,7 +273,9 @@ export function RolePermissionsPage() {
 
 function displayError(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.message;
+    return error.status === 403
+      ? "No tienes autorización para gestionar roles y permisos."
+      : error.message;
   }
   if (error instanceof Error) {
     return error.message;
