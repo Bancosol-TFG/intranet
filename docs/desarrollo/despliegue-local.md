@@ -57,6 +57,33 @@ del contenedor.
 El archivo `.env` contiene configuración local y credenciales; mantenlo fuera
 del control de versiones.
 
+## OpenAPI y Swagger UI
+
+La variable opcional `SWAGGER_ENABLED` controla la especificación OpenAPI y
+Swagger UI. Su valor predeterminado es `true`, incluso si no la defines en `.env`.
+Con la API arrancada, puedes acceder sin iniciar sesión a estas rutas:
+
+| Recurso | URL con el puerto predeterminado |
+| --- | --- |
+| Especificación OpenAPI en JSON | `http://localhost:8080/v3/api-docs` |
+| Swagger UI | `http://localhost:8080/swagger-ui` |
+
+Si cambias `APP_PORT`, sustituye `8080` por el puerto configurado.
+
+Para desactivar ambos recursos, establece este valor en `.env`:
+
+```text
+SWAGGER_ENABLED=false
+```
+
+Aplica el cambio al contenedor de la API:
+
+```sh
+docker compose up --build -d app
+```
+
+Con esta configuración, `/v3/api-docs` y `/swagger-ui` devuelven `404`.
+
 ## Servicios y puertos
 
 | Servicio | Acceso desde el equipo local | Puerto dentro de Compose |
@@ -74,6 +101,9 @@ indique que está listo. La documentación no depende de la base de datos.
 El frontend llama a la API directamente con la URL de `VITE_BACKEND_URL`, por
 ejemplo `http://localhost:8080`. La API acepta peticiones desde
 `http://localhost:5173`, el origen del frontend en desarrollo.
+
+La documentación interactiva de la API está en
+`http://localhost:${APP_PORT:-8080}/swagger-ui`; consulta [Swagger UI](swagger.md).
 
 ## Arrancar y detener
 

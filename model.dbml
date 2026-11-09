@@ -241,7 +241,7 @@ Table stores {
   name varchar [not null, note: 'Único entre tiendas no borradas']
   address varchar [not null]
   checkout_shelfs integer [not null]
-  zone_id integer [ref: < zones.id]
+  zone_id integer [ref: > zones.id]
 
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]

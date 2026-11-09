@@ -19,6 +19,8 @@ Cada método de endpoint en un controller debe declarar exactamente una anotaci�
 
 Mientras una cuenta tenga la contraseña temporal, solo puede usar `/auth/*`; el resto responde 403.
 
+Para probar estos endpoints desde el navegador, consulta [Swagger UI](swagger.md).
+
 ## Primer administrador
 
 Si `ADMIN_EMAIL` y `ADMIN_PASSWORD` están vacías, no se crea una cuenta de bootstrap. Si se configura una, también debe configurarse la otra; el arranque falla si falta alguna o no existe exactamente un rol `ADMIN` activo. Con ambas configuradas, la API crea la cuenta con ese rol salvo que el correo ya exista. Debe cambiar la contraseña al entrar.

@@ -12,6 +12,8 @@ import es.bancosol.api.stores.repository.ScheduleExceptionRepository;
 import es.bancosol.api.stores.repository.ScheduleRepository;
 import es.bancosol.api.stores.entity.Store;
 import es.bancosol.api.stores.repository.StoreRepository;
+import es.bancosol.api.territory.entity.Locality;
+import es.bancosol.api.territory.repository.LocalityRepository;
 import es.bancosol.api.common.security.WithAllPermissions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,8 @@ class ScheduleExceptionIntegrationTests {
     private ScheduleRepository scheduleRepository;
     @Autowired
     private StoreRepository storeRepository;
+    @Autowired
+    private LocalityRepository localityRepository;
     @Autowired
     private ChainRepository chainRepository;
     @Autowired
@@ -253,7 +257,8 @@ class ScheduleExceptionIntegrationTests {
 
     private Store store() {
         String name = UUID.randomUUID().toString();
-        return storeRepository.save(new Store(name, "Address", 0, chainRepository.save(new Chain(name))));
+        return storeRepository.save(new Store(name, "Address", 0, chainRepository.save(new Chain(name)),
+                localityRepository.save(new Locality(name, "29001"))));
     }
 
     private ScheduleException slot(Store store, LocalDate date, boolean closed, String opening, String closing) {

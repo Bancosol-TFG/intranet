@@ -41,6 +41,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final String[] API_DOCUMENTATION_PATHS = {"/v3/api-docs/**", "/swagger-ui/**"};
 
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 
@@ -55,6 +56,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(server -> server.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter())))
                 .authorizeHttpRequests(requests -> requests
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(API_DOCUMENTATION_PATHS).permitAll()
                         .requestMatchers(publicEndpointRequestMatcher).permitAll()
                         .requestMatchers("/auth/**").authenticated()
                         .anyRequest().access((authentication, context) ->
