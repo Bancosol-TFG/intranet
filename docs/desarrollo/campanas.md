@@ -30,7 +30,7 @@ El borrado es lógico: conserva la fila y registra `deleted_at`. Los tipos borra
 - 404: tipo inexistente o borrado en detalle, edición o borrado.
 - 409: nombre ya utilizado por otro tipo no borrado en alta o edición, o tipo asociado a alguna campaña no borrada al borrar.
 
-Los errores usan el manejo por defecto de Spring. Temporalmente, la configuración de seguridad permite todas las peticiones sin credenciales. Los roles acordados son administrador para la gestión y cualquier usuario autenticado para las consultas; su declaración queda pendiente de la implementación de la autenticación.
+Los errores usan el manejo por defecto de Spring. Los endpoints exigen una sesión autenticada y, si corresponde, el cambio de contraseña inicial (ver [autenticación](autenticacion.md)). La autorización detallada por rol y permiso está pendiente de integración.
 
 ## Campañas
 
@@ -54,10 +54,12 @@ Para crear o editar, envía `{"name":"Gran Recogida","campaignTypeId":1,"startDa
 
 El borrado es lógico y conserva `deleted_at`. Las campañas borradas no aparecen en los listados ni están disponibles para detalle, edición o borrado. Mientras una campaña no borrada use un tipo, ese tipo no se puede borrar.
 
+La creación o edición de una campaña y la baja de su tipo bloquean el tipo durante la transacción. Así, si ambas operaciones coinciden, no se puede dejar una campaña activa asociada a un tipo dado de baja.
+
 - 400: campos ausentes, `name` vacío o compuesto solo por espacios, o fecha de fin anterior a la de inicio en alta o edición.
 - 404: campaña inexistente o borrada, o tipo inexistente o borrado, en detalle, alta o edición.
 - 409: intento de borrar un tipo asociado a una campaña no borrada.
 
 ## Interfaz
 
-La ruta `/campaign-types` de la intranet permite crear, consultar, editar y eliminar tipos de campaña y campañas. El formulario valida que el nombre no esté vacío, el listado permite buscar por nombre y la paginación muestra diez registros por página. El frontend usa `VITE_BACKEND_URL` como URL base obligatoria de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. Las operaciones de campañas y tipos de campaña están en `frontend/src/features/campaigns/` y usan el cliente común de `frontend/src/shared/api/client.ts`.
+La ruta `/campaign-types` permite crear, consultar, editar y eliminar tipos de campaña; `/campaigns` permite gestionar campañas. Los listados permiten buscar por nombre y muestran diez registros por página. El frontend usa `VITE_BACKEND_URL` como URL base obligatoria de sus peticiones; no tiene valor por defecto y la aplicación se detiene si falta. Las operaciones de campañas y tipos de campaña están en `frontend/src/features/campaigns/` y usan el cliente común de `frontend/src/shared/api/client.ts`.
