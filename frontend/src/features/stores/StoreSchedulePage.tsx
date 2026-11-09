@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { ApiError } from "../../shared/api/client";
 import { useStoreSchedule } from "./useStoreSchedule";
 import { WeeklySchedule } from "./WeeklySchedule";
+import { ScheduleExceptions } from "./ScheduleExceptions";
+import { EffectiveSchedule } from "./EffectiveSchedule";
 
 type Props = { storeId: number };
 
@@ -36,7 +38,11 @@ export function StoreSchedulePage({ storeId }: Props) {
           {storeQuery.error.message}
         </p>
       ) : (
-        <WeeklySchedule key={storeId} schedule={schedule} />
+        <>
+          <WeeklySchedule key={storeId} schedule={schedule} />
+          <ScheduleExceptions key={`exceptions-${storeId}`} storeId={storeId} />
+          <EffectiveSchedule key={`effective-${storeId}`} storeId={storeId} />
+        </>
       )}
     </main>
   );

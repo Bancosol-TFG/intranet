@@ -11,3 +11,12 @@
   color: #fff;
   text-decoration: none;
 }
+
+.exception-closed {
+  display: flex;
+  align-items: center;
+}
+
+.exception-closed input {
+  width: auto;
+}

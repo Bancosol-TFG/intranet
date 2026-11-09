@@ -39,7 +39,10 @@ export function useStoreSchedule(storeId: number) {
     enabled: storeQuery.isSuccess,
   });
   const refreshSchedules = () =>
-    queryClient.invalidateQueries({ queryKey: ["stores", storeId, "schedules"] });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["stores", storeId, "schedules"] }),
+      queryClient.invalidateQueries({ queryKey: ["stores", storeId, "effective-schedule"] }),
+    ]);
   const createMutation = useMutation({
     mutationFn: (input: ScheduleSlotRequest) =>
       scheduleOperation(() => schedulesApi.create(storeId, input)),
