@@ -1,4 +1,6 @@
 import type { FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
+import "./stores.css";
 
 import type { Store } from "./storesTypes";
 import type { useStoreOptions } from "./useStoreOptions";
@@ -112,7 +114,10 @@ export function StoreList({
                     {store.locality.name} ({store.locality.postalCode})
                   </td>
                   <td>{store.zone ? `${store.zone.name} (${store.zone.code})` : "Sin zona"}</td>
-                  <td className="actions">
+                  <td className="actions store-actions">
+                    <Link to="/stores/$storeId/schedule" params={{ storeId: String(store.id) }}>
+                      Horarios
+                    </Link>
                     <button type="button" disabled={busy} onClick={() => beginEdit(store)}>
                       Editar
                     </button>

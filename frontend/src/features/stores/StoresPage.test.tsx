@@ -1,4 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,9 +43,24 @@ function pageResponse<T>(content: T[], number = 0, totalPages = 1): PageResponse
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const rootRoute = createRootRoute();
+  const storesRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/stores",
+    component: StoresPage,
+  });
+  const scheduleRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/stores/$storeId/schedule",
+    component: () => null,
+  });
+  const router = createRouter({
+    routeTree: rootRoute.addChildren([storesRoute, scheduleRoute]),
+    history: createMemoryHistory({ initialEntries: ["/stores"] }),
+  });
   render(
     <QueryClientProvider client={queryClient}>
-      <StoresPage />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
 }

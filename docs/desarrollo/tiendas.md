@@ -109,6 +109,14 @@ No se puede borrar una cadena mientras conserve alguna tienda no borrada: devuel
 
 ## Horario semanal
 
+Desde el listado de tiendas, pulsa «Horarios» para abrir `/stores/{storeId}/schedule`. La página muestra el nombre de la tienda y los siete días, de lunes a domingo. Un día sin tramos aparece como «Cerrado».
+
+«Añadir tramo» abre el formulario del día. Introduce apertura y cierre; el cierre debe ser posterior a la apertura. Puedes guardar varios tramos por día. Se muestran ordenados por apertura y con horas en formato `HH:mm`. Los botones «Editar tramo» y «Borrar tramo» aparecen junto a las horas; el borrado solicita confirmación.
+
+Los cambios actualizan el horario de la tienda. Un solapamiento muestra «El tramo se solapa con otro del mismo día» y conserva el formulario para corregirlo. Si la tienda no existe, se muestra el error en lugar del horario. «Volver a tiendas» regresa al listado.
+
+La cabecera requiere `STORE_READ`; el horario requiere `SCHEDULE_LIST` y las escrituras `SCHEDULE_CREATE`, `SCHEDULE_UPDATE` o `SCHEDULE_DELETE`. Las excepciones y el horario efectivo se incorporarán en la siguiente tarea.
+
 Los tramos de apertura de cada tienda se guardan en `schedules`. `weekDay` usa ISO: 1 es lunes y 7 es domingo. Cada día admite varios tramos.
 
 | Método | Ruta | Resultado |

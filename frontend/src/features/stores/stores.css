@@ -1,0 +1,13 @@
+.store-actions {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.store-actions a {
+  padding: 0.65rem 1rem;
+  border: 1px solid #125b84;
+  border-radius: 0.25rem;
+  background: #125b84;
+  color: #fff;
+  text-decoration: none;
+}

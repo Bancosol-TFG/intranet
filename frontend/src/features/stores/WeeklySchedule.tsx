@@ -111,7 +111,7 @@ export function WeeklySchedule({ schedule }: Props) {
               ) : (
                 <ul>
                   {slots.map((slot) => (
-                    <li key={slot.id}>
+                    <li key={slot.id} className="actions">
                       <span>
                         {slot.openingTime.slice(0, 5)}–{slot.closingTime.slice(0, 5)}
                       </span>
