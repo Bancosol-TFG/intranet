@@ -2,7 +2,7 @@
 
 La API permite consultar, crear, actualizar y borrar zonas desde `/zones`. El borrado es lógico: las zonas eliminadas dejan de aparecer en consultas, pero el nombre permanece reservado por la restricción única global.
 
-La interfaz web solicita `/api/zones`; el proxy de desarrollo retira `/api` antes de reenviar la petición al backend.
+La interfaz web usa la URL base configurada en `VITE_BACKEND_URL`. Si se configura como `/api`, el proxy de desarrollo retira ese prefijo antes de reenviar la petición al backend.
 
 ## API
 
@@ -13,6 +13,8 @@ La interfaz web solicita `/api/zones`; el proxy de desarrollo retira `/api` ante
 - `DELETE /zones/{zoneId}`: marca la zona como eliminada; responde `204`.
 
 Las consultas a una zona inexistente o eliminada responden `404`. Un nombre duplicado, incluso si pertenece a una zona eliminada, responde `409`. El código puede repetirse.
+
+Una zona con tiendas activas no se puede borrar: la API responde `409`. Las tiendas asociadas se consultan con `GET /stores?zoneId={zoneId}`; la asignación es opcional y se gestiona desde el recurso de tiendas.
 
 ## Interfaz
 

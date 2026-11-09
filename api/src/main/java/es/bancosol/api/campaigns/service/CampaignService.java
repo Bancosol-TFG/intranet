@@ -65,7 +65,7 @@ public class CampaignService {
     }
 
     private CampaignType findCampaignType(Integer campaignTypeId) {
-        return campaignTypeRepository.findById(campaignTypeId)
+        return campaignTypeRepository.findForUpdate(campaignTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 

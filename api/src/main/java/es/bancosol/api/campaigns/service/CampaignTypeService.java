@@ -46,7 +46,8 @@ public class CampaignTypeService {
 
     @Transactional
     public void delete(Integer campaignTypeId) {
-        CampaignType campaignType = findCampaignType(campaignTypeId);
+        CampaignType campaignType = repository.findForUpdate(campaignTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (campaignRepository.existsByCampaignTypeId(campaignTypeId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT);
         }
