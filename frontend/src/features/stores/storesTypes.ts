@@ -39,3 +39,22 @@ export type StoreFilters = {
   chainId: number | null;
   page: number;
 };
+
+export type ScheduleSlot = {
+  id: number;
+  openingTime: string;
+  closingTime: string;
+};
+
+export type ScheduleDay = {
+  weekDay: number;
+  slots: ScheduleSlot[];
+};
+
+export type ScheduleSlotRequest = {
+  weekDay: number;
+  openingTime: string;
+  closingTime: string;
+};
+
+export type ScheduleResponse = ScheduleSlot & { weekDay: number };
