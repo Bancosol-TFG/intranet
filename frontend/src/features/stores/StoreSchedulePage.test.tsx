@@ -14,7 +14,7 @@ import { ApiError } from "../../shared/api/client";
 import { schedulesApi } from "./schedulesApi";
 import { scheduleExceptionsApi } from "./scheduleExceptionsApi";
 import { storesApi } from "./storesApi";
-import { StoreSchedulePage } from "./StoreSchedulePage";
+import { SchedulePage } from "./StoreSchedulePage";
 
 vi.mock("./storesApi", () => ({ storesApi: { get: vi.fn() } }));
 vi.mock("./schedulesApi", () => ({
@@ -47,7 +47,7 @@ function renderPage() {
   const scheduleRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/stores/$storeId/schedule",
-    component: () => <StoreSchedulePage storeId={8} />,
+    component: SchedulePage,
   });
   const storesRoute = createRoute({
     getParentRoute: () => rootRoute,

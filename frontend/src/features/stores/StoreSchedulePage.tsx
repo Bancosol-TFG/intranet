@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 
 import { ApiError } from "../../shared/api/client";
 import { useStoreSchedule } from "./useStoreSchedule";
@@ -8,6 +8,11 @@ import { EffectiveSchedule } from "./EffectiveSchedule";
 import "./stores.css";
 
 type Props = { storeId: number };
+
+export function SchedulePage() {
+  const { storeId } = useParams({ from: "/stores/$storeId/schedule" });
+  return <StoreSchedulePage storeId={Number(storeId)} />;
+}
 
 export function StoreSchedulePage({ storeId }: Props) {
   const schedule = useStoreSchedule(storeId);
