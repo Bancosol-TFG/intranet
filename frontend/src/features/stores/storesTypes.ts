@@ -58,3 +58,26 @@ export type ScheduleSlotRequest = {
 };
 
 export type ScheduleResponse = ScheduleSlot & { weekDay: number };
+
+export type ScheduleExceptionRequest = {
+  date: string;
+} & (
+  | { closed: true; openingTime: null; closingTime: null }
+  | { closed: false; openingTime: string; closingTime: string }
+);
+
+export type ScheduleException = ScheduleExceptionRequest & { id: number };
+
+export type ScheduleExceptionFilters = {
+  from: string;
+  to: string;
+  page: number;
+};
+
+export type EffectiveSchedule = {
+  storeId: number;
+  date: string;
+  source: "EXCEPTION" | "WEEKLY";
+  closed: boolean;
+  slots: { openingTime: string; closingTime: string }[];
+};
