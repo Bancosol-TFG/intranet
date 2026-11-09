@@ -24,3 +24,13 @@ auth:
   jwt-secret: ${JWT_SECRET}
   admin-email: ${ADMIN_EMAIL:}
   admin-password: ${ADMIN_PASSWORD:}
+
+springdoc:
+  default-flat-param-object: true
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui
+    persist-authorization: true
