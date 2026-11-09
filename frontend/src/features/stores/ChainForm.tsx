@@ -5,6 +5,8 @@ import type { useChains } from "./useChains";
 
 type Props = {
   editingChain: Chain | null;
+  name: string;
+  setName: (value: string) => void;
   code: string;
   setCode: (value: string) => void;
   busy: boolean;
@@ -15,6 +17,8 @@ type Props = {
 
 export function ChainForm({
   editingChain,
+  name,
+  setName,
   code,
   setCode,
   busy,
@@ -26,6 +30,10 @@ export function ChainForm({
     <section className="panel" aria-labelledby="chain-form-title">
       <h2 id="chain-form-title">{editingChain ? "Editar cadena" : "Crear cadena"}</h2>
       <form className="form-grid" onSubmit={submitForm}>
+        <label>
+          Nombre
+          <input required value={name} onChange={(event) => setName(event.target.value)} />
+        </label>
         <label>
           Código
           <input required value={code} onChange={(event) => setCode(event.target.value)} />

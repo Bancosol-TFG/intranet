@@ -4,7 +4,7 @@ El módulo `stores` gestiona cadenas, tiendas y horarios en las tablas `chains`,
 
 ## Cadenas
 
-Las peticiones y respuestas usan JSON. La respuesta de una cadena contiene `id` y `code`.
+Las peticiones y respuestas usan JSON. La respuesta de una cadena contiene `id`, `name` y `code`. El nombre es visible y puede repetirse; `id` identifica la fila y `code` es único entre cadenas no borradas.
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
@@ -14,7 +14,25 @@ Las peticiones y respuestas usan JSON. La respuesta de una cadena contiene `id` 
 | PUT | `/chains/{chainId}` | 200, cadena actualizada |
 | DELETE | `/chains/{chainId}` | 204, sin cuerpo |
 
-Para crear o editar, envía `{"code":"CADENA"}`. `code` es obligatorio y no puede estar vacío ni contener solo espacios. Debe ser único entre cadenas no borradas; la comparación de unicidad distingue mayúsculas.
+Para crear o editar, envía `{"name":"Mercadona","code":"MER"}`. Tanto `name` como `code` son obligatorios; ninguno puede estar vacío ni contener solo espacios. El código debe ser único entre cadenas no borradas; la comparación de unicidad distingue mayúsculas.
+
+### Vista de cadenas
+
+Accede a «Cadenas» desde la navegación o abre `/chains`. El formulario permite crear y editar el nombre y el código, ambos obligatorios. El listado muestra ambos campos, admite búsqueda por código y paginación. «Dar de baja» pide confirmación; si la cadena conserva tiendas activas, se muestra el mensaje de conflicto del cliente compartido.
+
+Los endpoints de cadenas exigen los permisos `CHAIN_LIST`, `CHAIN_READ`, `CHAIN_CREATE`, `CHAIN_UPDATE` y `CHAIN_DELETE` según la operación.
+
+### Migración de cadenas existentes
+
+La migración añade `name` obligatorio sin inventar nombres ni imponer su unicidad. Si hay cadenas sin nombre, incluidas las dadas de baja, se detiene. Prepara la columna y completa el nombre real antes de reiniciar la API:
+
+```sql
+ALTER TABLE chains ADD COLUMN IF NOT EXISTS name VARCHAR;
+SELECT id, code, deleted_at FROM chains WHERE name IS NULL OR BTRIM(name) = '';
+UPDATE chains SET name = '<nombre_real>' WHERE id = <id_cadena>;
+```
+
+Repite el `UPDATE` para cada cadena. Flyway comprueba que ninguna tenga el nombre vacío, añade `NOT NULL` y la restricción `ck_chains_name_not_blank`. Los clientes de POST y PUT deben enviar ahora `name` y `code`; las respuestas también incluyen el nombre dentro de `chain` en las tiendas.
 
 ### Listado
 
@@ -26,11 +44,11 @@ La respuesta contiene `content` y `page`, con `size`, `number`, `totalElements` 
 
 El borrado es lógico: conserva la fila y registra `deleted_at`. Las cadenas borradas no aparecen en los listados ni están disponibles para detalle, edición o borrado. Su código puede reutilizarse gracias al índice único parcial `uq_chains_code`, aplicado solo donde `deleted_at IS NULL`. Hibernate gestiona `created_at` y `updated_at`.
 
-- 400: `code` ausente, nulo, vacío o compuesto solo por espacios en alta o edición.
+- 400: `name` o `code` ausente, nulo, vacío o compuesto solo por espacios en alta o edición.
 - 404: cadena inexistente o borrada en detalle, edición o borrado.
 - 409: código ya utilizado por otra cadena no borrada en alta o edición, o intento de borrar una cadena con tiendas no borradas.
 
-Los errores usan el manejo por defecto de Spring. Los endpoints exigen una sesión autenticada y, si corresponde, el cambio de contraseña inicial (ver [autenticación](autenticacion.md)). La autorización detallada por rol y permiso está pendiente de integración.
+Los errores usan el manejo por defecto de Spring. Los endpoints de cadenas exigen una sesión autenticada, el permiso correspondiente y, si procede, el cambio de contraseña inicial (ver [autenticación](autenticacion.md)).
 
 
 ## Tiendas
@@ -47,7 +65,7 @@ Las tiendas se guardan en la tabla `stores`. Cada tienda pertenece a una localid
 
 Para crear o editar, envía `{"name":"Tienda centro","address":"Calle principal, 1","checkoutShelfs":0,"chainId":1,"localityId":1}`. Todos los campos son obligatorios: `name` y `address` no pueden estar vacíos ni contener solo espacios; `checkoutShelfs` debe ser un entero mayor o igual que cero. La cadena y la localidad deben existir y no estar borradas. La edición permite cambiar ambas relaciones.
 
-La respuesta contiene `id`, `name`, `address`, `checkoutShelfs` y `chain`, con `id` y `code` de la cadena. `GET /stores?page=0&size=10&sort=name,asc&chainId=1&name=centro` admite filtros opcionales combinables: `chainId` exacto y `name` parcial sin distinguir mayúsculas. Usa la misma estructura `content` y `page` que las cadenas.
+La respuesta contiene `id`, `name`, `address`, `checkoutShelfs` y `chain`, con `id`, `name` y `code` de la cadena. `GET /stores?page=0&size=10&sort=name,asc&chainId=1&name=centro` admite filtros opcionales combinables: `chainId` exacto y `name` parcial sin distinguir mayúsculas. Usa la misma estructura `content` y `page` que las cadenas.
 
 Para asociar una zona, incluye `zoneId` en el alta o la edición. La zona debe existir y estar activa; si se omite o es `null`, la tienda queda sin zona. La respuesta incluye `zone` con `id`, `name` y `code`, o `null` si no tiene zona. `GET /stores?zoneId=1` permite consultar las tiendas activas de una zona y combinar el filtro con los demás. No se puede dar de baja una zona que tenga tiendas activas: la API responde 409.
 

@@ -279,7 +279,7 @@ class StoreIntegrationTests {
     }
 
     private Chain chain() {
-        return chainRepository.save(new Chain(uniqueName()));
+        return chainRepository.save(new Chain("Test chain", uniqueName()));
     }
 
     private Store store(String name, Chain chain) {

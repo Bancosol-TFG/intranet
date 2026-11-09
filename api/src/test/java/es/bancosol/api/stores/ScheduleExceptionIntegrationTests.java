@@ -257,7 +257,7 @@ class ScheduleExceptionIntegrationTests {
 
     private Store store() {
         String name = UUID.randomUUID().toString();
-        return storeRepository.save(new Store(name, "Address", 0, chainRepository.save(new Chain(name)),
+        return storeRepository.save(new Store(name, "Address", 0, chainRepository.save(new Chain("Test chain", name)),
                 localityRepository.save(new Locality(name, "29001"))));
     }
 

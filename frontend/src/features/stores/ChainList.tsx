@@ -63,6 +63,7 @@ export function ChainList({
           <table>
             <thead>
               <tr>
+                <th>Nombre</th>
                 <th>Código</th>
                 <th>Acciones</th>
               </tr>
@@ -70,6 +71,7 @@ export function ChainList({
             <tbody>
               {chains.map((chain) => (
                 <tr key={chain.id}>
+                  <td>{chain.name}</td>
                   <td>{chain.code}</td>
                   <td className="actions">
                     <button type="button" disabled={busy} onClick={() => beginEdit(chain)}>

@@ -6,13 +6,14 @@ import type { Chain } from "./storesTypes";
 type Options = {
   search: string;
   page: number;
+  name: string;
   code: string;
   editingChain: Chain | null;
   setPage: (page: number) => void;
   resetForm: () => void;
 };
 
-export function useChains({ search, page, code, editingChain, setPage, resetForm }: Options) {
+export function useChains({ search, page, name, code, editingChain, setPage, resetForm }: Options) {
   const queryClient = useQueryClient();
   const chainsQuery = useQuery({
     queryKey: ["chains", search, page],
@@ -21,7 +22,7 @@ export function useChains({ search, page, code, editingChain, setPage, resetForm
   const refreshChains = () => queryClient.invalidateQueries({ queryKey: ["chains"] });
   const saveMutation = useMutation({
     mutationFn: () => {
-      const input = { code };
+      const input = { name, code };
       return editingChain ? chainsApi.update(editingChain.id, input) : chainsApi.create(input);
     },
     onSuccess: async () => {

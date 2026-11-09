@@ -2,16 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { chainsApi } from "./chainsApi";
 
-const CHAIN = { id: 7, code: "CAD-01" };
+const CHAIN = { id: 7, name: "Mercadona", code: "CAD-01" };
 const CHAIN_PAGE = {
   content: [CHAIN],
   page: { size: 10, number: 2, totalElements: 21, totalPages: 3 },
 };
 
 function mockResponse(body: unknown, status = 200) {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(status === 204 ? null : JSON.stringify(body), { status }),
-  );
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValue(new Response(status === 204 ? null : JSON.stringify(body), { status }));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -52,28 +52,30 @@ describe("chains API", () => {
     expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe("/chains/7");
   });
 
-  it("creates a chain with its code", async () => {
+  it("creates a chain with its name and code", async () => {
     const fetchMock = mockResponse(CHAIN, 201);
 
-    await expect(chainsApi.create({ code: "CAD-01" })).resolves.toEqual(CHAIN);
+    await expect(chainsApi.create({ name: "Mercadona", code: "CAD-01" })).resolves.toEqual(CHAIN);
 
     expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe("/chains");
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       method: "POST",
-      body: JSON.stringify({ code: "CAD-01" }),
+      body: JSON.stringify({ name: "Mercadona", code: "CAD-01" }),
     });
   });
 
   it("updates the chain using PUT", async () => {
-    const updatedChain = { ...CHAIN, code: "CAD-02" };
+    const updatedChain = { ...CHAIN, name: "Carrefour", code: "CAD-02" };
     const fetchMock = mockResponse(updatedChain);
 
-    await expect(chainsApi.update(7, { code: "CAD-02" })).resolves.toEqual(updatedChain);
+    await expect(chainsApi.update(7, { name: "Carrefour", code: "CAD-02" })).resolves.toEqual(
+      updatedChain,
+    );
 
     expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe("/chains/7");
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       method: "PUT",
-      body: JSON.stringify({ code: "CAD-02" }),
+      body: JSON.stringify({ name: "Carrefour", code: "CAD-02" }),
     });
   });
 

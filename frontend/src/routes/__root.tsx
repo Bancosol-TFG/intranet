@@ -40,6 +40,7 @@ function RootLayout() {
           <Link to="/collaborators">Colaboradores</Link>
           <Link to="/localities">Localidades</Link>
           <Link to="/zones">Zonas</Link>
+          <Link to="/chains">Cadenas</Link>
           <button type="button" onClick={() => void logout()}>
             Cerrar sesión
           </button>
