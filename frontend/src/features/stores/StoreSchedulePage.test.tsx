@@ -12,12 +12,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../shared/api/client";
 import { schedulesApi } from "./schedulesApi";
+import { scheduleExceptionsApi } from "./scheduleExceptionsApi";
 import { storesApi } from "./storesApi";
 import { StoreSchedulePage } from "./StoreSchedulePage";
 
 vi.mock("./storesApi", () => ({ storesApi: { get: vi.fn() } }));
 vi.mock("./schedulesApi", () => ({
   schedulesApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+}));
+vi.mock("./scheduleExceptionsApi", () => ({
+  scheduleExceptionsApi: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    effective: vi.fn(),
+  },
 }));
 
 const SLOT = { id: 12, openingTime: "09:00:00", closingTime: "14:00:00" };
@@ -59,6 +69,122 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(storesApi.get).mockResolvedValue(STORE);
   vi.mocked(schedulesApi.list).mockResolvedValue([{ weekDay: 1, slots: [SLOT] }]);
+  vi.mocked(scheduleExceptionsApi.list).mockResolvedValue({
+    content: [],
+    page: { size: 100, number: 0, totalElements: 0, totalPages: 0 },
+  });
+  vi.mocked(scheduleExceptionsApi.effective).mockImplementation(async (storeId, date) => ({
+    storeId,
+    date,
+    source: "WEEKLY",
+    closed: false,
+    slots: [{ openingTime: "09:00:00", closingTime: "14:00:00" }],
+  }));
+});
+
+describe("schedule exceptions", () => {
+  it("creates two opening slots on the selected date", async () => {
+    const user = userEvent.setup();
+    vi.mocked(scheduleExceptionsApi.create).mockImplementation(async (_storeId, input) => ({
+      id: 20,
+      ...input,
+    }));
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Añadir excepción" }));
+    await user.type(screen.getByLabelText("Fecha de excepción"), "2031-05-12");
+    await user.click(
+      within(screen.getByRole("form", { name: "Nueva excepción" })).getByRole("button", {
+        name: "Añadir tramo",
+      }),
+    );
+    await user.type(screen.getByLabelText("Apertura del tramo 1"), "10:00");
+    await user.type(screen.getByLabelText("Cierre del tramo 1"), "15:00");
+    await user.click(
+      within(screen.getByRole("form", { name: "Nueva excepción" })).getByRole("button", {
+        name: "Añadir tramo",
+      }),
+    );
+    await user.type(screen.getByLabelText("Apertura del tramo 2"), "17:00");
+    await user.type(screen.getByLabelText("Cierre del tramo 2"), "21:00");
+    await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
+    await waitFor(() => expect(scheduleExceptionsApi.create).toHaveBeenCalledTimes(2));
+    expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
+      date: "2031-05-12",
+      closed: false,
+      openingTime: "10:00",
+      closingTime: "15:00",
+    });
+    expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
+      date: "2031-05-12",
+      closed: false,
+      openingTime: "17:00",
+      closingTime: "21:00",
+    });
+  });
+
+  it("creates a closure without hours", async () => {
+    const user = userEvent.setup();
+    vi.mocked(scheduleExceptionsApi.create).mockImplementation(async (_storeId, input) => ({
+      id: 20,
+      ...input,
+    }));
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Añadir excepción" }));
+    await user.type(screen.getByLabelText("Fecha de excepción"), "2031-05-12");
+    await user.click(screen.getByRole("checkbox", { name: "Cerrado todo el día" }));
+    await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
+    await waitFor(() =>
+      expect(scheduleExceptionsApi.create).toHaveBeenCalledWith(8, {
+        date: "2031-05-12",
+        closed: true,
+        openingTime: null,
+        closingTime: null,
+      }),
+    );
+  });
+
+  it("removes a slot when editing an exception day", async () => {
+    const user = userEvent.setup();
+    vi.mocked(scheduleExceptionsApi.list).mockResolvedValue({
+      content: [
+        {
+          id: 20,
+          date: "2031-05-12",
+          closed: false,
+          openingTime: "10:00:00",
+          closingTime: "15:00:00",
+        },
+        {
+          id: 21,
+          date: "2031-05-12",
+          closed: false,
+          openingTime: "17:00:00",
+          closingTime: "21:00:00",
+        },
+      ],
+      page: { size: 100, number: 0, totalElements: 2, totalPages: 1 },
+    });
+    vi.mocked(scheduleExceptionsApi.delete).mockResolvedValue(undefined);
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Editar día" }));
+    await user.click(screen.getByRole("button", { name: "Quitar tramo 2" }));
+    await user.click(screen.getByRole("button", { name: "Guardar excepción" }));
+    await waitFor(() => expect(scheduleExceptionsApi.delete).toHaveBeenCalledWith(8, 21));
+    expect(scheduleExceptionsApi.update).not.toHaveBeenCalled();
+  });
+
+  it("shows the source and hours of an effective exception", async () => {
+    vi.mocked(scheduleExceptionsApi.effective).mockImplementation(async (storeId, date) => ({
+      storeId,
+      date,
+      source: "EXCEPTION",
+      closed: false,
+      slots: [{ openingTime: "10:00:00", closingTime: "15:00:00" }],
+    }));
+    renderPage();
+    expect(await screen.findByText("Origen: Excepción")).toBeInTheDocument();
+    expect(screen.getByText("10:00–15:00")).toBeInTheDocument();
+  });
 });
 afterEach(() => vi.restoreAllMocks());
 

@@ -143,6 +143,10 @@ La restricción de clase `@ValidTimeRange` y la interfaz `TimeRange`, en `es.ban
 
 Las excepciones de `schedule_exceptions` sustituyen todo el horario semanal de una fecha concreta. Se pueden guardar varios tramos de apertura o un único cierre completo.
 
+En la página de horarios, «Añadir excepción» abre el formulario. Selecciona una fecha y marca «Cerrado todo el día» para indicar un cierre. Si la tienda abre, deja la casilla desmarcada y pulsa «Añadir tramo» para introducir cada hora de apertura y cierre. Puedes quitar un tramo antes de guardar.
+
+El listado permite filtrar por fechas, editar un día, eliminar un tramo o borrar todas las excepciones de un día. El horario efectivo muestra para una fecha si se aplica una excepción o el horario semanal. Si falla una operación que modifica varios tramos, comprueba el listado actualizado: algunas modificaciones pueden haberse guardado antes del error.
+
 | Método | Ruta | Resultado |
 | --- | --- | --- |
 | GET | `/stores/{storeId}/schedule-exceptions` | 200, listado paginado |

@@ -3,6 +3,60 @@
   white-space: nowrap;
 }
 
+.store-schedule-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.store-schedule-columns > * {
+  min-width: 0;
+}
+
+.store-schedule-exceptions {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.schedule-slot-action {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.875rem;
+}
+
+.schedule-day h3 {
+  margin: 0 0 1rem;
+}
+
+.schedule-slots {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0 0 1.25rem;
+  list-style: none;
+}
+
+.schedule-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #d5e0e8;
+  border-radius: 0.4rem;
+  background: #f8fafc;
+}
+
+.schedule-slot-time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.schedule-slot-actions {
+  flex-wrap: nowrap;
+}
+
 .store-actions a {
   padding: 0.65rem 1rem;
   border: 1px solid #125b84;
@@ -19,4 +73,93 @@
 
 .exception-closed input {
   width: auto;
+}
+
+.exceptions,
+.exception-editor,
+.exceptions-days,
+.exception-editor-slots {
+  display: grid;
+  gap: 1rem;
+}
+.exceptions-header,
+.exception-day-header,
+.exception-slots li,
+.exception-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.exceptions-description,
+.exception-day-note,
+.exceptions-empty p {
+  color: #4b5563;
+  line-height: 1.5;
+}
+.exceptions-filters,
+.exception-slot-editor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.exception-editor,
+.exception-day,
+.exceptions-empty {
+  padding: 1rem;
+  border: 1px solid #d5e0e8;
+  border-radius: 0.5rem;
+}
+.exception-editor {
+  background: #f4f7fa;
+}
+.exception-editor-slots {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.exception-editor-slots > button {
+  justify-self: start;
+}
+.exception-slot-editor {
+  margin: 0;
+}
+.exception-badge {
+  display: inline-block;
+  padding: 0.3rem 0.65rem;
+  border-radius: 1rem;
+  background: #edf3f7;
+  color: #125b84;
+}
+.exception-badge-closed {
+  background: #fff0ee;
+  color: #8b2520;
+}
+.exception-slots {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+.exception-slot-time {
+  font-weight: 600;
+}
+.exception-delete {
+  color: #8b2520;
+}
+@media (max-width: 700px) {
+  .store-schedule-columns,
+  .exceptions-filters,
+  .exception-slot-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 400px) {
+  .schedule-slot {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

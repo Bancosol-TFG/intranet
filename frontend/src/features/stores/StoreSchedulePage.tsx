@@ -5,6 +5,7 @@ import { useStoreSchedule } from "./useStoreSchedule";
 import { WeeklySchedule } from "./WeeklySchedule";
 import { ScheduleExceptions } from "./ScheduleExceptions";
 import { EffectiveSchedule } from "./EffectiveSchedule";
+import "./stores.css";
 
 type Props = { storeId: number };
 
@@ -38,11 +39,13 @@ export function StoreSchedulePage({ storeId }: Props) {
           {storeQuery.error.message}
         </p>
       ) : (
-        <>
+        <div className="store-schedule-columns">
           <WeeklySchedule key={storeId} schedule={schedule} />
-          <ScheduleExceptions key={`exceptions-${storeId}`} storeId={storeId} />
-          <EffectiveSchedule key={`effective-${storeId}`} storeId={storeId} />
-        </>
+          <div className="store-schedule-exceptions">
+            <ScheduleExceptions key={`exceptions-${storeId}`} storeId={storeId} />
+            <EffectiveSchedule key={`effective-${storeId}`} storeId={storeId} />
+          </div>
+        </div>
       )}
     </main>
   );

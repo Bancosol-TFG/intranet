@@ -104,20 +104,25 @@ export function WeeklySchedule({ schedule }: Props) {
             ...(schedulesQuery.data.find((day) => day.weekDay === weekDay)?.slots ?? []),
           ].sort((first, second) => first.openingTime.localeCompare(second.openingTime));
           return (
-            <section key={weekDay} className="panel" aria-labelledby={`schedule-day-${weekDay}`}>
+            <section
+              key={weekDay}
+              className="panel schedule-day"
+              aria-labelledby={`schedule-day-${weekDay}`}
+            >
               <h3 id={`schedule-day-${weekDay}`}>{dayName}</h3>
               {slots.length === 0 ? (
                 <p className="status">Cerrado</p>
               ) : (
-                <ul>
+                <ul className="schedule-slots">
                   {slots.map((slot) => (
-                    <li key={slot.id} className="actions">
-                      <span>
+                    <li key={slot.id} className="schedule-slot">
+                      <span className="schedule-slot-time">
                         {slot.openingTime.slice(0, 5)}–{slot.closingTime.slice(0, 5)}
                       </span>
-                      <div className="actions">
+                      <div className="actions schedule-slot-actions">
                         <button
                           type="button"
+                          className="schedule-slot-action"
                           disabled={busy}
                           onClick={() => beginEdit(weekDay, slot)}
                         >
@@ -125,6 +130,7 @@ export function WeeklySchedule({ schedule }: Props) {
                         </button>
                         <button
                           type="button"
+                          className="schedule-slot-action"
                           disabled={busy}
                           onClick={() => removeSlot(weekDay, slot)}
                         >
