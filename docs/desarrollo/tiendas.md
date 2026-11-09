@@ -71,6 +71,18 @@ Para asociar una zona, incluye `zoneId` en el alta o la edición. La zona debe e
 
 La respuesta incluye `locality` con `id`, `name` y `postalCode`. `GET /stores?localityId=1` permite consultar las tiendas activas de una localidad. Una localidad utilizada por tiendas activas no se puede dar de baja y responde 409.
 
+### Vista de tiendas
+
+Accede a «Tiendas» desde la navegación o abre `/stores`. El listado muestra nombre, dirección, número de cajas, cadena, localidad y zona. Puedes filtrar por nombre y cadena y recorrer las páginas del listado.
+
+Para crear una tienda, introduce nombre y dirección, un número entero de cajas mayor o igual que cero, y selecciona cadena y localidad. La zona es opcional: «Sin zona» envía `zoneId: null`. Los selectores cargan todas las páginas de cadenas, localidades y zonas activas; la cadena muestra su nombre y código, y la localidad su nombre y código postal.
+
+«Editar» carga todos los campos y permite cambiar cadena, localidad y zona, o retirar esta última. «Cancelar» vuelve al formulario de alta. «Dar de baja» solicita confirmación y, al completarse, actualiza el listado. El guardado y la baja vuelven a la primera página.
+
+Mientras se cargan las opciones o si falla alguna de ellas, el formulario bloquea el guardado. Si faltan cadenas o localidades, muestra que debes crearlas antes. Los errores del guardado o la baja se muestran con el mensaje del cliente compartido; el conflicto por nombre duplicado conserva los valores introducidos.
+
+La API exige los permisos `STORE_LIST`, `STORE_READ`, `STORE_CREATE`, `STORE_UPDATE` o `STORE_DELETE` según la operación. La carga de los selectores requiere también `CHAIN_LIST`, `LOCALITY_LIST` y `ZONE_LIST`.
+
 ### Migración de tiendas existentes
 
 La migración exige una localidad en todas las tiendas, incluidas las dadas de baja. Si ya existen tiendas, se detiene sin asignar valores. Antes de reintentarla, prepara la columna en la base de datos y asigna a cada tienda su localidad real; las tiendas activas deben apuntar a localidades activas:
