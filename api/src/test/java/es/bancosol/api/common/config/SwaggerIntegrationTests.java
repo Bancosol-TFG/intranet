@@ -28,7 +28,7 @@ class SwaggerIntegrationTests {
 
     @Test
     void redirectsSwaggerUiWithoutLogin() throws Exception {
-        mockMvc.perform(get("/swagger-ui.html"))
+        mockMvc.perform(get("/swagger-ui"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", containsString("/swagger-ui/index.html")));
     }

@@ -44,7 +44,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final String CREATE_USERS_PERMISSION = "users:create";
-    private static final String[] API_DOCUMENTATION_PATHS = {"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"};
+    private static final String[] API_DOCUMENTATION_PATHS = {"/v3/api-docs/**", "/swagger-ui/**"};
 
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 

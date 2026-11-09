@@ -24,6 +24,6 @@ class SwaggerDisabledIntegrationTests {
 
     @Test
     void hidesSwaggerUi() throws Exception {
-        mockMvc.perform(get("/swagger-ui.html")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/swagger-ui")).andExpect(status().isNotFound());
     }
 }

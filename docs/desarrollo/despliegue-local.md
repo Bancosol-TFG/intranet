@@ -63,7 +63,7 @@ Con la API arrancada, puedes acceder sin iniciar sesión a estas rutas:
 | Recurso | URL con el puerto predeterminado |
 | --- | --- |
 | Especificación OpenAPI en JSON | `http://localhost:8080/v3/api-docs` |
-| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| Swagger UI | `http://localhost:8080/swagger-ui` |
 
 Si cambias `APP_PORT`, sustituye `8080` por el puerto configurado.
 
@@ -79,7 +79,7 @@ Aplica el cambio al contenedor de la API:
 docker compose up --build -d app
 ```
 
-Con esta configuración, `/v3/api-docs` y `/swagger-ui.html` devuelven `404`.
+Con esta configuración, `/v3/api-docs` y `/swagger-ui` devuelven `404`.
 
 ## Servicios y puertos
 
