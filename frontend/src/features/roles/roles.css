@@ -1,0 +1,141 @@
+.roles-page .section-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.roles-page .section-heading h2 {
+  color: #153b56;
+  font-size: 1.25rem;
+}
+
+.roles-page .item-count {
+  background: #e8f2f5;
+  border-radius: 99rem;
+  color: #31576b;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+}
+
+.roles-page .role-form {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.roles-page .role-form label,
+.roles-page .role-select-label {
+  color: #294759;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.roles-page .form-row {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.roles-page .form-row input,
+.roles-page .panel select {
+  background: #fff;
+  border: 1px solid #a9bbc6;
+  color: #173247;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.roles-page .form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.roles-page .panel select {
+  display: block;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.roles-page .permission-list {
+  border-top: 1px solid #e3eaee;
+}
+
+.roles-page .permission-item {
+  align-items: center;
+  border-bottom: 1px solid #e3eaee;
+  display: flex;
+  gap: 0.85rem;
+  min-height: 4.6rem;
+  padding: 0.8rem 0.25rem;
+}
+
+.roles-page .permission-item > input {
+  accent-color: #0d7182;
+  flex: 0 0 auto;
+  height: 1.15rem;
+  width: 1.15rem;
+}
+
+.roles-page .permission-copy {
+  display: grid;
+  flex: 1;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.roles-page .permission-name {
+  color: #173247;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.roles-page .permission-description,
+.roles-page .pending-indicator,
+.roles-page .page-footer {
+  color: #5f7380;
+  font-size: 0.85rem;
+}
+
+.roles-page .pending-indicator {
+  white-space: nowrap;
+}
+
+.roles-page .notice {
+  border-radius: 0.55rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+
+.roles-page .notice-error {
+  background: #fff0ee;
+  color: #8b2520;
+}
+
+.roles-page .notice-success {
+  background: #e7f4ec;
+  color: #205c39;
+}
+
+.roles-page .page-footer {
+  line-height: 1.5;
+  padding: 0 0.25rem;
+}
+
+@media (max-width: 560px) {
+  .roles-page {
+    padding-top: 1.25rem;
+  }
+
+  .roles-page .form-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .roles-page .pending-indicator {
+    display: none;
+  }
+}

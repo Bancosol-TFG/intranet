@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { rolesApi } from "./roles-api";
+import { clearSession, startSession } from "../../shared/api/session";
+import { rolesApi } from "./rolesApi";
 
 type FetchFunction = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -12,10 +13,35 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 afterEach(() => {
+  clearSession();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("API de gestión de roles", () => {
+  it("envía el bearer de la sesión en las operaciones de roles", async () => {
+    startSession({
+      accessToken: "token",
+      expiresIn: 900,
+      user: {
+        id: 1,
+        email: "a@b.es",
+        firstName: "A",
+        surname: null,
+        roles: [],
+        permissions: [],
+        mustChangePassword: false,
+      },
+    });
+    const fetchMock = vi.fn<FetchFunction>(async () => jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+    await rolesApi.listPermissions();
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: "include",
+      headers: { Authorization: "Bearer token" },
+    });
+  });
+
   it("consulta los roles con orden y paginación", async () => {
     const rolesResponse = {
       content: [{ id: 4, name: "Coordinación" }],
@@ -27,7 +53,7 @@ describe("API de gestión de roles", () => {
     await expect(rolesApi.listRoles()).resolves.toEqual(rolesResponse);
 
     const requestUrl = new URL(fetchMock.mock.calls[0][0] as string, "http://localhost");
-    expect(requestUrl.pathname).toBe("/api/roles");
+    expect(requestUrl.pathname).toBe("/roles");
     expect(requestUrl.searchParams.get("page")).toBe("0");
     expect(requestUrl.searchParams.get("size")).toBe("100");
     expect(requestUrl.searchParams.get("sort")).toBe("name,asc");
@@ -40,7 +66,7 @@ describe("API de gestión de roles", () => {
 
     await expect(rolesApi.createRole("Coordinación")).resolves.toEqual(createdRole);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/roles",
+      expect.stringMatching(/\/roles$/),
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ name: "Coordinación" }),
@@ -58,10 +84,9 @@ describe("API de gestión de roles", () => {
 
     await expect(rolesApi.listPermissions()).resolves.toEqual(permissions);
     await expect(rolesApi.listRolePermissions(9)).resolves.toEqual(permissions);
-    expect(fetchMock.mock.calls.map(([requestUrl]) => requestUrl)).toEqual([
-      "/api/permissions",
-      "/api/roles/9/permissions",
-    ]);
+    expect(
+      fetchMock.mock.calls.map(([requestUrl]) => new URL(String(requestUrl)).pathname),
+    ).toEqual(["/permissions", "/roles/9/permissions"]);
   });
 
   it("asigna y retira un permiso con PUT y DELETE", async () => {
@@ -87,7 +112,7 @@ describe("API de gestión de roles", () => {
 
     await expect(rolesApi.listPermissions()).rejects.toMatchObject({
       status: 403,
-      message: "No tienes autorización para gestionar roles y permisos.",
+      name: "ApiError",
     });
   });
 });
