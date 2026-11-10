@@ -35,7 +35,7 @@ public class ChainService {
     @Transactional
     public ChainResponse create(ChainRequest request) {
         checkDuplicate(repository.existsByCode(request.code()));
-        return ChainResponse.from(repository.save(new Chain(request.code())));
+        return ChainResponse.from(repository.save(new Chain(request.name(), request.code())));
     }
 
     @Transactional
@@ -43,6 +43,7 @@ public class ChainService {
         Chain chain = findChain(chainId);
         checkDuplicate(repository.existsByCodeAndIdNot(request.code(), chainId));
         chain.setCode(request.code());
+        chain.setName(request.name());
         return ChainResponse.from(chain);
     }
 
