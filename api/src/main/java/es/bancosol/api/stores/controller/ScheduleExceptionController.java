@@ -2,6 +2,7 @@ package es.bancosol.api.stores.controller;
 
 import java.time.LocalDate;
 import es.bancosol.api.stores.dto.ScheduleExceptionRequest;
+import es.bancosol.api.stores.dto.ScheduleExceptionDayRequest;
 import es.bancosol.api.stores.dto.ScheduleExceptionResponse;
 import es.bancosol.api.stores.service.ScheduleExceptionService;
 import es.bancosol.api.common.security.PermissionCode;
@@ -13,6 +14,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +22,14 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ScheduleExceptionController {
     private final ScheduleExceptionService service;
+
+    @PutMapping("/day")
+    @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_CREATE)
+    @PreAuthorize("hasAuthority('SCHEDULE_EXCEPTION_UPDATE') and hasAuthority('SCHEDULE_EXCEPTION_DELETE')")
+    public java.util.List<ScheduleExceptionResponse> replaceDay(@PathVariable Integer storeId,
+            @Valid @RequestBody ScheduleExceptionDayRequest request) {
+        return service.replaceDay(storeId, request);
+    }
 
     @GetMapping
     @RequiresPermission(PermissionCode.SCHEDULE_EXCEPTION_LIST)

@@ -4,6 +4,6 @@ La gestión de roles y permisos está integrada en la aplicación principal, en 
 
 La API comprueba cada operación: `ROLE_LIST`, `ROLE_CREATE`, `PERMISSION_LIST`, `ROLE_PERMISSION_LIST`, `ROLE_PERMISSION_ASSIGN` y `ROLE_PERMISSION_REVOKE`. Una respuesta 403 indica que la sesión no tiene el permiso necesario. La renovación y el cierre de sesión caducada utilizan el cliente compartido.
 
-La migración garantiza la existencia del rol `ADMIN`; `PermissionCatalogSynchronizer` le asigna los permisos declarados que le falten. La cuenta inicial se crea al configurar `ADMIN_EMAIL` y `ADMIN_PASSWORD`, sin credenciales predeterminadas. Consulta [autenticación](autenticacion.md) para el inicio de sesión y la configuración.
+La carga inicial de `IF_EMPTY` y cada sincronización `FORCE` leen desde YAML el catálogo de roles y permisos; `ADMIN` incluye los permisos declarados en `admin.yaml`. La migración actual no siembra ese catálogo. La cuenta inicial se crea al configurar `ADMIN_EMAIL` y `ADMIN_PASSWORD`, sin credenciales predeterminadas. Consulta [Roles y permisos](roles-permisos.md) para el catálogo y [autenticación](autenticacion.md) para el inicio de sesión y la configuración.
 
 Desde `frontend/`, ejecuta `pnpm check`, `pnpm test` y `pnpm build`. Comprueba también el flujo con una sesión autorizada y otra sin permisos.

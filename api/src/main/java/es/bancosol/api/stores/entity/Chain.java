@@ -26,6 +26,10 @@ public class Chain {
 
     @Setter
     @Column(nullable = false)
+    private String name;
+
+    @Setter
+    @Column(nullable = false)
     private String code;
 
     @CreationTimestamp
@@ -39,7 +43,8 @@ public class Chain {
     @Setter
     private Instant deletedAt;
 
-    public Chain(String code) {
+    public Chain(String name, String code) {
+        this.name = name;
         this.code = code;
     }
 }

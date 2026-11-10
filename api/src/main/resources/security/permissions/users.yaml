@@ -1,0 +1,3 @@
+permissions:
+  - name: USER_CREATE
+    description: Dar de alta cuentas de usuario

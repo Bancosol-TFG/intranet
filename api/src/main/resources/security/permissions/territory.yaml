@@ -1,0 +1,21 @@
+permissions:
+  - name: ZONE_LIST
+    description: Consultar el listado de zonas
+  - name: ZONE_READ
+    description: Consultar una zona
+  - name: ZONE_CREATE
+    description: Crear zonas
+  - name: ZONE_UPDATE
+    description: Modificar zonas
+  - name: ZONE_DELETE
+    description: Eliminar zonas
+  - name: LOCALITY_LIST
+    description: Consultar el listado de localidades
+  - name: LOCALITY_READ
+    description: Consultar una localidad
+  - name: LOCALITY_CREATE
+    description: Crear localidades
+  - name: LOCALITY_UPDATE
+    description: Modificar localidades
+  - name: LOCALITY_DELETE
+    description: Eliminar localidades

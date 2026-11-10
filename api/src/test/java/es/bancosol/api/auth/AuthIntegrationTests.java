@@ -111,6 +111,10 @@ class AuthIntegrationTests {
         String email = createUser(true);
         MockHttpServletResponse login = login(email, PASSWORD, "WEB");
         mockMvc.perform(get("/zones").header(HttpHeaders.AUTHORIZATION, bearer(login))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/users").header(HttpHeaders.AUTHORIZATION, bearer(login))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"firstName\":\"Ana\",\"email\":\"%s\",\"roles\":[]}".formatted(uniqueEmail())))
+                .andExpect(status().isForbidden());
         mockMvc.perform(post("/auth/change-password").header(HttpHeaders.AUTHORIZATION, bearer(login))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"%s\",\"newPassword\":\"nueva-contrasena\"}".formatted(PASSWORD)))

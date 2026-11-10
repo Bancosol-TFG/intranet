@@ -72,6 +72,15 @@ Table role_permissions {
   }
 }
 
+Table role_permission_catalog_state {
+  id integer [pk, note: 'Tabla singleton; id fijo en 1']
+  initialized boolean [not null]
+
+  checks {
+    `id = 1` [name: 'ck_role_permission_catalog_state_singleton']
+  }
+}
+
 Table refresh_tokens {
   id integer [pk, increment]
   session_id uuid [not null]
@@ -250,6 +259,7 @@ Table stores {
 
 Table chains {
   id integer [pk, increment]
+  name varchar [not null, note: 'Nombre visible obligatorio; puede repetirse']
   code varchar [not null, note: 'Único entre cadenas no borradas']
 
   created_at timestamptz [not null, default: `now()`]
@@ -258,6 +268,10 @@ Table chains {
 
   indexes {
     code [unique, name: 'uq_chains_code', note: 'Parcial: WHERE deleted_at IS NULL']
+  }
+
+  checks {
+    `BTRIM(name) <> ''` [name: 'ck_chains_name_not_blank']
   }
 }
 

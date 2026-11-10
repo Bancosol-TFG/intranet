@@ -31,6 +31,7 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
 - Deliver each feature complete in one pull request: backend, frontend, tests, and documentation.
 - Tests must check real behavior. Do not write tests that always pass.
 - Every endpoint declares the roles allowed to use it. If the roles are not specified, ask before implementing.
+- For every permission-protected endpoint, authorization tests must exercise every configured role against that endpoint: allow roles whose catalog assignments include the required permission and deny roles whose assignments do not. For each role without the permission, make an authenticated request and assert that the endpoint actually rejects access with HTTP 403; checking catalog assignments alone is insufficient. Also test an unauthenticated request and assert the rejection status required by the endpoint's access contract, normally HTTP 401. A task is not complete until every role has explicit allow/deny coverage for each affected endpoint, including unauthenticated access.
 - Update the documentation together with the code. If a change alters commands, configuration, environment variables, ports, conventions, the data model, or a recorded decision, update `docs/` (or `model.dbml`, a `README.md`, or the related ADR) in the same pull request. Follow the `tfg-project-docs` skill.
 
 ## Code

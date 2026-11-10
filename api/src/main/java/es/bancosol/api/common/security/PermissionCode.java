@@ -55,7 +55,8 @@ public enum PermissionCode {
     PERMISSION_LIST("Consultar el catálogo de permisos"),
     ROLE_PERMISSION_LIST("Consultar los permisos de un rol"),
     ROLE_PERMISSION_ASSIGN("Asignar permisos a un rol"),
-    ROLE_PERMISSION_REVOKE("Retirar permisos de un rol");
+    ROLE_PERMISSION_REVOKE("Retirar permisos de un rol"),
+    USER_CREATE("Dar de alta cuentas de usuario");
 
     private final String description;
 

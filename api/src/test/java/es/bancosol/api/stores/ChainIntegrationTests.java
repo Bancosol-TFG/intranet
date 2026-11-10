@@ -43,22 +43,24 @@ class ChainIntegrationTests {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void createsAndListsChainWithoutCredentials() throws Exception {
+    void createsAndListsChainWithName() throws Exception {
         String code = uniqueCode();
         mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(body(code)))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.code").value(code));
+                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(jsonPath("$.name").value("Test chain"));
         mockMvc.perform(get("/chains").param("code", code))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].code").value(code))
-                .andExpect(jsonPath("$.page.totalElements").value(1));
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Test chain"));
     }
 
     @Test
     void paginatesAndSortsMatchingChains() throws Exception {
         String prefix = uniqueCode();
-        repository.save(new Chain(prefix + "a"));
-        repository.save(new Chain(prefix + "c"));
-        repository.save(new Chain(prefix + "b"));
+        repository.save(new Chain("Test chain", prefix + "a"));
+        repository.save(new Chain("Test chain", prefix + "c"));
+        repository.save(new Chain("Test chain", prefix + "b"));
         mockMvc.perform(get("/chains").param("code", prefix).param("page", "0").param("size", "2")
                         .param("sort", "code,desc"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(2))
@@ -70,8 +72,8 @@ class ChainIntegrationTests {
     @Test
     void filtersByPartialCodeIgnoringCase() throws Exception {
         String token = uniqueCode();
-        repository.save(new Chain("before" + token + "AFTER"));
-        repository.save(new Chain(uniqueCode()));
+        repository.save(new Chain("Test chain", "before" + token + "AFTER"));
+        repository.save(new Chain("Test chain", uniqueCode()));
         mockMvc.perform(get("/chains").param("code", token.toUpperCase()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].code").value("before" + token + "AFTER"));
@@ -79,14 +81,15 @@ class ChainIntegrationTests {
 
     @Test
     void readsAndUpdatesChain() throws Exception {
-        Chain chain = repository.save(new Chain(uniqueCode()));
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
         mockMvc.perform(get("/chains/{chainId}", chain.getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(chain.getId()))
                 .andExpect(jsonPath("$.code").value(chain.getCode()));
         String updatedCode = uniqueCode();
         mockMvc.perform(put("/chains/{chainId}", chain.getId()).contentType(MediaType.APPLICATION_JSON)
-                        .content(body(updatedCode)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(updatedCode));
+                        .content(body(updatedCode).replace("Test chain", "Carrefour")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(updatedCode))
+                .andExpect(jsonPath("$.name").value("Carrefour"));
         entityManager.flush();
         assertThat(jdbcTemplate.queryForObject("SELECT code FROM chains WHERE id = ?", String.class,
                 chain.getId())).isEqualTo(updatedCode);
@@ -96,8 +99,8 @@ class ChainIntegrationTests {
 
     @Test
     void rejectsDuplicateCodesOnCreateAndUpdate() throws Exception {
-        Chain original = repository.save(new Chain(uniqueCode()));
-        Chain other = repository.save(new Chain(uniqueCode()));
+        Chain original = repository.save(new Chain("Test chain", uniqueCode()));
+        Chain other = repository.save(new Chain("Test chain", uniqueCode()));
         mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(body(original.getCode())))
                 .andExpect(status().isConflict());
         mockMvc.perform(put("/chains/{chainId}", other.getId()).contentType(MediaType.APPLICATION_JSON)
@@ -105,12 +108,45 @@ class ChainIntegrationTests {
         assertThat(other.getCode()).isNotEqualTo(original.getCode());
     }
 
+    @Test
+    void allowsRepeatedNamesWithDifferentCodes() throws Exception {
+        String firstCode = uniqueCode();
+        String secondCode = uniqueCode();
+        mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(body(firstCode)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("Test chain"));
+        mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(body(secondCode)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("Test chain"))
+                .andExpect(jsonPath("$.code").value(secondCode));
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"{}", "{\"code\":null}", "{\"code\":\"\"}", "{\"code\":\"   \"}"})
+    @ValueSource(strings = {"null", "\"\"", "\"   \""})
+    void rejectsNullOrBlankName(String name) throws Exception {
+        String payload = "{\"name\":" + name + ",\"code\":\"" + uniqueCode() + "\"}";
+        mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isBadRequest());
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
+        mockMvc.perform(put("/chains/{chainId}", chain.getId()).contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsMissingName() throws Exception {
+        String payload = "{\"code\":\"" + uniqueCode() + "\"}";
+        mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isBadRequest());
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
+        mockMvc.perform(put("/chains/{chainId}", chain.getId()).contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)).andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{\"name\":\"Test chain\"}", "{\"name\":\"Test chain\",\"code\":null}",
+            "{\"name\":\"Test chain\",\"code\":\"\"}", "{\"name\":\"Test chain\",\"code\":\"   \"}"})
     void rejectsMissingOrBlankCode(String payload) throws Exception {
         mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isBadRequest());
-        Chain chain = repository.save(new Chain(uniqueCode()));
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
         mockMvc.perform(put("/chains/{chainId}", chain.getId()).contentType(MediaType.APPLICATION_JSON)
                         .content(payload)).andExpect(status().isBadRequest());
     }
@@ -118,7 +154,7 @@ class ChainIntegrationTests {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void rejectsMissingAndDeletedChains(boolean deleted) throws Exception {
-        Chain chain = repository.save(new Chain(uniqueCode()));
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
         Integer chainId = chain.getId();
         if (deleted) {
             mockMvc.perform(delete("/chains/{chainId}", chainId)).andExpect(status().isNoContent());
@@ -136,7 +172,7 @@ class ChainIntegrationTests {
     @Test
     void softDeletesChainAndAllowsReusingCode() throws Exception {
         String code = uniqueCode();
-        Chain chain = repository.save(new Chain(code));
+        Chain chain = repository.save(new Chain("Test chain", code));
         mockMvc.perform(delete("/chains/{chainId}", chain.getId())).andExpect(status().isNoContent());
         entityManager.flush();
         entityManager.clear();
@@ -158,7 +194,7 @@ class ChainIntegrationTests {
 
     @Test
     void blocksDeletionUntilAllStoresAreSoftDeleted() throws Exception {
-        Chain chain = repository.save(new Chain(uniqueCode()));
+        Chain chain = repository.save(new Chain("Test chain", uniqueCode()));
         Locality locality = localityRepository.save(new Locality(uniqueCode(), "29001"));
         Store first = storeRepository.save(new Store(uniqueCode(), "Address", 0, chain, locality));
         Store second = storeRepository.save(new Store(uniqueCode(), "Address", 1, chain, locality));
@@ -183,6 +219,6 @@ class ChainIntegrationTests {
     }
 
     private String body(String code) {
-        return "{\"code\":\"" + code + "\"}";
+        return "{\"name\":\"Test chain\",\"code\":\"" + code + "\"}";
     }
 }

@@ -181,7 +181,7 @@ class ScheduleIntegrationTests {
 
     private Store store() {
         String name = UUID.randomUUID().toString();
-        Chain chain = chainRepository.save(new Chain(name));
+        Chain chain = chainRepository.save(new Chain("Test chain", name));
         return storeRepository.save(new Store(name, "Address", 0, chain,
                 localityRepository.save(new Locality(name, "29001"))));
     }
