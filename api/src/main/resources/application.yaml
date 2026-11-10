@@ -34,3 +34,6 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui
     persist-authorization: true
+
+roles-and-permission-sync: ${ROLES_AND_PERMISSION_SYNC}
+

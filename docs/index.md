@@ -9,4 +9,5 @@
 - [Colaboradores y contactos](desarrollo/colaboradores.md)
 - [Localidades](desarrollo/localidades.md)
 - [Zonas](desarrollo/zonas.md)
+- [Gestión de roles y permisos](desarrollo/roles-permisos.md)
 - [Prototipo temporal de roles y permisos](desarrollo/prototipo-roles-permisos.md)

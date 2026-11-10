@@ -7,8 +7,10 @@ import es.bancosol.api.roles.entity.Role;
 import es.bancosol.api.roles.repository.PermissionRepository;
 import es.bancosol.api.roles.repository.RolePermissionRepository;
 import es.bancosol.api.roles.repository.RoleRepository;
+import es.bancosol.api.roles.service.PermissionCatalogSynchronizer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -46,6 +48,9 @@ class RoleManagementIntegrationTests {
     @Autowired
     private RolePermissionRepository rolePermissionRepository;
 
+    @Autowired
+    private PermissionCatalogSynchronizer permissionCatalogSynchronizer;
+
     @MockitoBean
     private PermissionChangeTracker permissionChangeTracker;
 
@@ -61,6 +66,10 @@ class RoleManagementIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value(roleName));
+
+        permissionCatalogSynchronizer.run(new DefaultApplicationArguments(new String[0]));
+
+        assertThat(roleRepository.findByNameAndDeletedAtIsNull(roleName)).isPresent();
 
         mockMvc.perform(get("/roles")
                         .with(user("manager").authorities(() -> "ROLE_LIST"))

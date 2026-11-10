@@ -72,6 +72,15 @@ Table role_permissions {
   }
 }
 
+Table role_permission_catalog_state {
+  id integer [pk, note: 'Tabla singleton; id fijo en 1']
+  initialized boolean [not null]
+
+  checks {
+    `id = 1` [name: 'ck_role_permission_catalog_state_singleton']
+  }
+}
+
 Table refresh_tokens {
   id integer [pk, increment]
   session_id uuid [not null]

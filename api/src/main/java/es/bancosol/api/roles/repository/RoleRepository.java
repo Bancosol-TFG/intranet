@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RoleRepository extends JpaRepository<Role, Integer> {
     boolean existsByName(String name);
+    long countByDeletedAtIsNull();
     Optional<Role> findByNameAndDeletedAtIsNull(String name);
 }

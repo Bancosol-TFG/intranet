@@ -79,3 +79,11 @@ identificador, código único, fechas de creación y actualización y borrado
 lógico. Sigue la convención acordada de usar nombres de tabla en plural. El
 modelo actual de `model.dbml` aún nombra esta tabla `chain` en singular; queda
 pendiente alinear ese modelo con la convención.
+
+## Migración actual de roles y permisos
+
+`v2611082044` crea el marcador singleton `role_permission_catalog_state` con
+`initialized = FALSE` y normaliza el permiso legacy `users:create` a
+`USER_CREATE`. No inserta permisos, roles ni asignaciones. La carga del catálogo
+desde YAML la realiza el runner de la aplicación según el modo configurado.
+Consulta [Roles y permisos](roles-permisos.md) para más detalles.

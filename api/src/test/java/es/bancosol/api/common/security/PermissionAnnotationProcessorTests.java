@@ -24,21 +24,21 @@ class PermissionAnnotationProcessorTests {
             "es.bancosol.api.security.processor.PermissionAnnotationProcessor";
 
     @Test
-    void acceptsPermissionAnnotationOnControllerEndpoint() throws IOException {
-        CompilationResult result = compileSource("example.ValidController", """
+    void acceptsUserCreatePermissionAnnotationOnControllerEndpoint() throws IOException {
+        CompilationResult result = compileSource("example.UserController", """
                 package example;
 
                 import es.bancosol.api.common.security.PermissionCode;
                 import es.bancosol.api.common.security.RequiresPermission;
-                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.PostMapping;
                 import org.springframework.web.bind.annotation.RestController;
 
                 @RestController
-                public class ValidController {
-                    @GetMapping("/zones")
-                    @RequiresPermission(PermissionCode.ZONE_LIST)
-                    public String list() {
-                        return "zones";
+                public class UserController {
+                    @PostMapping("/users")
+                    @RequiresPermission(PermissionCode.USER_CREATE)
+                    public String create() {
+                        return "user";
                     }
                 }
                 """);

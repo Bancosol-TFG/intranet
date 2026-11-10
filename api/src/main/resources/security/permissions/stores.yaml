@@ -1,0 +1,39 @@
+permissions:
+  - name: CHAIN_LIST
+    description: Consultar el listado de cadenas
+  - name: CHAIN_READ
+    description: Consultar una cadena
+  - name: CHAIN_CREATE
+    description: Crear cadenas
+  - name: CHAIN_UPDATE
+    description: Modificar cadenas
+  - name: CHAIN_DELETE
+    description: Eliminar cadenas
+  - name: STORE_LIST
+    description: Consultar el listado de tiendas
+  - name: STORE_READ
+    description: Consultar una tienda
+  - name: STORE_CREATE
+    description: Crear tiendas
+  - name: STORE_UPDATE
+    description: Modificar tiendas
+  - name: STORE_DELETE
+    description: Eliminar tiendas
+  - name: SCHEDULE_LIST
+    description: Consultar los horarios
+  - name: SCHEDULE_CREATE
+    description: Crear horarios
+  - name: SCHEDULE_UPDATE
+    description: Modificar horarios
+  - name: SCHEDULE_DELETE
+    description: Eliminar horarios
+  - name: SCHEDULE_EXCEPTION_LIST
+    description: Consultar las excepciones de horario
+  - name: SCHEDULE_EXCEPTION_CREATE
+    description: Crear excepciones de horario
+  - name: SCHEDULE_EXCEPTION_UPDATE
+    description: Modificar excepciones de horario
+  - name: SCHEDULE_EXCEPTION_DELETE
+    description: Eliminar excepciones de horario
+  - name: EFFECTIVE_SCHEDULE_READ
+    description: Consultar el horario efectivo

@@ -1,0 +1,21 @@
+permissions:
+  - name: CAMPAIGN_LIST
+    description: Consultar el listado de campañas
+  - name: CAMPAIGN_READ
+    description: Consultar una campaña
+  - name: CAMPAIGN_CREATE
+    description: Crear campañas
+  - name: CAMPAIGN_UPDATE
+    description: Modificar campañas
+  - name: CAMPAIGN_DELETE
+    description: Eliminar campañas
+  - name: CAMPAIGN_TYPE_LIST
+    description: Consultar el listado de tipos de campaña
+  - name: CAMPAIGN_TYPE_READ
+    description: Consultar un tipo de campaña
+  - name: CAMPAIGN_TYPE_CREATE
+    description: Crear tipos de campaña
+  - name: CAMPAIGN_TYPE_UPDATE
+    description: Modificar tipos de campaña
+  - name: CAMPAIGN_TYPE_DELETE
+    description: Eliminar tipos de campaña
