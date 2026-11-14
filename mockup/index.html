@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f6fb">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Intranet · Mockup visual</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/data.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+    <section id="auth-shell" class="auth-shell" aria-labelledby="auth-title">
+      <main class="auth-card">
+        <div class="auth-brand">
+          <img src="assets/logo.png" width="48" height="48" alt="Logotipo de la intranet">
+          <div>
+            <p class="eyebrow">BANCOSOL · INTRANET</p>
+            <h1 id="auth-title">Acceso de demostración</h1>
+          </div>
+        </div>
+
+        <div id="login-panel">
+          <p class="auth-intro">Entra al dashboard visual con uno de los perfiles de muestra.</p>
+          <form id="login-form" class="auth-form">
+            <label for="login-email">Correo electrónico</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" spellcheck="false" placeholder="nombre@ejemplo.es…">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Introduce tu contraseña…">
+            <button class="button button-primary auth-submit" type="submit">Entrar <span class="mock-label">Solo mock</span></button>
+          </form>
+
+          <div class="auth-divider"><span>O elige un perfil</span></div>
+          <div class="mock-login-actions">
+            <button class="button button-soft" type="button" data-action="login-admin">
+              <span>Entrar como admin</span><span class="mock-label">Solo mock</span>
+            </button>
+            <button class="button button-soft" type="button" data-action="login-coordinator">
+              <span>Entrar como coord</span><span class="mock-label">Solo mock</span>
+            </button>
+          </div>
+          <p class="auth-switch">¿Primera vez? <button class="text-button" type="button" data-action="show-register">Crear una cuenta</button></p>
+        </div>
+
+        <div id="register-panel" hidden>
+          <p class="auth-intro">Formulario visual. No se crea ni se guarda ninguna cuenta.</p>
+          <form id="register-form" class="auth-form">
+            <label for="register-name">Nombre y apellidos</label>
+            <input id="register-name" name="name" type="text" autocomplete="name" placeholder="Nombre Apellido…" required>
+            <label for="register-email">Correo electrónico</label>
+            <input id="register-email" name="email" type="email" autocomplete="email" spellcheck="false" placeholder="nombre@ejemplo.es…" required>
+            <label for="register-phone">Teléfono</label>
+            <input id="register-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="600 000 000…">
+            <label for="register-password">Contraseña</label>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Crea una contraseña…" required>
+            <button class="button button-primary auth-submit" type="submit">Registrarme <span class="mock-label">Solo mock</span></button>
+          </form>
+          <p class="auth-switch">¿Ya tienes cuenta? <button class="text-button" type="button" data-action="show-login">Volver al acceso</button></p>
+        </div>
+
+        <p class="auth-footnote">Vista de escritorio · datos ficticios · sin conexión a servicios</p>
+      </main>
+      <aside class="auth-aside" aria-label="Información de la demostración">
+        <div class="auth-aside-mark">B</div>
+        <p class="eyebrow">PANEL DE CAMPAÑA</p>
+        <h2>Una vista clara del trabajo compartido.</h2>
+        <p>Tiendas, turnos, zonas e incidencias reunidos en un mismo espacio.</p>
+        <div class="auth-aside-footer"><span class="status-dot status-dot-ok"></span> Mockup local · uso visual</div>
+      </aside>
+    </section>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <header class="topbar">
+        <a class="brand-link" href="#dashboard" data-route="dashboard" aria-label="Ir al dashboard">
+          <img src="assets/logo.png" width="36" height="36" alt="">
+          <span>Intranet</span>
+        </a>
+
+        <div class="dropdown-anchor campaign-picker" data-guide="campaign">
+          <button id="campaign-trigger" class="campaign-trigger" type="button" data-action="toggle-campaign" aria-expanded="false" aria-controls="campaign-menu">
+            <span class="campaign-trigger-copy"><span class="campaign-kicker">CAMPAÑA</span><span id="campaign-name" class="campaign-name"></span></span>
+            <span id="campaign-status" class="status-badge"></span>
+            <span class="icon-slot" aria-hidden="true"></span>
+          </button>
+          <div id="campaign-menu" class="dropdown-menu campaign-menu" hidden></div>
+        </div>
+
+        <nav class="primary-nav" aria-label="Navegación principal">
+          <a class="nav-link" href="#dashboard" data-route="dashboard" data-nav="dashboard"><span class="nav-icon" data-icon="home"></span><span>Casa</span></a>
+          <div id="section-links" class="nav-section-links">
+            <a class="nav-link" href="#zones" data-route="zones" data-nav="zones"><span class="nav-icon" data-icon="grid"></span><span>Zonas</span></a>
+            <a class="nav-link" href="#stores" data-route="stores" data-nav="stores"><span class="nav-icon" data-icon="store"></span><span>Tiendas</span></a>
+            <a class="nav-link" href="#collaborators" data-route="collaborators" data-nav="collaborators"><span class="nav-icon" data-icon="users"></span><span>Colaboradores</span></a>
+            <a class="nav-link" href="#reports" data-route="reports" data-nav="reports"><span class="nav-icon" data-icon="alert"></span><span>Incidencias</span></a>
+            <a class="nav-link" href="#calendar" data-route="calendar" data-nav="calendar"><span class="nav-icon" data-icon="calendar"></span><span>Calendario</span></a>
+          </div>
+          <a id="admin-entry" class="nav-link nav-admin" href="#admin" data-route="admin" data-nav="admin" aria-label="Panel de administración" hidden><span class="nav-icon" data-icon="star"></span><span>Admin</span></a>
+        </nav>
+
+        <div class="topbar-actions">
+          <span id="role-badge" class="role-badge" aria-label="Rol activo"></span>
+          <div class="dropdown-anchor">
+            <button class="icon-button topbar-icon" type="button" data-action="toggle-notifications" aria-label="Notificaciones" aria-expanded="false" aria-controls="notifications-menu">
+              <span data-icon="bell"></span><span class="notification-indicator" aria-hidden="true"></span>
+            </button>
+            <div id="notifications-menu" class="dropdown-menu notification-menu" hidden></div>
+          </div>
+          <div class="dropdown-anchor">
+            <button class="icon-button topbar-icon profile-trigger" type="button" data-action="toggle-profile" aria-label="Menú de cuenta" aria-expanded="false" aria-controls="profile-menu">
+              <span data-icon="user"></span>
+            </button>
+            <div id="profile-menu" class="dropdown-menu profile-menu" hidden></div>
+          </div>
+          <button class="icon-button topbar-icon" type="button" data-action="tutorial-open" aria-label="Abrir tutorial de esta página" title="Tutorial de esta página"><span data-icon="help"></span></button>
+        </div>
+      </header>
+
+      <div id="readonly-banner" class="readonly-banner" hidden></div>
+      <main id="main-content" class="main-content" tabindex="-1">
+        <div id="view-root" class="view-root"></div>
+      </main>
+    </div>
+
+    <div id="popup-root"></div>
+    <div id="tutorial-root"></div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>
