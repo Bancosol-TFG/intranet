@@ -74,12 +74,12 @@
 
     <div id="app-shell" class="app-shell" hidden>
       <header class="topbar">
-        <a class="brand-link" href="#dashboard" data-route="dashboard" aria-label="Ir al dashboard">
+        <a id="brand-link" class="brand-link" href="#dashboard" data-route="dashboard" aria-label="Ir al dashboard">
           <img src="assets/logo.png" width="36" height="36" alt="">
           <span>Intranet</span>
         </a>
 
-        <div class="dropdown-anchor campaign-picker" data-guide="campaign">
+        <div id="campaign-picker" class="dropdown-anchor campaign-picker" data-guide="campaign">
           <button id="campaign-trigger" class="campaign-trigger" type="button" data-action="toggle-campaign" aria-expanded="false" aria-controls="campaign-menu">
             <span class="campaign-trigger-copy"><span class="campaign-kicker">CAMPAÑA</span><span id="campaign-name" class="campaign-name"></span></span>
             <span id="campaign-status" class="status-badge"></span>
@@ -98,11 +98,13 @@
             <a class="nav-link" href="#calendar" data-route="calendar" data-nav="calendar"><span class="nav-icon" data-icon="calendar"></span><span>Calendario</span></a>
           </div>
           <a id="admin-entry" class="nav-link nav-admin" href="#admin" data-route="admin" data-nav="admin" aria-label="Panel de administración" hidden><span class="nav-icon" data-icon="star"></span><span>Admin</span></a>
+          <span id="admin-mode-label" class="nav-link nav-admin admin-mode-label" hidden><span class="nav-icon" data-icon="star"></span><span>Administración</span></span>
+          <a id="admin-return" class="nav-link" href="#dashboard" data-route="dashboard" hidden><span class="nav-icon" data-icon="home"></span><span>Volver a campaña</span></a>
         </nav>
 
         <div class="topbar-actions">
           <span id="role-badge" class="role-badge" aria-label="Rol activo"></span>
-          <div class="dropdown-anchor">
+          <div id="notifications-anchor" class="dropdown-anchor">
             <button class="icon-button topbar-icon" type="button" data-action="toggle-notifications" aria-label="Notificaciones" aria-expanded="false" aria-controls="notifications-menu">
               <span data-icon="bell"></span><span class="notification-indicator" aria-hidden="true"></span>
             </button>

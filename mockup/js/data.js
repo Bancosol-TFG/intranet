@@ -106,8 +106,8 @@
   ];
 
   const collaborators = [
-    { id: "col-senda", name: "Fundación Senda", address: "Calle de la Solidaridad, 8", locality: "Valencia", contactIds: ["u-lucia", "u-ana"], campaignIds: ["grand", "spring"] },
-    { id: "col-puentes", name: "Red Puentes", address: "Avenida del Encuentro, 24", locality: "Valencia", contactIds: ["u-sofia", "u-marco"], campaignIds: ["grand"] }
+    { id: "col-senda", name: "Fundación Senda", address: "Calle de la Solidaridad, 8", locality: "Valencia", responsibleId: "u-lucia", contactIds: ["u-lucia", "u-ana"], groups: [{ id: "g-senda-centro", name: "Grupo Centro", leaderId: "u-ana", volunteerCount: 4 }, { id: "g-senda-norte", name: "Grupo Norte", leaderId: "u-lucia", volunteerCount: 3 }], campaignIds: ["grand", "spring"] },
+    { id: "col-puentes", name: "Red Puentes", address: "Avenida del Encuentro, 24", locality: "Valencia", responsibleId: "u-sofia", contactIds: ["u-sofia", "u-marco"], groups: [{ id: "g-puentes-sur", name: "Grupo Sur", leaderId: "u-marco", volunteerCount: 3 }, { id: "g-puentes-oeste", name: "Grupo Oeste", leaderId: "u-sofia", volunteerCount: 2 }], campaignIds: ["grand"] }
   ];
 
   const reports = [
@@ -127,6 +127,7 @@
 
   const slotOverrides = [
     { date: "2026-11-09", slot: "morning", complete: true },
+    { date: "2026-11-09", slot: "afternoon", complete: true },
     { date: "2026-11-13", slot: "afternoon", complete: true }
   ];
 
@@ -197,7 +198,8 @@
     zoneAssignments: [
       { campaignId: "grand", userId: "u-ana", zoneIds: ["z-centro", "z-norte"] },
       { campaignId: "grand", userId: "u-marco", zoneIds: ["z-sur", "z-este", "z-oeste"] },
-      { campaignId: "spring", userId: "u-ana", zoneIds: ["z-centro"] }
+      { campaignId: "spring", userId: "u-ana", zoneIds: ["z-centro"] },
+      { campaignId: "spring", userId: "u-marco", zoneIds: ["z-norte"] }
     ],
     reports,
     conflicts,
