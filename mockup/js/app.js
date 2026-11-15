@@ -873,6 +873,15 @@
     return dialogMarkup(index, "Resumen del día", formatDate(popup.date, { weekday: "long", day: "numeric", month: "long" }), body, "wide");
   }
 
+  function renderCampaignSlotEditor(popup, index) {
+    const wizard = getCampaignWizardPopup();
+    const slot = wizard ? getCampaignScheduleSlot(wizard, popup.scheduleDate, popup.scheduleId) : null;
+    if (!wizard || !slot) return dialogMarkup(index, "Franja no disponible", "", `<p class="muted-note">No se encuentra la franja seleccionada.</p>`, "wide");
+    const dayOptions = wizard.scheduleDays.map((day) => `<option value="${escapeHTML(day.date)}"${day.date === popup.scheduleDate ? " selected" : ""}>${formatDate(day.date, { weekday: "long", day: "numeric", month: "long" })}</option>`).join("");
+    const body = `<form class="campaign-slot-editor" data-form="campaign-slot-editor" data-schedule-date="${escapeHTML(popup.scheduleDate)}" data-schedule-id="${escapeHTML(popup.scheduleId)}"><div class="form-grid"><div class="form-field is-full"><label for="campaign-slot-name">Nombre de la franja</label><input id="campaign-slot-name" name="label" type="text" autocomplete="off" value="${escapeHTML(slot.label)}" required></div><div class="form-field is-full"><label for="campaign-slot-date">Día</label><select id="campaign-slot-date" name="date" autocomplete="off">${dayOptions}</select></div><div class="form-field"><label for="campaign-slot-start">Inicio</label><input id="campaign-slot-start" name="startTime" type="time" min="08:00" max="22:45" value="${escapeHTML(slot.startTime)}" required></div><div class="form-field"><label for="campaign-slot-end">Fin</label><input id="campaign-slot-end" name="endTime" type="time" min="08:15" max="23:00" value="${escapeHTML(slot.endTime)}" required></div></div><p class="form-note">Puedes arrastrar esta franja en el calendario o ajustar aquí el día y las horas. Los solapamientos se revisan antes de continuar.</p><div class="dialog-footer"><button class="button button-danger" type="button" data-action="remove-calendar-slot" data-schedule-date="${escapeHTML(popup.scheduleDate)}" data-schedule-id="${escapeHTML(popup.scheduleId)}">Eliminar franja</button><button class="button button-quiet" type="button" data-action="close-popup">Cancelar</button><button class="button button-primary" type="submit">Guardar cambios</button></div></form>`;
+    return dialogMarkup(index, "Editar franja", "Calendario de la campaña", body, "wide", true);
+  }
+
   function renderStorePopup(popup, index) {
     const store = getStore(popup.storeId);
     if (!store) return dialogMarkup(index, "Tienda no disponible", "", `<p class="muted-note">No se encuentra la tienda seleccionada.</p>`, "wide");
@@ -1044,17 +1053,29 @@
     return { selectedStores, selectedIds, selectedChains: new Set(selectedStores.map((store) => store.chainId)).size };
   }
 
-  function createCampaignScheduleDays(startDate, endDate, existingDays = []) {
+  function getDefaultGeneralSlots() {
+    return [
+      { id: "general-1", label: "Mañana", startTime: "10:00", endTime: "14:00" },
+      { id: "general-2", label: "Tarde", startTime: "17:00", endTime: "21:00" }
+    ];
+  }
+
+  function createCampaignScheduleDays(startDate, endDate, existingDays = [], generalSlots = getDefaultGeneralSlots()) {
     if (!startDate || !endDate || startDate > endDate) return [];
     const existing = new Map(existingDays.map((day) => [day.date, day]));
     const scheduleDays = [];
     for (let date = parseDate(startDate); toISODate(date) <= endDate; date = addDays(date, 1)) {
       const iso = toISODate(date);
       const previous = existing.get(iso);
-      const slots = previous?.slots?.map((slot) => ({ ...slot })) || [
-        { id: `${iso}-slot-1`, startTime: "10:00", endTime: "14:00" },
-        { id: `${iso}-slot-2`, startTime: "17:00", endTime: "21:00" }
-      ];
+      const existingSlots = previous?.slots || [];
+      const preservedSlots = existingSlots.filter((slot) => slot.isCustomized || !slot.templateId).map((slot) => ({ ...slot }));
+      const templateSlots = generalSlots.flatMap((template, index) => {
+        const existingTemplate = existingSlots.find((slot) => slot.templateId === template.id);
+        if (existingTemplate?.isCustomized) return [];
+        if (existingTemplate) return [{ ...existingTemplate, label: template.label, startTime: template.startTime, endTime: template.endTime }];
+        return [{ ...template, id: `${iso}-slot-${index + 1}`, templateId: template.id, isCustomized: false }];
+      });
+      const slots = previous ? [...templateSlots, ...preservedSlots] : templateSlots;
       scheduleDays.push({ date: iso, slots });
     }
     return scheduleDays;
@@ -1065,8 +1086,157 @@
     return day?.slots.find((slot) => slot.id === slotId);
   }
 
+  function getTimeMinutes(value) {
+    if (!value) return NaN;
+    const [hour, minute] = value.split(":").map(Number);
+    return hour * 60 + minute;
+  }
+
+  function formatTimeFromMinutes(value) {
+    const hour = Math.floor(value / 60);
+    const minute = value % 60;
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  }
+
+  function getInvalidGeneralSlot(popup) {
+    return (popup.generalSlots || []).find((slot) => {
+      const start = getTimeMinutes(slot.startTime);
+      const end = getTimeMinutes(slot.endTime);
+      return !slot.label?.trim() || !Number.isFinite(start) || !Number.isFinite(end) || start < DAY_START_HOUR * 60 || end > DAY_END_HOUR * 60 || start >= end;
+    });
+  }
+
+  function renderGeneralOverlapWarning(popup) {
+    const overlaps = getScheduleOverlaps([{ date: "Plantilla general", slots: popup.generalSlots || [] }]);
+    if (!overlaps.length) return `<p class="wizard-overlap-success">Estas franjas no se solapan.</p>`;
+    return `<div class="wizard-template-overlap-warning" role="status"><strong>${formatNumber(overlaps.length)} solapamientos en la plantilla</strong><span>Podrás ajustar cada día en el calendario siguiente.</span><ul>${overlaps.map((overlap) => `<li>${escapeHTML(overlap.first.label)} (${escapeHTML(overlap.first.startTime)}–${escapeHTML(overlap.first.endTime)}) y ${escapeHTML(overlap.second.label)} (${escapeHTML(overlap.second.startTime)}–${escapeHTML(overlap.second.endTime)})</li>`).join("")}</ul></div>`;
+  }
+
+  function getScheduleOverlaps(scheduleDays) {
+    const overlaps = [];
+    scheduleDays.forEach((day) => {
+      const slots = [...day.slots].sort((first, second) => getTimeMinutes(first.startTime) - getTimeMinutes(second.startTime));
+      for (let firstIndex = 0; firstIndex < slots.length; firstIndex += 1) {
+        for (let secondIndex = firstIndex + 1; secondIndex < slots.length; secondIndex += 1) {
+          const first = slots[firstIndex];
+          const second = slots[secondIndex];
+          const firstStart = getTimeMinutes(first.startTime);
+          const firstEnd = getTimeMinutes(first.endTime);
+          const secondStart = getTimeMinutes(second.startTime);
+          const secondEnd = getTimeMinutes(second.endTime);
+          const overlapStart = Math.max(firstStart, secondStart);
+          const overlapEnd = Math.min(firstEnd, secondEnd);
+          if (Number.isFinite(overlapStart) && Number.isFinite(overlapEnd) && overlapStart < overlapEnd) overlaps.push({ date: day.date, first, second, overlapStart, overlapEnd });
+        }
+      }
+    });
+    return overlaps;
+  }
+
+  function getWizardScheduleWeekDates(popup) {
+    const firstDay = startOfWeek(parseDate(popup.startDate));
+    return Array.from({ length: 7 }, (_, index) => addDays(firstDay, (popup.scheduleWeekOffset || 0) * 7 + index));
+  }
+
+  function getWizardScheduleWeekOffset(popup, date) {
+    const firstWeek = startOfWeek(parseDate(popup.startDate));
+    const targetWeek = startOfWeek(parseDate(date));
+    return getDayDifference(firstWeek, targetWeek) / 7;
+  }
+
+  function getCampaignWizardPopup() {
+    return [...state.popupStack].reverse().find((popup) => popup.type === "campaign-wizard");
+  }
+
+  function focusWizardScheduleSlot(popup, date, slotId) {
+    popup.scheduleWeekOffset = getWizardScheduleWeekOffset(popup, date);
+    popup.focusScheduleSlotId = slotId;
+    renderPopupStack();
+    const target = document.querySelector(`.wizard-calendar-event[data-schedule-date="${date}"][data-schedule-id="${slotId}"]`);
+    target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center", inline: "center" });
+    target?.focus({ preventScroll: true });
+  }
+
+  function addWizardCalendarSlot(popup, date) {
+    const day = popup.scheduleDays.find((item) => item.date === date);
+    if (!day) return null;
+    popup.nextCalendarSlotId = (popup.nextCalendarSlotId || 0) + 1;
+    const slot = { id: `calendar-${popup.nextCalendarSlotId}`, label: `Franja ${day.slots.length + 1}`, startTime: "21:00", endTime: "22:00", isCustomized: true };
+    day.slots.push(slot);
+    popup.focusScheduleSlotId = slot.id;
+    return slot;
+  }
+
+  function getWizardTimelineRow(slot) {
+    const startMinute = getTimeMinutes(slot.startTime);
+    const endMinute = getTimeMinutes(slot.endTime);
+    const startRow = Math.floor((startMinute - DAY_START_HOUR * 60) / 15) + 1;
+    const endRow = Math.ceil((endMinute - DAY_START_HOUR * 60) / 15) + 1;
+    return { startRow, endRow };
+  }
+
+  function getWizardSlotLanes(slots) {
+    const laneEnds = [];
+    const lanesById = new Map();
+    const orderedSlots = [...slots].sort((first, second) => getTimeMinutes(first.startTime) - getTimeMinutes(second.startTime));
+    orderedSlots.forEach((slot) => {
+      const start = getTimeMinutes(slot.startTime);
+      const end = getTimeMinutes(slot.endTime);
+      let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start);
+      if (lane < 0) lane = laneEnds.length;
+      laneEnds[lane] = end;
+      lanesById.set(slot.id, lane);
+    });
+    return { count: Math.max(1, laneEnds.length), lanesById };
+  }
+
+  function renderGeneralCampaignSlots(popup) {
+    if (!popup.generalSlots?.length) return `<div class="empty-state"><strong>Añade al menos una franja general</strong><span>Estas franjas serán la plantilla inicial para cada día.</span></div>`;
+    return popup.generalSlots.map((slot) => {
+      const invalid = popup.generalErrorSlotId === slot.id;
+      return `<div class="wizard-general-slot${invalid ? " is-invalid" : ""}" data-general-slot-id="${escapeHTML(slot.id)}"><label for="general-name-${escapeHTML(slot.id)}">Nombre<input id="general-name-${escapeHTML(slot.id)}" type="text" value="${escapeHTML(slot.label)}" data-general-slot-field="label" data-general-slot-id="${escapeHTML(slot.id)}" required></label><label for="general-start-${escapeHTML(slot.id)}">Inicio<input id="general-start-${escapeHTML(slot.id)}" type="time" min="08:00" max="22:45" value="${escapeHTML(slot.startTime)}" data-general-slot-field="startTime" data-general-slot-id="${escapeHTML(slot.id)}" required></label><label for="general-end-${escapeHTML(slot.id)}">Fin<input id="general-end-${escapeHTML(slot.id)}" type="time" min="08:15" max="23:00" value="${escapeHTML(slot.endTime)}" data-general-slot-field="endTime" data-general-slot-id="${escapeHTML(slot.id)}" required></label><button class="button button-quiet" type="button" data-action="remove-general-slot" data-general-slot-id="${escapeHTML(slot.id)}">Quitar</button>${invalid ? `<span class="wizard-time-error">Revisa el nombre y el rango de horas entre 08:00 y 23:00.</span>` : ""}</div>`;
+    }).join("");
+  }
+
+  function renderCampaignScheduleCalendar(popup) {
+    const dates = getWizardScheduleWeekDates(popup);
+    const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, index) => DAY_START_HOUR + index);
+    const overlaps = getScheduleOverlaps(popup.scheduleDays || []);
+    const rangeLabel = `${formatDate(toISODate(dates[0]), { day: "numeric", month: "short" })} — ${formatDate(toISODate(dates[6]), { day: "numeric", month: "short", year: "numeric" })}`;
+    const axis = `<div class="wizard-calendar-axis"><span class="wizard-calendar-axis-head" aria-hidden="true"></span><div class="wizard-calendar-hour-labels">${hours.map((hour) => `<span>${String(hour).padStart(2, "0")}:00</span>`).join("")}</div><span class="wizard-calendar-axis-end">23:00</span></div>`;
+    const columns = dates.map((date) => renderCampaignScheduleDayColumn(date, popup, overlaps)).join("");
+    const warning = overlaps.length ? `<section class="wizard-overlap-warning" role="alert" aria-live="polite"><h3>${formatNumber(overlaps.length)} solapamientos</h3><p>No puedes continuar hasta resolver estas franjas:</p><ul>${overlaps.map((overlap) => `<li><button type="button" data-action="focus-schedule-overlap" data-schedule-date="${escapeHTML(overlap.date)}" data-schedule-id="${escapeHTML(overlap.first.id)}">${formatDate(overlap.date, { weekday: "long", day: "numeric", month: "long" })}: ${escapeHTML(overlap.first.label)} (${escapeHTML(overlap.first.startTime)}–${escapeHTML(overlap.first.endTime)}) y ${escapeHTML(overlap.second.label)} (${escapeHTML(overlap.second.startTime)}–${escapeHTML(overlap.second.endTime)}) se solapan ${formatTimeFromMinutes(overlap.overlapStart)}–${formatTimeFromMinutes(overlap.overlapEnd)}.</button></li>`).join("")}</ul></section>` : `<p class="wizard-overlap-success">✓ No hay franjas solapadas.</p>`;
+    return `<div class="wizard-schedule-calendar"><div class="wizard-calendar-toolbar"><button class="calendar-nav-button" type="button" data-action="wizard-calendar-week" data-direction="-1" aria-label="Semana anterior">${icon("left")}</button><strong>${escapeHTML(rangeLabel)}</strong><button class="calendar-nav-button" type="button" data-action="wizard-calendar-week" data-direction="1" aria-label="Semana siguiente">${icon("right")}</button><span class="tag">Arrastra una franja para cambiar hora o día; haz clic para editarla.</span></div><div class="wizard-calendar-scroll"><div class="wizard-calendar-grid">${axis}${columns}</div></div>${warning}</div>`;
+  }
+
+  function renderCampaignScheduleDayColumn(date, popup, overlaps) {
+    const iso = toISODate(date);
+    const day = popup.scheduleDays.find((item) => item.date === iso);
+    const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(date).replace(".", "");
+    const outside = !day;
+    const overlapIds = new Set(overlaps.filter((overlap) => overlap.date === iso).flatMap((overlap) => [overlap.first.id, overlap.second.id]));
+    const laneData = getWizardSlotLanes(day?.slots || []);
+    const events = (day?.slots || []).map((slot) => {
+      const row = getWizardTimelineRow(slot);
+      const lane = laneData.lanesById.get(slot.id) || 0;
+      const overlapClass = overlapIds.has(slot.id) ? " is-overlap" : "";
+      const focusedClass = popup.focusScheduleSlotId === slot.id ? " is-focused" : "";
+      return `<button class="wizard-calendar-event${overlapClass}${focusedClass}" type="button" draggable="true" data-action="edit-campaign-slot" data-schedule-date="${escapeHTML(iso)}" data-schedule-id="${escapeHTML(slot.id)}" style="grid-row:${row.startRow}/${row.endRow};grid-column:${lane + 1}/${lane + 2}" aria-label="Editar ${escapeHTML(slot.label)} ${escapeHTML(slot.startTime)}–${escapeHTML(slot.endTime)}"><strong>${escapeHTML(slot.label)}</strong><span>${escapeHTML(slot.startTime)}–${escapeHTML(slot.endTime)}</span></button>`;
+    }).join("");
+    return `<section class="wizard-calendar-day${outside ? " is-outside" : ""}"><header class="wizard-calendar-day-heading"><span>${escapeHTML(weekday)}</span><strong>${formatDate(iso, { day: "2-digit" })}</strong>${day ? `<button class="wizard-add-slot-button" type="button" data-action="add-wizard-calendar-slot" data-schedule-date="${escapeHTML(iso)}" aria-label="Añadir franja el ${formatDate(iso, { day: "numeric", month: "long" })}">${icon("plus")}</button>` : ""}</header><div class="campaign-schedule-track" data-schedule-date="${escapeHTML(iso)}" style="--lane-count:${laneData.count}">${events}</div></section>`;
+  }
+
+  function getWizardScheduleOverlaps(popup) {
+    return getScheduleOverlaps(popup.scheduleDays || []);
+  }
   function getInvalidCampaignScheduleSlot(popup) {
-    return (popup.scheduleDays || []).flatMap((day) => day.slots.map((slot) => ({ day, slot }))).find(({ slot }) => !slot.startTime || !slot.endTime || slot.startTime >= slot.endTime);
+    const startBoundary = DAY_START_HOUR * 60;
+    const endBoundary = DAY_END_HOUR * 60;
+    return (popup.scheduleDays || []).flatMap((day) => day.slots.map((slot) => ({ day, slot }))).find(({ slot }) => {
+      const start = getTimeMinutes(slot.startTime);
+      const end = getTimeMinutes(slot.endTime);
+      return !slot.startTime || !slot.endTime || !Number.isFinite(start) || !Number.isFinite(end) || start < startBoundary || end > endBoundary || start >= end;
+    });
   }
 
   function renderCampaignScheduleDays(popup) {
@@ -1173,7 +1343,7 @@
     const selectedGroup = popup.batchGroupId || getCoordinatorBatchGroups(popup.batchMode || "chain")[0]?.[0] || "";
     const batchMode = popup.batchMode || "chain";
     const batchCoordinatorId = popup.batchCoordinatorId || coordinators[0]?.id || "";
-    const modeActions = `<div class="coordinator-mode-switch"><button class="button ${popup.coordinatorMode === "previous" ? "button-primary" : "button-soft"}" type="button" data-action="coordinator-mode" data-mode="previous" aria-pressed="${popup.coordinatorMode === "previous"}">Reutilizar campaña anterior</button><button class="button ${popup.coordinatorMode === "manual" ? "button-primary" : "button-soft"}" type="button" data-action="coordinator-mode" data-mode="manual" aria-pressed="${popup.coordinatorMode === "manual"}">Asignar manualmente</button></div>`;
+    const modeActions = `<div class="coordinator-mode-switch"><button class="button ${popup.coordinatorMode === "previous" ? "button-primary" : "button-soft"}" type="button" data-action="coordinator-mode" data-mode="previous" aria-pressed="${popup.coordinatorMode === "previous"}">Automático · campaña anterior</button><button class="button ${popup.coordinatorMode === "manual" ? "button-primary" : "button-soft"}" type="button" data-action="coordinator-mode" data-mode="manual" aria-pressed="${popup.coordinatorMode === "manual"}">Asignar manualmente</button></div>`;
     const modeNote = popup.coordinatorMode === "previous" ? `<p class="form-note">Asignaciones de ${escapeHTML(previous?.name || "la campaña anterior")}. Las tiendas nuevas quedan sin coordinador y se marcan para revisión.</p>` : `<p class="form-note">Asigna coordinadores tienda por tienda o aplica una asignación en lote por cadena o zona.</p>`;
     const batchControls = `<div class="coordinator-batch-controls"><label>Aplicar lote<select data-coordinator-batch-mode><option value="chain"${batchMode === "chain" ? " selected" : ""}>Por cadena</option><option value="zone"${batchMode === "zone" ? " selected" : ""}>Por zona</option></select></label><label>${batchMode === "chain" ? "Cadena" : "Zona"}<select data-coordinator-batch-group>${renderCoordinatorBatchGroupOptions(batchMode, selectedGroup)}</select></label><label>Coordinador<select data-coordinator-batch-user>${renderCoordinatorOptions(batchCoordinatorId)}</select></label><button class="button button-soft" type="button" data-action="apply-coordinator-batch">Aplicar lote</button></div>`;
     return `<div class="coordinator-assignment-step"><div class="coordinator-assignment-header"><div><h3>Coordinadores por tienda</h3><p id="coordinator-assignment-count" class="result-count">${formatNumber(stats.assigned)} de ${formatNumber(stats.total)} tiendas asignadas</p></div>${modeActions}</div>${modeNote}${batchControls}<div id="coordinator-assignment-list" class="coordinator-assignment-list">${renderCoordinatorAssignmentRows(popup)}</div><p class="form-note">Las tiendas sin coordinador muestran un triángulo y bloquean el siguiente paso.</p></div>`;
@@ -1181,7 +1351,7 @@
 
   function updateCoordinatorAssignmentUI() {
     const popup = state.popupStack[state.popupStack.length - 1];
-    if (popup?.type !== "campaign-wizard" || popup.step !== 3) return;
+    if (popup?.type !== "campaign-wizard" || popup.step !== 4) return;
     const stats = getCoordinatorAssignmentStats(popup);
     const count = document.getElementById("coordinator-assignment-count");
     if (count) count.textContent = `${formatNumber(stats.assigned)} de ${formatNumber(stats.total)} tiendas asignadas`;
@@ -1251,7 +1421,7 @@
     const selectedCount = document.getElementById("wizard-selected-count");
     if (selectedCount) selectedCount.textContent = `${formatNumber(selectedStores.length)} tiendas · ${formatNumber(selectedChains)} cadenas`;
     const nextButton = document.querySelector("#popup-root [data-action='wizard-next']");
-    if (nextButton && popup.step === 1) nextButton.disabled = selectedStores.length === 0;
+    if (nextButton && popup.step === 3) nextButton.disabled = selectedStores.length === 0;
   }
 
   function updateZoneStoreSelectionUI() {
@@ -1266,7 +1436,7 @@
   }
 
   function renderCampaignWizard(popup, index) {
-    const labels = ["Datos básicos", "Franjas", "Tiendas", "Coordinadores", "Confirmación"];
+    const labels = ["Datos", "Franjas generales", "Calendario", "Tiendas", "Coordinadores", "Confirmación"];
     const progress = `<div class="wizard-progress">${labels.map((label, step) => `<span class="wizard-step-indicator${popup.step === step ? " is-active" : ""}${popup.step > step ? " is-done" : ""}"><span>${popup.step > step ? "✓" : step + 1}</span>${label}</span>`).join("")}</div>`;
     const stats = getCampaignWizardStats(popup);
     let content = "";
@@ -1278,13 +1448,14 @@
         { name: "endDate", label: "Fecha de fin", type: "date", required: true }
       ];
       const values = { name: popup.name || "Gran Recogida · nueva edición", typeId: popup.typeId || DATA.campaignTypes[0].id, startDate: popup.startDate || "2026-12-01", endDate: popup.endDate || "2026-12-20" };
-      content = `<form id="campaign-wizard-form" data-form="campaign-wizard"><div class="form-grid">${fields.map((field) => renderFormField(field, values, "wizard")).join("")}</div><p class="form-note">Paso 1 de 5 · completa los datos básicos y el rango de fechas.</p></form>`;
+      content = `<form id="campaign-wizard-form" data-form="campaign-wizard"><div class="form-grid">${fields.map((field) => renderFormField(field, values, "wizard")).join("")}</div><p class="form-note">Paso 1 de ${labels.length} · completa los datos básicos y el rango de fechas.</p></form>`;
     } else if (popup.step === 1) {
-      const slotCount = (popup.scheduleDays || []).reduce((count, day) => count + day.slots.length, 0);
-      content = `<div class="wizard-schedule-selection"><div class="wizard-schedule-intro"><p class="confirm-copy">Configura las franjas por cada día de la campaña.</p><span class="tag">${formatNumber(slotCount)} franjas</span></div><p class="form-note">Cada día empieza con franjas de muestra; puedes añadir o quitar tantas como necesites.</p><div class="wizard-day-schedule-list">${renderCampaignScheduleDays(popup)}</div></div>`;
+      content = `<div class="wizard-general-step"><div class="wizard-schedule-intro"><div><h3>¿Cómo serán normalmente las franjas?</h3><p>Esta plantilla se copiará a cada día. Después podrás mover, editar o añadir franjas en el calendario.</p></div><span class="tag">${formatNumber(popup.generalSlots?.length || 0)} franjas base</span></div><div class="wizard-general-slot-list">${renderGeneralCampaignSlots(popup)}</div><button class="button button-soft" type="button" data-action="add-general-slot">${icon("plus")} Añadir franja general</button><div id="wizard-general-overlaps">${renderGeneralOverlapWarning(popup)}</div></div>`;
     } else if (popup.step === 2) {
-      content = `<div class="wizard-store-selection"><div class="wizard-store-toolbar"><label class="search-control"><span>${icon("search")}</span><span class="sr-only">Buscar cadenas y tiendas participantes</span><input type="search" name="wizard-store-search" autocomplete="off" placeholder="Buscar cadena, tienda o localidad…" value="${escapeHTML(popup.storeSearch || "")}" data-search="wizard-stores"></label><span id="wizard-selected-count" class="result-count">${formatNumber(stats.selectedStores.length)} tiendas · ${formatNumber(stats.selectedChains)} cadenas</span></div><p class="form-note">Selecciona una cadena completa o despliega para marcar tiendas individuales.</p><div id="wizard-chain-list" class="wizard-chain-list">${renderCampaignWizardChainList(popup)}</div></div>`;
+      content = renderCampaignScheduleCalendar(popup);
     } else if (popup.step === 3) {
+      content = `<div class="wizard-store-selection"><div class="wizard-store-toolbar"><label class="search-control"><span>${icon("search")}</span><span class="sr-only">Buscar cadenas y tiendas participantes</span><input type="search" name="wizard-store-search" autocomplete="off" placeholder="Buscar cadena, tienda o localidad…" value="${escapeHTML(popup.storeSearch || "")}" data-search="wizard-stores"></label><span id="wizard-selected-count" class="result-count">${formatNumber(stats.selectedStores.length)} tiendas · ${formatNumber(stats.selectedChains)} cadenas</span></div><p class="form-note">Selecciona una cadena completa o despliega para marcar tiendas individuales.</p><div id="wizard-chain-list" class="wizard-chain-list">${renderCampaignWizardChainList(popup)}</div></div>`;
+    } else if (popup.step === 4) {
       content = renderCoordinatorAssignmentStep(popup);
     } else {
       const type = getCampaignType(popup.typeId);
@@ -1293,9 +1464,9 @@
       content = `<div class="detail-block"><h3>Revisión final</h3><p><strong>${escapeHTML(popup.name || "Gran Recogida · nueva edición")}</strong></p><p>${escapeHTML(type?.name || "Recogida anual")}</p><p>${popup.startDate ? formatDate(popup.startDate) : "1 dic 2026"} — ${popup.endDate ? formatDate(popup.endDate) : "20 dic 2026"}</p><p>${formatNumber(scheduleCount)} franjas en ${formatNumber(popup.scheduleDays?.length || 0)} días</p><p>${formatNumber(stats.selectedStores.length)} tiendas en ${formatNumber(stats.selectedChains)} cadenas</p><p>${formatNumber(coordinatorStats.assigned)} de ${formatNumber(coordinatorStats.total)} coordinadores asignados</p></div><div class="confirm-warning">${icon("warning")}<span>La confirmación final solo muestra un aviso; no se creará ni guardará ninguna campaña.</span></div>`;
     }
     const back = popup.step > 0 ? `<button class="button button-quiet" type="button" data-action="wizard-back">Anterior</button>` : `<button class="button button-quiet" type="button" data-action="close-popup">Cancelar</button>`;
-    const next = popup.step < 4 ? `<button class="button button-primary" type="button" data-action="wizard-next"${popup.step === 2 && stats.selectedStores.length === 0 ? " disabled" : ""}>Siguiente</button>` : `<button class="button button-danger" type="button" data-action="wizard-confirm">Confirmar creación de campaña</button>`;
+    const next = popup.step < 5 ? `<button class="button button-primary" type="button" data-action="wizard-next"${popup.step === 3 && stats.selectedStores.length === 0 ? " disabled" : ""}>Siguiente</button>` : `<button class="button button-danger" type="button" data-action="wizard-confirm">Confirmar creación de campaña</button>`;
     const body = `<div>${progress}${content}<div class="dialog-footer">${back}${next}</div></div>`;
-    return dialogMarkup(index, "Crear campaña", `Paso ${popup.step + 1} de ${labels.length}`, body, "wide", true);
+    return dialogMarkup(index, "Crear campaña", `Paso ${popup.step + 1} de ${labels.length}`, body, "wizard", true);
   }
 
   function renderSettingsPopup(popup, index) {
@@ -1307,7 +1478,7 @@
   function dialogMarkup(index, title, subtitle, body, size = "normal", bodyIsFull = false) {
     const popup = state.popupStack[index];
     const isTop = index === state.popupStack.length - 1;
-    const dialogClass = size === "store" ? "dialog--store" : size === "wide" ? "dialog--wide" : size === "small" ? "dialog--small" : "";
+    const dialogClass = size === "store" ? "dialog--store" : size === "wizard" ? "dialog--wizard" : size === "wide" ? "dialog--wide" : size === "small" ? "dialog--small" : "";
     const bodyClass = popup?.type === "store" ? "dialog-body dialog-body--store" : "dialog-body";
     const covered = isTop ? "" : " is-covered";
     return `<div class="modal-backdrop${covered}" data-popup-index="${index}"><section class="dialog ${dialogClass}" role="dialog"${isTop ? ` aria-modal="true"` : ` aria-hidden="true"`} aria-labelledby="dialog-title-${index}" tabindex="-1"><header class="dialog-header"><div class="dialog-title-wrap"><h2 id="dialog-title-${index}">${escapeHTML(title)}</h2>${subtitle ? `<p>${escapeHTML(subtitle)}</p>` : ""}</div><button class="icon-button dialog-close" type="button" data-action="close-popup" aria-label="Cerrar ventana">${icon("close")}</button></header><div class="${bodyClass}">${bodyIsFull ? body : body}</div></section></div>`;
@@ -1316,6 +1487,7 @@
   function renderPopup(popup, index) {
     if (popup.type === "slot") return renderCalendarSlotPopup(popup, index);
     if (popup.type === "day") return renderDaySummaryPopup(popup, index);
+    if (popup.type === "campaign-slot-editor") return renderCampaignSlotEditor(popup, index);
     if (popup.type === "store") return renderStorePopup(popup, index);
     if (popup.type === "conflict") return renderConflictPopup(popup, index);
     if (popup.type === "contact") return renderContactPopup(popup, index);
@@ -1339,6 +1511,7 @@
     root.innerHTML = state.popupStack.map((popup, index) => renderPopup(popup, index)).join("");
     updateCampaignWizardSelectionUI();
     updateZoneStoreSelectionUI();
+    updateCoordinatorAssignmentUI();
   }
 
   function openPopup(popup) {
@@ -1610,6 +1783,46 @@
     else if (action === "confirm-delete") {
       closeTopPopup();
       renderToast("Confirmación simulada: el registro sigue en la tabla.");
+    } else if (action === "add-general-slot") {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") {
+        popup.nextGeneralSlotId = (popup.nextGeneralSlotId || popup.generalSlots.length) + 1;
+        popup.generalSlots.push({ id: `general-${popup.nextGeneralSlotId}`, label: `Franja ${popup.nextGeneralSlotId}`, startTime: "08:00", endTime: "09:00" });
+        popup.generalTemplateChanged = true;
+        renderPopupStack();
+      }
+    } else if (action === "remove-general-slot") {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") {
+        popup.generalSlots = popup.generalSlots.filter((slot) => slot.id !== button.dataset.generalSlotId);
+        popup.generalTemplateChanged = true;
+        renderPopupStack();
+      }
+    } else if (action === "wizard-calendar-week") {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") {
+        popup.scheduleWeekOffset = (popup.scheduleWeekOffset || 0) + Number(button.dataset.direction);
+        popup.focusScheduleSlotId = null;
+        renderPopupStack();
+      }
+    } else if (action === "focus-schedule-overlap") {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") focusWizardScheduleSlot(popup, button.dataset.scheduleDate, button.dataset.scheduleId);
+    } else if (action === "add-wizard-calendar-slot") {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") {
+        const slot = addWizardCalendarSlot(popup, button.dataset.scheduleDate);
+        if (slot) openPopup({ type: "campaign-slot-editor", scheduleDate: button.dataset.scheduleDate, scheduleId: slot.id });
+      }
+    } else if (action === "edit-campaign-slot") {
+      openPopup({ type: "campaign-slot-editor", scheduleDate: button.dataset.scheduleDate, scheduleId: button.dataset.scheduleId });
+    } else if (action === "remove-calendar-slot") {
+      const wizard = getCampaignWizardPopup();
+      if (wizard) {
+        removeCampaignScheduleSlot(wizard, button.dataset.scheduleDate, button.dataset.scheduleId);
+        wizard.focusScheduleSlotId = null;
+        closeTopPopup();
+      }
     } else if (action === "add-campaign-slot") {
       const popup = state.popupStack[state.popupStack.length - 1];
       if (popup?.type === "campaign-wizard") {
@@ -1635,7 +1848,7 @@
         renderToast("Asignación en lote aplicada a las tiendas seleccionadas.");
       }
     } else if (action === "campaign-type-create") openPopup({ type: "campaign-type" });
-    else if (action === "campaign-wizard") openPopup({ type: "campaign-wizard", step: 0, selectedStoreIds: DATA.stores.map((store) => store.id), storeSearch: "" });
+    else if (action === "campaign-wizard") openPopup({ type: "campaign-wizard", step: 0, selectedStoreIds: DATA.stores.map((store) => store.id), storeSearch: "", generalSlots: getDefaultGeneralSlots(), nextGeneralSlotId: 2, scheduleDays: [] });
     else if (action === "wizard-back") {
       const popup = state.popupStack[state.popupStack.length - 1];
       if (popup?.type === "campaign-wizard") {
@@ -1665,28 +1878,51 @@
       popup.typeId = form.elements.typeId.value;
       popup.startDate = form.elements.startDate.value;
       popup.endDate = form.elements.endDate.value;
-      popup.scheduleDays = createCampaignScheduleDays(popup.startDate, popup.endDate, popup.scheduleDays);
-      popup.scheduleErrorId = null;
+      popup.generalSlots = popup.generalSlots || getDefaultGeneralSlots();
       popup.step = 1;
       renderPopupStack();
       return;
     }
     if (popup.step === 1) {
-      const invalid = getInvalidCampaignScheduleSlot(popup);
+      const invalid = getInvalidGeneralSlot(popup);
       if (invalid) {
-        popup.openScheduleDate = invalid.day.date;
-        popup.scheduleErrorId = invalid.slot.id;
+        popup.generalErrorSlotId = invalid.id;
         renderPopupStack();
-        const invalidRow = document.querySelector(`.wizard-time-slot[data-schedule-id="${invalid.slot.id}"]`);
+        const invalidRow = document.querySelector(`.wizard-general-slot[data-general-slot-id="${invalid.id}"]`);
         invalidRow?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
         invalidRow?.querySelector("input")?.focus({ preventScroll: true });
         return;
       }
+      const existingDays = popup.scheduleDays || [];
+      popup.scheduleDays = createCampaignScheduleDays(popup.startDate, popup.endDate, existingDays, popup.generalSlots);
+      popup.generalTemplateChanged = false;
       popup.step = 2;
       renderPopupStack();
       return;
     }
     if (popup.step === 2) {
+      const invalid = getInvalidCampaignScheduleSlot(popup);
+      if (invalid) {
+        popup.scheduleWeekOffset = getWizardScheduleWeekOffset(popup, invalid.day.date);
+        popup.focusScheduleSlotId = invalid.slot.id;
+        renderPopupStack();
+        const invalidEvent = document.querySelector(`.wizard-calendar-event[data-schedule-date="${invalid.day.date}"][data-schedule-id="${invalid.slot.id}"]`);
+        invalidEvent?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center", inline: "center" });
+        invalidEvent?.focus({ preventScroll: true });
+        renderToast("Ajusta la franja para que quede entre las 08:00 y las 23:00.");
+        return;
+      }
+      const overlaps = getScheduleOverlaps(popup.scheduleDays || []);
+      if (overlaps.length) {
+        focusWizardScheduleSlot(popup, overlaps[0].date, overlaps[0].first.id);
+        renderToast("Resuelve los solapamientos señalados antes de continuar.");
+        return;
+      }
+      popup.step = 3;
+      renderPopupStack();
+      return;
+    }
+    if (popup.step === 3) {
       if (!popup.selectedStoreIds?.length) return;
       if (popup.coordinatorMode === "manual") {
         const previousAssignments = popup.coordinatorAssignments || {};
@@ -1697,11 +1933,11 @@
       popup.batchMode = popup.batchMode || "chain";
       popup.batchGroupId = popup.batchGroupId || DATA.chains[0]?.id || "";
       popup.batchCoordinatorId = popup.batchCoordinatorId || DATA.users.find((user) => user.roles.includes(ROLE.coordinator))?.id || "";
-      popup.step = 3;
+      popup.step = 4;
       renderPopupStack();
       return;
     }
-    if (popup.step === 3) {
+    if (popup.step === 4) {
       const { missingStoreIds } = getCoordinatorAssignmentStats(popup);
       if (missingStoreIds.length) {
         popup.firstMissingStoreId = missingStoreIds[0];
@@ -1713,9 +1949,70 @@
         return;
       }
       popup.firstMissingStoreId = null;
-      popup.step = 4;
+      popup.step = 5;
       renderPopupStack();
     }
+  }
+
+  function onDocumentDragStart(event) {
+    const calendarEvent = event.target.closest(".wizard-calendar-event");
+    const popup = getCampaignWizardPopup();
+    if (!calendarEvent || popup?.step !== 2) return;
+    popup.draggedScheduleSlot = { date: calendarEvent.dataset.scheduleDate, slotId: calendarEvent.dataset.scheduleId };
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", calendarEvent.dataset.scheduleId);
+    }
+  }
+
+  function onDocumentDragOver(event) {
+    const track = event.target.closest(".campaign-schedule-track");
+    const popup = getCampaignWizardPopup();
+    if (!track || popup?.step !== 2 || !popup.draggedScheduleSlot) return;
+    event.preventDefault();
+    track.classList.add("is-drop-target");
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  }
+
+  function onDocumentDrop(event) {
+    const track = event.target.closest(".campaign-schedule-track");
+    const popup = getCampaignWizardPopup();
+    if (!track || popup?.step !== 2 || !popup.draggedScheduleSlot) return;
+    event.preventDefault();
+    const source = popup.draggedScheduleSlot;
+    const slot = getCampaignScheduleSlot(popup, source.date, source.slotId);
+    const destinationDate = track.dataset.scheduleDate;
+    const destinationDay = popup.scheduleDays.find((day) => day.date === destinationDate);
+    if (!slot || !destinationDay) return;
+    const originalStart = getTimeMinutes(slot.startTime);
+    const originalEnd = getTimeMinutes(slot.endTime);
+    const duration = originalEnd - originalStart;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const bounds = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
+    const dayStart = DAY_START_HOUR * 60;
+    const dayEnd = DAY_END_HOUR * 60;
+    const snappedOffset = Math.round((ratio * (dayEnd - dayStart)) / 15) * 15;
+    const nextStart = Math.max(dayStart, Math.min(dayEnd - duration, dayStart + snappedOffset));
+    const nextEnd = nextStart + duration;
+    if (source.date !== destinationDate) {
+      const sourceDay = popup.scheduleDays.find((day) => day.date === source.date);
+      if (sourceDay) sourceDay.slots = sourceDay.slots.filter((item) => item.id !== slot.id);
+      destinationDay.slots.push(slot);
+    }
+    slot.startTime = formatTimeFromMinutes(nextStart);
+    slot.endTime = formatTimeFromMinutes(nextEnd);
+    slot.isCustomized = true;
+    popup.draggedScheduleSlot = null;
+    popup.scheduleWeekOffset = getWizardScheduleWeekOffset(popup, destinationDate);
+    popup.focusScheduleSlotId = slot.id;
+    renderPopupStack();
+  }
+
+  function onDocumentDragEnd() {
+    document.querySelectorAll(".campaign-schedule-track.is-drop-target").forEach((track) => track.classList.remove("is-drop-target"));
+    const popup = getCampaignWizardPopup();
+    if (popup) popup.draggedScheduleSlot = null;
   }
 
   function onDocumentClick(event) {
@@ -1739,6 +2036,23 @@
   }
 
   function onDocumentInput(event) {
+    const generalInput = event.target.closest("[data-general-slot-field]");
+    if (generalInput) {
+      const popup = state.popupStack[state.popupStack.length - 1];
+      if (popup?.type === "campaign-wizard") {
+        const slot = popup.generalSlots.find((item) => item.id === generalInput.dataset.generalSlotId);
+        if (slot) slot[generalInput.dataset.generalSlotField] = generalInput.value;
+        popup.generalTemplateChanged = true;
+        if (popup.generalErrorSlotId === generalInput.dataset.generalSlotId) {
+          popup.generalErrorSlotId = null;
+          generalInput.closest(".wizard-general-slot")?.classList.remove("is-invalid");
+          generalInput.closest(".wizard-general-slot")?.querySelector(".wizard-time-error")?.remove();
+        }
+        const overlapRegion = document.getElementById("wizard-general-overlaps");
+        if (overlapRegion) overlapRegion.innerHTML = renderGeneralOverlapWarning(popup);
+      }
+      return;
+    }
     const scheduleInput = event.target.closest("[data-schedule-field]");
     if (scheduleInput) {
       const popup = state.popupStack[state.popupStack.length - 1];
@@ -1923,6 +2237,41 @@
       renderToast("Asignación de tiendas simulada. La zona no se ha modificado.");
       return;
     }
+    if (form.dataset.form === "campaign-slot-editor") {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const wizard = getCampaignWizardPopup();
+      const sourceDate = form.dataset.scheduleDate;
+      const slot = wizard ? getCampaignScheduleSlot(wizard, sourceDate, form.dataset.scheduleId) : null;
+      if (!wizard || !slot) return;
+      const startTime = form.elements.startTime.value;
+      const endTime = form.elements.endTime.value;
+      const startMinute = getTimeMinutes(startTime);
+      const endMinute = getTimeMinutes(endTime);
+      if (startMinute < DAY_START_HOUR * 60 || endMinute > DAY_END_HOUR * 60 || startMinute >= endMinute) {
+        form.elements.endTime.setCustomValidity("La franja debe estar entre las 08:00 y las 23:00 y terminar después de su inicio.");
+        form.elements.endTime.reportValidity();
+        form.elements.endTime.setCustomValidity("");
+        return;
+      }
+      const destinationDate = form.elements.date.value;
+      const destinationDay = wizard.scheduleDays.find((day) => day.date === destinationDate);
+      if (!destinationDay) return;
+      if (sourceDate !== destinationDate) {
+        const sourceDay = wizard.scheduleDays.find((day) => day.date === sourceDate);
+        if (sourceDay) sourceDay.slots = sourceDay.slots.filter((item) => item.id !== slot.id);
+        destinationDay.slots.push(slot);
+      }
+      slot.label = form.elements.label.value;
+      slot.startTime = startTime;
+      slot.endTime = endTime;
+      slot.isCustomized = true;
+      wizard.focusScheduleSlotId = slot.id;
+      closeTopPopup();
+      focusWizardScheduleSlot(wizard, destinationDate, slot.id);
+      renderToast("Franja modificada en la maqueta. No se guardó ningún dato.");
+      return;
+    }
     if (form.dataset.form === "campaign-wizard") {
       event.preventDefault();
       advanceCampaignWizard();
@@ -1967,6 +2316,10 @@
     document.addEventListener("submit", onDocumentSubmit);
     document.addEventListener("keydown", onDocumentKeydown);
     document.addEventListener("toggle", onDocumentToggle, true);
+    document.addEventListener("dragstart", onDocumentDragStart);
+    document.addEventListener("dragover", onDocumentDragOver);
+    document.addEventListener("drop", onDocumentDrop);
+    document.addEventListener("dragend", onDocumentDragEnd);
     window.addEventListener("hashchange", updateRouteFromHash);
     render();
   }
