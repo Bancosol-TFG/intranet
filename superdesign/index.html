@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f7fb">
+    <title>Bancosol · Intranet de campaña</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/data.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#auth-view">Saltar al contenido principal</a>
+
+    <section id="auth-view" class="auth-shell" role="main" aria-labelledby="auth-title">
+      <div class="auth-art" aria-hidden="true">
+        <div class="auth-art__sun"></div>
+        <div class="auth-art__copy">
+          <span class="eyebrow eyebrow--light">Intranet Bancosol</span>
+          <h2>La solidaridad<br>se organiza en equipo.</h2>
+          <p>Una campaña, muchas manos y cada turno en su sitio.</p>
+          <div class="auth-art__dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="auth-art__foot">Coordinación · Cercanía · Impacto</div>
+      </div>
+
+      <div class="auth-panel">
+        <div class="auth-brand">
+          <img src="assets/logo.png" width="48" height="48" fetchpriority="high" alt="Símbolo de Bancosol">
+          <span translate="no">Bancosol<small>INTRANET</small></span>
+        </div>
+
+        <div class="auth-card">
+          <div class="auth-tabs" role="tablist" aria-label="Acceso a Bancosol">
+            <button id="login-tab" class="auth-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="login-form" data-action="auth-tab" data-tab="login">Iniciar sesión</button>
+            <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false" aria-controls="register-form" data-action="auth-tab" data-tab="register">Registro</button>
+          </div>
+
+          <div id="login-form" class="auth-form" role="tabpanel" aria-labelledby="login-tab">
+            <span class="eyebrow">Bienvenida a la intranet</span>
+            <h1 id="auth-title">Organiza una campaña<br>con confianza.</h1>
+            <p class="muted">Accede a la coordinación de tiendas, zonas y equipos.</p>
+            <form data-form="login">
+              <label for="login-email">Correo electrónico</label>
+              <input id="login-email" name="email" type="email" autocomplete="username" spellcheck="false" placeholder="ana@bancosol.org…" required>
+              <label for="login-password">Contraseña</label>
+              <div class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Contraseña…" required><span class="password-lock" aria-hidden="true">●</span></div>
+              <div class="auth-inline"><label class="check-label"><input type="checkbox" name="remember"> <span>Recordarme</span></label><button class="text-button" type="button" data-action="toast" data-message="En esta maqueta no se envían correos.">¿Has olvidado tu contraseña?</button></div>
+              <button class="button button--primary button--full" type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
+            </form>
+            <div class="mock-access">
+              <div class="mock-access__title"><span>ENTORNO DE DEMOSTRACIÓN</span><i aria-hidden="true"></i></div>
+              <div class="mock-access__actions">
+                <button type="button" class="button button--outline" data-action="login-as" data-role="ADMIN">Entrar como admin <span class="mock-tag">MOCK</span></button>
+                <button type="button" class="button button--outline" data-action="login-as" data-role="COORDINATOR">Entrar como coord <span class="mock-tag">MOCK</span></button>
+              </div>
+              <p>Los perfiles y las acciones son datos de ejemplo.</p>
+            </div>
+          </div>
+
+          <div id="register-form" class="auth-form" role="tabpanel" aria-labelledby="register-tab" hidden>
+            <span class="eyebrow">Crea tu acceso</span>
+            <h1>Únete a la<br>coordinación.</h1>
+            <p class="muted">El registro es una simulación visual de esta maqueta.</p>
+            <form data-form="register">
+              <label for="register-name">Nombre y apellidos</label>
+              <input id="register-name" name="name" type="text" autocomplete="name" placeholder="Tu nombre…" required>
+              <label for="register-email">Correo electrónico</label>
+              <input id="register-email" name="email" type="email" autocomplete="email" spellcheck="false" placeholder="ana@bancosol.org…" required>
+              <label for="register-password">Contraseña</label>
+              <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres…" required>
+              <button class="button button--primary button--full register-submit" type="submit">Crear cuenta <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="auth-footnote">¿Ya tienes cuenta? <button class="text-button" type="button" data-action="auth-tab" data-tab="login">Inicia sesión</button></p>
+          </div>
+        </div>
+        <div class="auth-footer"><span>© 2026 Bancosol</span><span>Maqueta interactiva · Sin datos reales</span></div>
+      </div>
+    </section>
+
+    <div id="application" class="application" hidden>
+      <header id="app-header" class="app-header"></header>
+      <nav id="app-navigation" class="app-navigation" aria-label="Navegación principal"></nav>
+      <main id="main-content" class="app-main" tabindex="-1"></main>
+    </div>
+
+    <div id="modal-root" class="modal-root"></div>
+    <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>
