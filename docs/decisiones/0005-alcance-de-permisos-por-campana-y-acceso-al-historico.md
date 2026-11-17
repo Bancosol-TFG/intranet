@@ -1,4 +1,4 @@
-# ADR-0005: Alcance de permisos por campaña
+# DEC-0005: Alcance de permisos por campaña
 
 ## Estado
 Accepted

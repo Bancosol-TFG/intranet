@@ -1,6 +1,6 @@
 ---
 name: tfg-project-docs
-description: Create, edit, preview, and publish the Bancosol intranet documentation in docs/ (Zensical site deployed to GitHub Pages). Use whenever a task adds or changes documentation, setup or usage instructions, ADRs, or meeting notes, or touches zensical.toml, requirements-docs.txt, or the docs deployment.
+description: Create, edit, preview, and publish the Bancosol intranet documentation in docs/ (Zensical site deployed to GitHub Pages). Use whenever a task adds or changes documentation, setup or usage instructions, ADRs, decisions, or meeting notes, or touches zensical.toml, requirements-docs.txt, or the docs deployment.
 ---
 
 # Project documentation
@@ -14,7 +14,8 @@ The project documentation is a [Zensical](https://zensical.org/) site written in
 | `docs/index.md` | Home page and index of the main pages. |
 | `docs/desarrollo/` | Developer guides: local deployment (`despliegue-local.md`), database migrations (`migraciones.md`), and other setup or usage guides. |
 | `docs/reuniones/` | One dated note per meeting, `nota-reunion-YYYY-MM-DD.md`. Create them with the `tfg-meeting-notes` skill. |
-| `docs/adr/` | Architecture decision records, `NNNN-titulo-en-kebab-case.md`, based on `docs/adr/0000-template.md`. |
+| `docs/adr/` | Architecture decision records (`ADR-NNNN`): technology, infrastructure, and code structure. `NNNN-titulo-en-kebab-case.md`, based on `docs/adr/0000-template.md`. |
+| `docs/decisiones/` | Product, scope, and domain decisions (`DEC-NNNN`). `NNNN-titulo-en-kebab-case.md`, based on `docs/decisiones/0000-template.md`. |
 | `docs/assets/` | Site CSS (`stylesheets/extra.css`) and JavaScript (`javascripts/shortcuts.js`). Change them only for presentation issues. |
 | `zensical.toml` | Site configuration: name, theme, palette, extra assets, and `docs_dir`/`site_dir`. |
 | `requirements-docs.txt` | Pinned Zensical version, shared by local builds, Docker, and CI. |
@@ -24,23 +25,23 @@ The site navigation is generated from the folder structure; `zensical.toml` defi
 ## What to document
 
 - Confirmed behavior, setup, commands, and usage that the team needs to work, such as new environment variables, services, ports, or workflows.
-- Durable technical decisions, as ADRs. Check the existing ADRs first and mark a replaced ADR as `Superseded` instead of rewriting its decision.
+- Durable technical decisions as ADRs in `docs/adr/`, and product, scope, or domain decisions as `DEC` records in `docs/decisiones/`. Check the existing records in both folders first and mark a replaced one as `Superseded` instead of rewriting its decision.
 - Do not document proposals as agreements. Mark open questions as pending, as the meeting notes and ADRs do.
 - Do not duplicate content: link to the existing page and update it.
 
 ## Writing style
 
 - Write in Spanish, with short, direct sentences and a neutral, second-person tone for instructions (`Crea`, `Ejecuta`, `Comprueba`).
-- Use file and folder names in lowercase kebab-case. Meeting notes and ADRs follow their own naming formats.
+- Use file and folder names in lowercase kebab-case. Meeting notes, ADRs, and decisions follow their own naming formats.
 - Start each page with a single `#` title, and use `##` and `###` for sections.
 - Put commands, paths, variables, and identifiers in backticks, and command blocks in fenced code blocks with a language (`sh`, `text`, `yaml`…).
 - Use tables for variables, ports, and services, and numbered lists for ordered steps.
 - Use relative links between pages, such as `[Migraciones](desarrollo/migraciones.md)`.
 - Keep the docs in sync with the code: when a change alters a command, port, variable, or convention, update the page in the same pull request.
 
-### ADR format
+### ADR and decision format
 
-Copy `docs/adr/0000-template.md` and use the next free number. Keep its sections in order: `## Estado` (`Proposed`, `Accepted`, `Rejected`, `Deprecated`, or `Superseded`), `## Contexto`, `## Opciones consideradas`, `## Decisión` («Pendiente de decisión» if there is no agreement), and `## Consecuencias` with **Positivas:** and **Negativas:**.
+Copy the template of the folder (`docs/adr/0000-template.md` or `docs/decisiones/0000-template.md`) and use the next free number of that folder. Each folder has its own numbering, so `ADR-0024` and `DEC-0024` can coexist; numbers already assigned never change. Title the record `# ADR-NNNN: …` or `# DEC-NNNN: …`, and refer to it with that prefix. Keep its sections in order: `## Estado` (`Proposed`, `Accepted`, `Rejected`, `Deprecated`, or `Superseded`), `## Contexto`, `## Opciones consideradas`, `## Decisión` («Pendiente de decisión» if there is no agreement), and `## Consecuencias` with **Positivas:** and **Negativas:**.
 
 ## Preview locally
 

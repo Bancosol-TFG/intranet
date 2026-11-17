@@ -1,4 +1,4 @@
-# ADR-0001: Inclusión del formulario de disponibilidad por campaña
+# DEC-0001: Inclusión del formulario de disponibilidad por campaña
 
 ## Estado
 Proposed

@@ -27,7 +27,7 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
   - Skills are written in English, but the content they produce for the team must be in Spanish.
 - Open pull requests against `dev`.
 - Do not edit `.env`, `frontend/src/routeTree.gen.ts`, or `volumes/`.
-- Before proposing an architecture change, check the ADRs in `docs/adr/`. If a decision on architecture or technology is needed, ask the team first and record it as an ADR. Do not decide it silently in code.
+- Before proposing an architecture change, check the ADRs in `docs/adr/` and the product and domain decisions in `docs/decisiones/`. If a decision on architecture or technology is needed, ask the team first and record it as an ADR; record product, scope, or domain decisions in `docs/decisiones/`. Each folder keeps its own numbering. Do not decide it silently in code.
 - Deliver each feature complete in one pull request: backend, frontend, tests, and documentation.
 - Tests must check real behavior. Do not write tests that always pass.
 - Every endpoint declares the roles allowed to use it. If the roles are not specified, ask before implementing.
