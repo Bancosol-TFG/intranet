@@ -57,7 +57,7 @@ Read the full files around the changed lines when the diff alone is not enough t
 ### Design
 
 - The code is simple and readable, with no duplicated logic and no dead code.
-- Changes to architecture or durable decisions match the ADRs in `docs/adr/` and the decisions in `docs/decisiones/`. If a change contradicts an ADR, flag it for the team instead of accepting it.
+- Changes to architecture or durable decisions match the ADRs in `docs/adr/` and the decisions in `docs/decisions/`. If a change contradicts an ADR, flag it for the team instead of accepting it.
 
 ### Tests and checks
 

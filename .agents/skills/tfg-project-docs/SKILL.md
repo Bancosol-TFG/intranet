@@ -15,7 +15,7 @@ The project documentation is a [Zensical](https://zensical.org/) site written in
 | `docs/desarrollo/` | Developer guides: local deployment (`despliegue-local.md`), database migrations (`migraciones.md`), and other setup or usage guides. |
 | `docs/reuniones/` | One dated note per meeting, `nota-reunion-YYYY-MM-DD.md`. Create them with the `tfg-meeting-notes` skill. |
 | `docs/adr/` | Architecture decision records (`ADR-NNNN`): technology, infrastructure, and code structure. `NNNN-titulo-en-kebab-case.md`, based on `docs/adr/0000-template.md`. |
-| `docs/decisiones/` | Product, scope, and domain decisions (`DEC-NNNN`). `NNNN-titulo-en-kebab-case.md`, based on `docs/decisiones/0000-template.md`. |
+| `docs/decisions/` | Product, scope, and domain decisions (`DEC-NNNN`). `NNNN-titulo-en-kebab-case.md`, based on `docs/decisions/0000-template.md`. |
 | `docs/assets/` | Site CSS (`stylesheets/extra.css`) and JavaScript (`javascripts/shortcuts.js`). Change them only for presentation issues. |
 | `zensical.toml` | Site configuration: name, theme, palette, extra assets, and `docs_dir`/`site_dir`. |
 | `requirements-docs.txt` | Pinned Zensical version, shared by local builds, Docker, and CI. |
@@ -25,7 +25,7 @@ The site navigation is generated from the folder structure; `zensical.toml` defi
 ## What to document
 
 - Confirmed behavior, setup, commands, and usage that the team needs to work, such as new environment variables, services, ports, or workflows.
-- Durable technical decisions as ADRs in `docs/adr/`, and product, scope, or domain decisions as `DEC` records in `docs/decisiones/`. Check the existing records in both folders first and mark a replaced one as `Superseded` instead of rewriting its decision.
+- Durable technical decisions as ADRs in `docs/adr/`, and product, scope, or domain decisions as `DEC` records in `docs/decisions/`. Check the existing records in both folders first and mark a replaced one as `Superseded` instead of rewriting its decision.
 - Do not document proposals as agreements. Mark open questions as pending, as the meeting notes and ADRs do.
 - Do not duplicate content: link to the existing page and update it.
 
@@ -41,7 +41,7 @@ The site navigation is generated from the folder structure; `zensical.toml` defi
 
 ### ADR and decision format
 
-Copy the template of the folder (`docs/adr/0000-template.md` or `docs/decisiones/0000-template.md`) and use the next free number of that folder. Each folder has its own numbering, so `ADR-0024` and `DEC-0024` can coexist; numbers already assigned never change. Title the record `# ADR-NNNN: …` or `# DEC-NNNN: …`, and refer to it with that prefix. Keep its sections in order: `## Estado` (`Proposed`, `Accepted`, `Rejected`, `Deprecated`, or `Superseded`), `## Contexto`, `## Opciones consideradas`, `## Decisión` («Pendiente de decisión» if there is no agreement), and `## Consecuencias` with **Positivas:** and **Negativas:**.
+Copy the template of the folder (`docs/adr/0000-template.md` or `docs/decisions/0000-template.md`) and use the next free number of that folder. Each folder has its own numbering, so `ADR-0024` and `DEC-0024` can coexist; numbers already assigned never change. Title the record `# ADR-NNNN: …` or `# DEC-NNNN: …`, and refer to it with that prefix. Keep its sections in order: `## Estado` (`Proposed`, `Accepted`, `Rejected`, `Deprecated`, or `Superseded`), `## Contexto`, `## Opciones consideradas`, `## Decisión` («Pendiente de decisión» if there is no agreement), and `## Consecuencias` with **Positivas:** and **Negativas:**.
 
 ## Preview locally
 
