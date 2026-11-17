@@ -1,4 +1,11 @@
 package es.bancosol.api.collaborator.dto;
+
+import es.bancosol.api.common.validation.ShortText;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-public record CollaboratorRequest(@NotBlank String name,@NotBlank String address,@NotNull Integer localityId) {}
+import jakarta.validation.constraints.Positive;
+
+public record CollaboratorRequest(@NotBlank @ShortText String name,
+                                  @NotBlank @ShortText String address,
+                                  @NotNull @Positive Integer localityId) {
+}

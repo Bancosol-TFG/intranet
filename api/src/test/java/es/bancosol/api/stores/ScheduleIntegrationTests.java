@@ -198,6 +198,12 @@ class ScheduleIntegrationTests {
                 .andExpect(jsonPath("$.closingTime", startsWith(closing)));
     }
 
+    @Test
+    void reportsClosingTimeWhenItIsNotAfterOpeningTime() throws Exception {
+        mockMvc.perform(post(path(store())).contentType(MediaType.APPLICATION_JSON).content(body(1, "12:00", "10:00")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("closingTime"));
+    }
+
     private String path(Store store) {
         return "/stores/" + store.getId() + "/schedules";
     }

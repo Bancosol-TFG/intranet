@@ -151,6 +151,14 @@ class ChainIntegrationTests {
                         .content(payload)).andExpect(status().isBadRequest());
     }
 
+    @Test
+    void rejectsValuesLongerThanTheMaximumLength() throws Exception {
+        String longValue = "x".repeat(256);
+        mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + longValue + "\",\"code\":\"" + longValue + "\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(2));
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void rejectsMissingAndDeletedChains(boolean deleted) throws Exception {

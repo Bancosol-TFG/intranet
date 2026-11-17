@@ -1,6 +1,6 @@
 # Localidades
 
-El módulo `territory` gestiona localidades en la tabla `localities`. El recurso expone `id`, `name` y `postalCode`. El nombre y el código postal son obligatorios y no pueden estar vacíos ni contener solo espacios. El código postal se conserva como texto para admitir ceros iniciales y formatos distintos; no se aplica una expresión regular ni una regla de unicidad.
+El módulo `territory` gestiona localidades en la tabla `localities`. El recurso expone `id`, `name` y `postalCode`. El nombre y el código postal son obligatorios y no pueden estar vacíos ni contener solo espacios. El nombre admite hasta 255 caracteres. El código postal se conserva como texto para admitir ceros iniciales y debe tener exactamente 5 dígitos; no se aplica una regla de unicidad.
 
 ## API
 
@@ -18,7 +18,7 @@ Envía `{"name":"Madrid","postalCode":"28001"}` para crear o actualizar.
 
 El borrado es lógico: las localidades borradas no aparecen en listados ni están disponibles para detalle, edición o borrado. La tabla conserva `created_at`, `updated_at` y `deleted_at`.
 
-- 400: falta el nombre o el código postal, o está vacío o compuesto solo por espacios.
+- 400: falta el nombre o el código postal, está vacío o compuesto solo por espacios, el nombre supera 255 caracteres o el código postal no tiene 5 dígitos.
 - 404: localidad inexistente o borrada.
 
 Los endpoints exigen un token de acceso válido (ver [autenticación](autenticacion.md)). Esta entrega no establece roles permanentes. No se puede dar de baja una localidad utilizada por colaboradores o tiendas activos: la API responde 409.

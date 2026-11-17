@@ -121,6 +121,13 @@ class ZoneIntegrationTests {
         mockMvc.perform(delete("/zones/{zoneId}", 987654321)).andExpect(status().isNotFound());
     }
 
+    @Test
+    void rejectsValuesLongerThanTheMaximumLength() throws Exception {
+        String longValue = "x".repeat(256);
+        mockMvc.perform(post("/zones").contentType(MediaType.APPLICATION_JSON).content(body(longValue, longValue)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(2));
+    }
+
     private String uniqueValue() {
         return UUID.randomUUID().toString();
     }

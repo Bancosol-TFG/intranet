@@ -33,7 +33,7 @@ class LocalityIntegrationTests {
     @Test
     void createsReadsAndUpdatesLocality() throws Exception {
         String name = uniqueValue();
-        String postalCode = uniqueValue();
+        String postalCode = "29001";
         String response = mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON)
                         .content(body(name, postalCode)))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber())
@@ -79,14 +79,16 @@ class LocalityIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.page.totalElements").value(0));
         mockMvc.perform(get("/localities/{localityId}", localityId)).andExpect(status().isNotFound());
         mockMvc.perform(put("/localities/{localityId}", localityId).contentType(MediaType.APPLICATION_JSON)
-                        .content(body(uniqueValue(), uniqueValue())))
+                        .content(body(uniqueValue(), "29001")))
                 .andExpect(status().isNotFound());
         mockMvc.perform(delete("/localities/{localityId}", localityId)).andExpect(status().isNotFound());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"{}", "{\"name\":null,\"postalCode\":\"123\"}",
-            "{\"name\":\"\",\"postalCode\":\"123\"}", "{\"name\":\"Town\",\"postalCode\":\"   \"}"})
+            "{\"name\":\"\",\"postalCode\":\"123\"}", "{\"name\":\"Town\",\"postalCode\":\"   \"}",
+            "{\"name\":\"Town\",\"postalCode\":\"2900\"}", "{\"name\":\"Town\",\"postalCode\":\"290011\"}",
+            "{\"name\":\"Town\",\"postalCode\":\"29O01\"}"})
     void rejectsMissingOrBlankRequiredValues(String payload) throws Exception {
         mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isBadRequest());
@@ -119,6 +121,27 @@ class LocalityIntegrationTests {
         assertThat(firstId).isNotEqualTo(secondId);
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM localities WHERE name = ? AND postal_code = ?",
                 Integer.class, "Small Town", "00123")).isEqualTo(2);
+    }
+
+    @Test
+    void describesEachInvalidFieldInTheErrorResponse() throws Exception {
+        mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON)
+                        .content(body("x".repeat(256), "ABCDE")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[?(@.field == 'name')]").exists())
+                .andExpect(jsonPath("$.errors[?(@.field == 'postalCode')]").exists());
+    }
+
+    @Test
+    void describesMalformedRequestBodies() throws Exception {
+        mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON).content("{\"name\":"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.length()").value(0));
+        mockMvc.perform(post("/campaigns").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"C\",\"campaignTypeId\":1,\"startDate\":\"no-date\",\"endDate\":\"2026-12-01\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("startDate"));
     }
 
     private String uniqueValue() {

@@ -38,6 +38,7 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
 
 - Identifiers and code in English. Do not write comments; names must explain the code.
 - Constants in `UPPER_SNAKE_CASE`, at the top of the file, right below the imports.
+- Every request DTO declares Jakarta Validation constraints for each field, matching the domain model and the database schema: required values, maximum lengths (255 for text unless the column says otherwise), formats, positive reference ids, and cross-field rules. Reuse the shared constraints in `es.bancosol.api.common.validation` (`@ShortText`, `@PhoneNumber`) instead of repeating limits or patterns, and report cross-field rules on the affected field with a class-level validator. Controllers receive the DTO with `@Valid`, and tests cover valid and invalid input (see ADR-0023).
 - `camelCase` for functions and variables, with descriptive names. Do not use one-letter names.
 - Keep functions short, reusable, and with a single clear responsibility.
 - Keep the code of the three developers consistent with each other.

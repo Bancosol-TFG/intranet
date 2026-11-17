@@ -371,6 +371,18 @@ class ScheduleExceptionIntegrationTests {
                 .andExpect(jsonPath("$.date").value(DATE.toString()));
     }
 
+    @Test
+    void reportsTheInconsistentTimeFields() throws Exception {
+        Store store = store();
+        mockMvc.perform(post(path(store)).contentType(MediaType.APPLICATION_JSON).content(body(DATE, true, "10:00", null)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].field").value("openingTime"));
+        mockMvc.perform(post(path(store)).contentType(MediaType.APPLICATION_JSON).content(body(DATE, false, null, null)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[?(@.field == 'openingTime')]").exists())
+                .andExpect(jsonPath("$.errors[?(@.field == 'closingTime')]").exists());
+    }
+
     private String path(Store store) {
         return "/stores/" + store.getId() + "/schedule-exceptions";
     }
