@@ -298,7 +298,8 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 .layout { transition: grid-template-columns .15s ease; }
 .layout.collapsed { grid-template-columns: 64px 1fr; }
 .layout.collapsed .sidebar { padding-inline: 8px; align-items: center; }
-.layout.collapsed .lbl, .layout.collapsed .nav-label, .layout.collapsed .nav-campaign, .layout.collapsed .nav .count, .layout.collapsed .brand-mark { display: none; }
+.layout.collapsed .lbl, .layout.collapsed .nav-campaign, .layout.collapsed .nav .count, .layout.collapsed .brand-mark { display: none; }
 .layout.collapsed .side-toggle { margin: 0; }
 .layout.collapsed .nav { justify-content: center; padding-inline: 0; width: 40px; }
 .layout.collapsed .nav-tree { margin-left: 0; padding-left: 0; border-left: 0; padding-top: 6px; border-top: 1px solid var(--border); }
+.layout.collapsed .nav-label { font-size: 0; height: 1px; width: 32px; padding: 0; margin: 6px auto; background: var(--border); }
