@@ -13,7 +13,7 @@ window.Flows = (() => {
       ['admin', 'Confirmar a mano las cadenas sin código', 'PDF o email sin identificador: alta manual y confirmación.', 'campanas'] ] },
     { t: 'Colaboradores', i: 'building', steps: [
       ['admin', 'Dar de alta y validar colaboradores', 'En un paso: datos, contactos, coordinación y cuenta del responsable. Coordinación puede proponer altas.', 'colaboradores'],
-      ['coord', 'Confirmar su participación', 'Copiados de la campaña anterior como «Por llamar»; se marcan Confirmado o No participa.', 'colaboradores'],
+      ['coord', 'Confirmar su participación', 'Copiados de la campaña anterior como «Pendiente»; se marcan Confirmado o No participa.', 'colaboradores'],
       ['coord', 'Contactar con sus colaboradores', 'Cada coordinador solo ve los suyos en las campañas planificadas o activas.', 'colaboradores'],
       ['coord', 'Asignar tiendas al colaborador', 'En cada campaña. Su responsable gestiona los turnos de esas tiendas.', 'colaboradores'] ] },
     { t: 'Voluntarios', i: 'users', steps: [

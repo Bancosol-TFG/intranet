@@ -41,7 +41,7 @@ window.Views = (() => {
   const storeShifts = (sid, cid) => DB.shifts.filter(s => s.store === sid && (!cid || s.campaign === cid));
   const groupShifts = gid => DB.shifts.filter(s => s.assignments.some(a => a.kind === 'group' && a.group === gid));
 
-  const COLLAB_STATUSES = ['Confirmado', 'Por llamar', 'No participa'];
+  const COLLAB_STATUSES = ['Confirmado', 'Pendiente', 'No participa'];
   const collabPart = (c, cid = activeCampaign().id) => DB.collabParticipation.find(p => p.collab === c.id && p.campaign === cid);
   const linkCollab = c => { if (Object.getOwnPropertyDescriptor(c, 'coords')?.get) return c;
     const ensure = () => collabPart(c) || (DB.collabParticipation.push({ id: Math.max(0, ...DB.collabParticipation.map(p => p.id)) + 1, collab: c.id, campaign: activeCampaign().id, coords: [], stores: [], status: 'Confirmado' }), collabPart(c));
@@ -147,7 +147,7 @@ window.Views = (() => {
     }
     if (u.role === 'coord') {
       return `${pageHead(`Hola, ${first}`, 'Tus zonas, tus colaboradores y los turnos que quedan por cubrir.', btn('Asignar turnos', { kind: 'primary', icon: 'clock', act: 'go', data: 'data-to="turnos"' }))}
-        ${campaignDay}${pendingCard([uncoveredTodo, reportsTodo, ...scope.collabs(S).filter(x => collabPart(x)?.status === 'Por llamar').map(x => todo('phone', `Llamar a ${R.collab(x.id)}`, `Confirma si participa en ${esc(c.code)}.`, btn('Ver', { size: 'sm', act: 'go', data: `data-to="colaboradores/${x.id}"` }))), ...scope.collabs(S).filter(x => x.status !== 'Validado').map(x => todo('building', `${R.collab(x.id)} pendiente de validar`, 'Administración debe validarlo antes de asignarle turnos.', ''))])}
+        ${campaignDay}${pendingCard([uncoveredTodo, reportsTodo, ...scope.collabs(S).filter(x => collabPart(x)?.status === 'Pendiente').map(x => todo('phone', `Llamar a ${R.collab(x.id)}`, `Confirma si participa en ${esc(c.code)}.`, btn('Ver', { size: 'sm', act: 'go', data: `data-to="colaboradores/${x.id}"` }))), ...scope.collabs(S).filter(x => x.status !== 'Validado').map(x => todo('building', `${R.collab(x.id)} pendiente de validar`, 'Administración debe validarlo antes de asignarle turnos.', ''))])}
         ${hero}<div class="grid g-main"><div class="stack">${urgent}${feed(S)}</div>
         <div class="card"><div class="card-head"><h2>Tus colaboradores</h2><span class="small muted">a quién llamar</span></div>${scope.collabs(S).map(x => { const p = mainContact(x.id); return `<div class="list-item">${avatar(x.name, 'sm')}<div style="flex:1"><b class="small">${R.collab(x.id)}</b><div class="small muted">${esc(p?.name || '—')} · ${icon('phone')} ${esc(p?.phone || '')}</div></div>${badge(x.status, x.status === 'Validado' ? 'ok' : 'warn')}</div>`; }).join('')}</div></div>`;
     }
@@ -204,7 +204,7 @@ window.Views = (() => {
         ${table([{ label: 'Colaborador', render: p => R.collab(p.collab) }, { label: 'Localidad', render: p => R.loc(byId(DB.collabs, p.collab).locality) },
           { label: 'Estado', render: p => c.status === 'Finalizada' ? badge(p.status || 'Confirmado') : `<select class="input inline" data-act-change="part-status" data-id="${p.id}">${COLLAB_STATUSES.map(x => `<option ${(p.status || 'Confirmado') === x ? 'selected' : ''}>${x}</option>`).join('')}</select>` },
           { label: 'Fase', render: p => { const s0 = p.status || 'Confirmado', vols = DB.volunteers.filter(v => v.collab === p.collab).length, asg = sh.some(s => s.assignments.some(a => (a.kind === 'group' && byId(DB.groups, a.group)?.collab === p.collab) || a.collab === p.collab));
-            const [l, tone] = s0 === 'Por llamar' ? ['Invitada', 'warn'] : s0 === 'No participa' ? ['No participa', ''] : asg ? ['Con turnos', 'ok'] : vols ? ['Con voluntarios', 'info'] : ['Aceptada · sin voluntarios', 'warn']; return badge(l, tone); } },
+            const [l, tone] = s0 === 'Pendiente' ? ['Invitada', 'warn'] : s0 === 'No participa' ? ['No participa', ''] : asg ? ['Con turnos', 'ok'] : vols ? ['Con voluntarios', 'info'] : ['Aceptada · sin voluntarios', 'warn']; return badge(l, tone); } },
           { label: 'Coordinación', render: p => (p.coords || []).map(R.user).join(', ') || '<span class="faint small">—</span>' },
           { label: 'Grupos', render: p => DB.groups.filter(g => g.collab === p.collab).map(g => R.group(g.id)).join(', ') || '<span class="faint small">—</span>' },
           { label: 'Turnos asignados', render: p => sh.filter(s => s.assignments.some(a => a.collab === p.collab || (a.kind === 'group' && byId(DB.groups, a.group)?.collab === p.collab) || (a.kind === 'vol' && byId(DB.volunteers, a.vol)?.collab === p.collab))).length },
@@ -219,7 +219,7 @@ window.Views = (() => {
         return `<div class="list-item"><div style="flex:1"><b>${R.zone(z.id)}</b><div class="small muted">${zs.length} turnos · ${coordsOfZone(z.id, c.id).map(R.user).join(', ') || 'sin coordinador'}</div></div><div style="width:220px">${progress(p, p >= 100 ? 'ok' : p < 40 ? 'danger' : 'warn')}</div><b style="width:44px;text-align:right">${p}%</b></div>`; }).join('')}</div>`;
     /* Ficha en tres pestañas: preparación o resumen, tiendas y equipo. Las rutas antiguas se redirigen. */
     tab = ({ coordinacion: 'equipo', colaboradores: 'equipo', calendario: 'resumen', listados: 'tiendas' })[tab] || tab;
-    const ps = DB.collabParticipation.filter(p => p.campaign === c.id), toCall = ps.filter(p => (p.status || 'Confirmado') === 'Por llamar').length;
+    const ps = DB.collabParticipation.filter(p => p.campaign === c.id), toCall = ps.filter(p => (p.status || 'Confirmado') === 'Pendiente').length;
     const zonesNoCoord = DB.zones.filter(z => DB.stores.some(s => s.zone === z.id) && !coordsOfZone(z.id, c.id).length).length;
     const pend = DB.stores.filter(s => !s.archived && part(c, s.id) === 'Pendiente').length, partic = Object.values(c.participation).filter(v => v === true).length;
     const noList = DB.chains.filter(ch => ch.hasCode && !c.sources.some(x => x.chain === ch.id)).length;
@@ -443,7 +443,7 @@ window.Views = (() => {
       </div><div class="stack">
         <div class="card"><div class="card-head"><div><h2>Coordinación en ${esc(activeCampaign().code)}</h2><div class="small muted">Puede cambiar de una campaña a otra</div></div>${admin ? btn('', { kind: 'ghost', size: 'sm', icon: 'edit', act: 'edit', data: `data-entity="collabs" data-id="${c.id}"` }) : ''}</div>${c.coords.length ? c.coords.map(i => `<div class="list-item">${avatar(user(i).name, 'sm')}<div>${R.user(i)}<div class="small muted">${zonesOf(i).map(R.zone).join(', ')}</div></div></div>`).join('') : `<div class="card-pad small muted">Sin coordinador. Asigna uno para que lo contacte.</div>`}</div>
         <div class="card"><div class="card-head"><div><h2>Tiendas en ${esc(activeCampaign().code)}</h2><div class="small muted">Las asigna coordinación en cada campaña; su responsable gestiona los turnos</div></div>${admin || S.user.role === 'coord' ? btn('', { kind: 'ghost', size: 'sm', icon: 'edit', act: 'edit', data: `data-entity="collabStores" data-id="${c.id}"` }) : ''}</div>${c.stores.length ? c.stores.map(sid => `<div class="list-item"><span class="dot"></span><div style="flex:1">${R.store(sid)}<div class="small muted">${esc(storeSub(byId(DB.stores, sid)))}</div></div></div>`).join('') : '<div class="card-pad small muted">Coordinación le asigna los turnos directamente.</div>'}</div>
-        <div class="card"><div class="card-head"><h2>Campañas</h2></div>${camps.filter(p => isRole('admin') || byId(DB.campaigns, p.campaign).status !== 'Finalizada').map(p => `<div class="list-item"><span class="dot"></span><span style="flex:1">${R.campaign(p.campaign)}</span>${badge(p.status || 'Confirmado', { Confirmado: 'ok', 'Por llamar': 'warn', 'No participa': '' }[p.status || 'Confirmado'])}</div>`).join('') || '<div class="card-pad small muted">Aún no ha participado.</div>'}</div>
+        <div class="card"><div class="card-head"><h2>Campañas</h2></div>${camps.filter(p => isRole('admin') || byId(DB.campaigns, p.campaign).status !== 'Finalizada').map(p => `<div class="list-item"><span class="dot"></span><span style="flex:1">${R.campaign(p.campaign)}</span>${badge(p.status || 'Confirmado', { Confirmado: 'ok', 'Pendiente': 'warn', 'No participa': '' }[p.status || 'Confirmado'])}</div>`).join('') || '<div class="card-pad small muted">Aún no ha participado.</div>'}</div>
         <div class="card card-pad"><h2 style="margin-bottom:12px">Dónde colabora</h2><div class="row wrap">${c.localities.map(l => `<span class="chip" style="padding-right:10px">${R.loc(l)}</span>`).join('')}</div></div>
         ${auditCard('collabs', c.id)}
       </div></div>`;
@@ -537,9 +537,9 @@ window.Views = (() => {
   function usuarios(S, tab = 'usuarios') {
     const body = tab === 'roles' ? `
       <div class="grid g-4" style="margin-bottom:20px">${DB.roles.map(r => `<div class="card card-pad"><div class="row" style="margin-bottom:10px"><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b></div><div class="small muted">${esc(r.desc)}</div><div class="small faint" style="margin-top:12px">${DB.users.filter(u => u.role === r.id).length} usuarios</div></div>`).join('')}</div>
-      <div class="card"><div class="card-head"><div><h2>Matriz de permisos</h2><div class="small muted">role_permission · Los voluntarios no tienen acceso.</div></div></div>
+      <div class="card"><div class="card-head"><div><h2>Matriz de permisos</h2><div class="small muted">Solo lectura · Los voluntarios no tienen acceso.</div></div>${btn('Editar permisos', { icon: 'lock', act: 'perm-edit' })}</div>
         <div class="table-wrap"><table class="matrix"><thead><tr><th>Permiso</th>${DB.roles.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>
-        ${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td><input type="checkbox" class="check" data-act="perm" data-role="${r.id}" data-perm="${k}" ${DB.rolePerms[r.id].includes(k) ? 'checked' : ''} ${r.id === 'admin' ? 'disabled' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div></div>` : `
+        ${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td>${DB.rolePerms[r.id].includes(k) ? `<span style="color:var(--ok)">${icon('check')}</span>` : '<span class="faint">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>` : `
       <div class="card">${table([
         { label: 'Usuario', render: r => `<div class="cell-main">${avatar(r.name)}<div>${R.user(r.id)}${r.id === S.user.id ? ' <span class="badge brand plain">Tú</span>' : ''}<small>${esc(r.email)}</small></div></div>` },
         { label: 'Rol', render: r => `<span class="row small"><span class="dot" style="background:${role(r.role).color}"></span>${esc(role(r.role).name)}</span>` },

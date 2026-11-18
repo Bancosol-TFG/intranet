@@ -57,6 +57,28 @@ window.Shifts = (() => {
       ], rows.map(r => ({ ...r, id: r.st.id })))}</div>`;
   }
 
+  /* Panel derecho de la vista dividida: candidatos compatibles con el turno seleccionado; se arrastran al turno o se asignan con un clic */
+  function sidePanel(S, c, sh) {
+    const s = sh.find(x => x.id === S.f.sel);
+    if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno del calendario para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
+    const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
+    const q = (S.f.pq || '').toLowerCase(), free = s.capacity - H().filled(s);
+    const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && g.code.toLowerCase().includes(q));
+    const vols = H().scope.volunteers(S).filter(v => !v.blocked && !busy(a => a.kind === 'vol' && a.vol === v.id) && v.name.toLowerCase().includes(q));
+    const byCollab = {}; groups.forEach(g => (byCollab[g.collab] ||= []).push(g));
+    const item = (kind, ref, title, sub) => `<div class="pick" draggable="true" data-drag-kind="${kind}" data-drag-ref="${ref}" data-act="do-assign" data-id="${s.id}" data-kind="${kind}" data-ref="${ref}"><div style="flex:1"><b class="small">${esc(title)}</b><div class="small muted">${sub}</div></div>${icon('plus')}</div>`;
+    return `<aside class="card card-pad side-pick"><div class="row"><h3 style="margin:0">${esc(s.date)} · ${s.start}–${s.end}</h3><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
+      <p class="small muted">${free > 0 ? `Faltan ${free} personas` : 'Turno completo'} · solo aparecen los libres en esta franja. Arrastra al turno o pulsa para asignar.</p>
+      <input class="input" placeholder="Filtrar por nombre…" data-filter="pq" value="${esc(S.f.pq || '')}">
+      ${Object.entries(byCollab).map(([cid, gs]) => `<details open><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} grupos</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
+      <details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, v.name, esc(v.phone))).join('')}</details></aside>`;
+  }
+  /* Arrastrar candidatos del panel a un turno del calendario */
+  document.addEventListener('dragstart', e => { const el = e.target.closest?.('[data-drag-kind]'); if (el) e.dataTransfer.setData('text/plain', JSON.stringify({ kind: el.dataset.dragKind, ref: el.dataset.dragRef })); });
+  document.addEventListener('dragover', e => { if (e.target.closest?.('.cal-shift')) e.preventDefault(); });
+  document.addEventListener('drop', e => { const t = e.target.closest?.('.cal-shift'); if (!t) return; e.preventDefault();
+    const d = JSON.parse(e.dataTransfer.getData('text/plain') || '{}'); const tmp = Object.assign(document.createElement('div'), { hidden: true }); tmp.dataset.act = 'do-assign'; tmp.dataset.id = t.dataset.id; tmp.dataset.kind = d.kind; tmp.dataset.ref = d.ref; document.body.append(tmp); tmp.click(); tmp.remove(); });
+
   function calendar(S, c, stores) {
     if (!stores.length) return `<div class="card">${empty('Sin tiendas', 'No hay tiendas con turnos en tu ámbito para esta campaña.')}</div>`;
     const st = stores.find(x => String(x.id) === String(S.f.store)) || stores[0];
@@ -68,7 +90,7 @@ window.Shifts = (() => {
       const wd = (new Date(date + 'T12:00').getDay() + 6) % 7 + 1, t = DB.schedules.filter(h => h.store === st.id && h.week_day === wd); return t.length ? t : null; };
     const top = t => (toMinutes(t) - HOUR_FROM * 60) / 60 * HOUR_PX;
     const block = s => { const o = over(s), tone = o > 0 ? 'over' : ({ 'Sin cubrir': 'low', Parcial: 'part', Cubierto: 'full' })[H().coverage(s)];
-      return `<div class="cal-shift ${tone}" style="top:${top(s.start)}px;height:${Math.max(28, top(s.end) - top(s.start))}px" data-act="shift-open" data-id="${s.id}">
+      return `<div class="cal-shift ${tone} ${S.f.sel === s.id ? 'selected' : ''}" style="top:${top(s.start)}px;height:${Math.max(28, top(s.end) - top(s.start))}px" data-act="shift-open" data-id="${s.id}">
         ${canEdit ? '<i class="cal-grip top" data-grip="top"></i><i class="cal-grip bottom" data-grip="bottom"></i>' : ''}
         <div class="row small"><b>${s.start}–${s.end}</b><span class="spacer"></span>${H().filled(s)}/${s.capacity}${o > 0 ? ' ' + icon('alert') : ''}</div>
         <div class="small cal-asg">${s.assignments.map(a => esc(H().asgText(a)) + (a.kind !== 'vol' ? ` (${H().asgPeople(a)})` : '') + (a.kind === 'group' && a.people && !a.members ? ' · falta elegir' : '')).join(', ') || 'Sin asignar'}</div></div>`; };
@@ -84,9 +106,9 @@ window.Shifts = (() => {
         <span class="small muted">${esc(H().storeSub(st))} · ${H().R.zone(st.zone)} · ${st.checkout_shelfs} ${st.checkout_shelfs === 2 ? 'líneas' : 'línea'} de caja${H().can(S, 'history.last') && DB.history[st.id] ? ` · anterior: ${H().R.collab(DB.history[st.id])}` : ''}</span>
         <span class="spacer"></span>${someoneElse ? `<span class="presence small" title="Simulación de presencia en tiempo real"><span class="dot" style="background:var(--ok)"></span>${esc(someoneElse.name)} también está en esta tienda</span>` : ''}</div>
         ${lastEdit ? `<div class="small faint" style="padding:0 16px 12px">Último cambio: ${H().R.user(lastEdit.editedBy)}, ${esc(lastEdit.editedAt)}. Los cambios de otros usuarios aparecen al momento.</div>` : ''}</div>
-      <div class="card cal"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d, { day: 'numeric' })}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
+      <div class="split"><div style="min-width:0"><div class="card cal"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d, { day: 'numeric' })}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
         <div class="cal-body" data-can="${canEdit ? 1 : 0}" data-store="${st.id}" data-c="${c.id}" style="height:${(HOUR_TO - HOUR_FROM) * HOUR_PX}px"><div class="cal-hours">${Array.from({ length: HOUR_TO - HOUR_FROM }, (_, i) => `<div style="height:${HOUR_PX}px">${String(HOUR_FROM + i).padStart(2, '0')}:00</div>`).join('')}</div>${days.map(col).join('')}</div></div>
-      <div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div>`;
+      <div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div></div>${sidePanel(S, c, sh)}</div>`;
   }
 
   /* ---------- Modales ---------- */
@@ -120,7 +142,8 @@ window.Shifts = (() => {
   /* ---------- Acciones ---------- */
   const actions = (S, render) => ({
     'cal-store': d => { S.f.store = d.id; S.f.tab = 'calendario'; render(); },
-    'shift-open': d => shiftModal(S, d.id),
+    'shift-open': d => { S.f.sel = Number(d.id); render(); },
+    'shift-detail': d => shiftModal(S, d.id),
     'shift-new': d => newShiftModal(d),
     'shift-preset': d => { const st = H().byId(DB.stores, document.querySelector('[data-act="shift-create"]').dataset.store), h = DB.schedules.find(x => x.store === st.id) || { open: '09:00', close: '21:30' };
       const [a, b] = d.v === 'morning' ? [h.open, DB.settings.morningEnd] : [DB.settings.afternoonStart, h.close]; document.getElementById('ns-start').value = a; document.getElementById('ns-end').value = b; },

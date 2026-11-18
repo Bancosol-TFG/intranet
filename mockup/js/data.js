@@ -124,7 +124,7 @@ window.DB = (() => {
     { campaign: 3, zone: 1, user: 3 }, { campaign: 3, zone: 4, user: 2 },
   ];
   /* collaborator_participation (collaborator_id, campaign_id) */
-  const collabParticipation = [[2, 1], [3, 1], [4, 1], [5, 1], [1, 1], [2, 3], [4, 3], [5, 3], [1, 3]].map(([collab, campaign], i) => { const c = collabs.find(x => x.id === collab); return { id: i + 1, collab, campaign, coords: [...c.coords], stores: campaign === 1 ? [...c.stores] : [], status: campaign === 1 && collab === 4 ? 'Por llamar' : 'Confirmado' }; });
+  const collabParticipation = [[2, 1], [3, 1], [4, 1], [5, 1], [1, 1], [2, 3], [4, 3], [5, 3], [1, 3]].map(([collab, campaign], i) => { const c = collabs.find(x => x.id === collab); return { id: i + 1, collab, campaign, coords: [...c.coords], stores: campaign === 1 ? [...c.stores] : [], status: campaign === 1 && collab === 4 ? 'Pendiente' : 'Confirmado' }; });
   collabs.forEach(c => { c.pendingCoords = c.status === 'Validado' ? [] : [...c.coords]; delete c.coords; delete c.stores; });
   /* Cobertura en la campaña anterior (derivable de shift_assignment de GR2025). */
   const history = { 1: 2, 2: 1, 3: 2, 4: 2, 5: 3, 6: 5, 9: 4, 10: 5, 11: 1 };

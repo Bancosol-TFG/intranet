@@ -1,9 +1,9 @@
 /* Asistente de creación de campañas:
-   1) Datos y copia  2) Días  3) Coordinación por zona  4) Colaboradores  5) Tiendas */
+   1) Datos y copia  2) Días  3) Colaboradores  4) Tiendas  5) Coordinación (opcional)  6) Resumen */
 window.CampaignWizard = (() => {
   const { esc, icon, btn } = UI;
   const H = () => Views.helpers;
-  const STEPS = ['Datos', 'Días', 'Coordinación', 'Colaboradores', 'Tiendas'];
+  const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación (opcional)', 'Resumen'];
   const fresh = () => ({ step: 1, data: { name: '', type: 1, code: '', start: '', end: '', copyFrom: '', copy: ['zones', 'collabs', 'stores'] }, days: [], zones: {}, collabs: [], storesMode: 'pending' });
   let W = fresh();
 
@@ -28,11 +28,11 @@ window.CampaignWizard = (() => {
     ${datesBetween(W.data.start, W.data.end).map(d => check('day', d, W.days.includes(d), fmt(d))).join('')}`;
 
   const stepZones = () => { const coords = DB.users.filter(u => u.role === 'coord');
-    return `<p class="small muted" style="margin-top:0">${copies('zones') ? `Copiado de ${esc(source().code)}. ` : ''}Puede quedar alguna zona sin coordinador y asignarse después.</p>
+    return `<p class="small muted" style="margin-top:0">${copies('zones') ? `Vista previa copiada de ${esc(source().code)}: revísala antes de crear. ` : 'Paso opcional: puedes saltarlo y asignar la coordinación después, por lotes o por zona. '}</p>
       <div class="table-wrap"><table><thead><tr><th>Zona</th>${coords.map(u => `<th>${esc(u.name)}</th>`).join('')}</tr></thead><tbody>
       ${DB.zones.map(z => `<tr><td><b>${esc(z.name)}</b> <span class="small faint">${esc(z.code)}</span></td>${coords.map(u => `<td><input type="checkbox" class="check" name="zone-${z.id}" value="${u.id}" ${(W.zones[z.id] || []).includes(u.id) ? 'checked' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>`; };
 
-  const stepCollabs = () => `<p class="small muted" style="margin-top:0">${copies('collabs') ? `Copiado de ${esc(source().code)}. ` : ''}Solo aparecen colaboradores validados. Entran como «Por llamar»: coordinación confirma si participan.</p>
+  const stepCollabs = () => `<p class="small muted" style="margin-top:0">${copies('collabs') ? `Copiado de ${esc(source().code)}. ` : ''}Solo aparecen colaboradores validados. Entran como «Pendiente»: coordinación confirma si participan o no.</p>
     ${DB.collabs.filter(c => c.status === 'Validado').map(c => check('collab', c.id, W.collabs.includes(c.id), esc(c.name), esc(c.type))).join('')}`;
 
   const stepStores = () => { const src = source(), confirmed = src ? Object.values(src.participation).filter(v => v === true).length : 0;
@@ -41,22 +41,31 @@ window.CampaignWizard = (() => {
       ${src && W.data.copy.includes('stores') ? radio('copy', `Copiar participación de ${esc(src.code)}`, `${confirmed} tiendas participaron en esa campaña y entran como «Participa».`) : ''}
       <div class="card card-pad small muted" style="margin-top:16px;background:var(--info-bg);border-color:transparent">${icon('alert')} La campaña se crea como <b>Planificada</b>. Se activa desde su ficha.</div>`; };
 
-  const view = () => { const body = [stepData, stepDays, stepZones, stepCollabs, stepStores][W.step - 1]();
+  const stepSummary = () => { const free = DB.zones.filter(z => !(W.zones[z.id] || []).length), src = source();
+    const stores = W.storesMode === 'copy' && src ? Object.values(src.participation).filter(v => v === true).length : 0, pending = DB.stores.filter(s => !s.archived).length - stores;
+    const warn = t => `<div class="list-item">${icon('alert')}<span class="small">${t}</span></div>`;
+    return `<div class="table-wrap"><table><tbody>
+      <tr><td>Nombre</td><td><b>${esc(W.data.name)}</b> ${esc(W.data.code)}</td></tr><tr><td>Fechas</td><td>${esc(W.data.start)} → ${esc(W.data.end)} · ${W.days.length} días presenciales</td></tr>
+      <tr><td>Colaboradores</td><td>${W.collabs.length} (entran como «Pendiente»)</td></tr><tr><td>Tiendas</td><td>${stores} participan · ${pending} pendientes</td></tr>
+      <tr><td>Coordinación</td><td>${DB.zones.length - free.length} de ${DB.zones.length} zonas asignadas</td></tr></tbody></table></div>
+      <div class="stack" style="margin-top:12px">${free.length ? warn(`${free.length} zonas sin coordinador: ${free.map(z => esc(z.name)).join(', ')}`) : ''}${pending ? warn(`${pending} tiendas quedan pendientes de confirmar participación`) : ''}</div>`; };
+
+  const view = () => { const body = [stepData, stepDays, stepCollabs, stepStores, stepZones, stepSummary][W.step - 1]();
     return `<div class="row" style="margin-bottom:16px">${btn('Campañas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'cw-cancel' })}</div>
       ${UI.pageHead('Nueva campaña', 'Asistente por pasos. Puedes copiar la configuración de una campaña anterior.')}
       <div class="stepper">${STEPS.map((s, i) => `<div class="step ${W.step === i + 1 ? 'active' : W.step > i + 1 ? 'done' : ''}"><span>${W.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>
       <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack">${body}</form></div>
       <div class="row" style="margin-top:16px">${W.step > 1 ? btn('Anterior', { icon: 'back', act: 'cw-back' }) : ''}<span class="spacer"></span>
-        ${W.step < STEPS.length ? btn('Siguiente', { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
+        ${W.step === 5 ? btn('Saltar', { kind: 'ghost', act: 'cw-skip' }) : ''}${W.step < STEPS.length ? btn('Siguiente', { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
 
   const readStep = form => { const fd = new FormData(form);
     if (W.step === 1) { const prevCopy = `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`;
       Object.assign(W.data, { name: fd.get('name'), type: Number(fd.get('type')), code: fd.get('code'), start: fd.get('start'), end: fd.get('end'), copyFrom: fd.get('copyFrom'), copy: fd.getAll('copy') });
       if (prevCopy !== `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`) applyDefaults(); }
     if (W.step === 2) W.days = fd.getAll('day');
-    if (W.step === 3) W.zones = Object.fromEntries(DB.zones.map(z => [z.id, fd.getAll(`zone-${z.id}`).map(Number)]));
-    if (W.step === 4) W.collabs = fd.getAll('collab').map(Number);
-    if (W.step === 5) W.storesMode = fd.get('storesMode') || 'pending'; };
+    if (W.step === 5) W.zones = Object.fromEntries(DB.zones.map(z => [z.id, fd.getAll(`zone-${z.id}`).map(Number)]));
+    if (W.step === 3) W.collabs = fd.getAll('collab').map(Number);
+    if (W.step === 4) W.storesMode = fd.get('storesMode') || 'pending'; };
 
   const applyDefaults = () => { const src = source();
     W.days = weekendDays(datesBetween(W.data.start, W.data.end));
@@ -69,7 +78,7 @@ window.CampaignWizard = (() => {
     DB.campaigns.push({ id, type: W.data.type, code: W.data.code, name: W.data.name, start: W.data.start, end: W.data.end, days: [...W.days].sort(), exceptions: [], status: 'Planificada', participation, reasons: {}, sources: [] });
     Object.entries(W.zones).forEach(([zone, users]) => users.forEach(user => DB.zoneAssignments.push({ campaign: id, zone: Number(zone), user })));
     let pid = Math.max(0, ...DB.collabParticipation.map(p => p.id));
-    W.collabs.forEach(collab => { const prev = src && DB.collabParticipation.find(p => p.collab === collab && p.campaign === src.id); DB.collabParticipation.push({ id: ++pid, collab, campaign: id, coords: [...(prev?.coords || [])], stores: [...(prev?.stores || [])], status: 'Por llamar' }); });
+    W.collabs.forEach(collab => { const prev = src && DB.collabParticipation.find(p => p.collab === collab && p.campaign === src.id); DB.collabParticipation.push({ id: ++pid, collab, campaign: id, coords: [...(prev?.coords || [])], stores: [...(prev?.stores || [])], status: 'Pendiente' }); });
     return id; };
 
   const actions = (render, go, toast) => ({
@@ -79,7 +88,8 @@ window.CampaignWizard = (() => {
       if (W.step === 1 && W.data.end < W.data.start) return toast('La fecha de fin no puede ser anterior a la de inicio');
       if (W.step === 2 && !W.days.length) return toast('Marca al menos un día presencial');
       W.step++; render(); },
-    'cw-finish': () => { readStep(document.getElementById('cw-form')); const id = create(), name = W.data.name; W = fresh(); go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
+    'cw-skip': () => { W.zones = {}; W.step++; render(); },
+    'cw-finish': () => { const id = create(), name = W.data.name; W = fresh(); go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
   });
 
   return { view, actions, reset: () => { W = fresh(); } };
