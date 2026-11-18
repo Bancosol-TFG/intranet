@@ -23,22 +23,17 @@
     { k: 'grupos', l: 'Grupos', i: 'users', roles: 'admin coord rcol', group: 'Campaña actual' },
     { k: 'incidencias', l: 'Incidencias', i: 'alert', roles: 'admin coord rcol rtienda', group: 'Campaña actual', count: () => { const ids = new Set(scope.shifts(S, Views.helpers.activeCampaign().id).map(s => s.id)); return DB.reports.filter(r => ids.has(r.shift) && !r.solved_by).length; } },
     { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol', group: 'Campaña actual' },
-    { k: 'tiendas', l: 'Tiendas', i: 'store', roles: 'admin coord', group: 'Catálogo' },
-    { k: 'colaboradores', l: 'Colaboradores', i: 'building', roles: 'admin coord', group: 'Catálogo' },
-    { k: 'voluntarios', l: 'Voluntarios', i: 'heart', roles: 'admin coord rcol', group: 'Catálogo' },
-    { k: 'catalogos', l: 'Zonas', i: 'map', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/zonas' },
-    { k: 'k-localidades', l: 'Localidades', i: 'pin', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/localidades' },
-    { k: 'k-cadenas', l: 'Cadenas', i: 'list', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/cadenas' },
-    { k: 'k-tipos', l: 'Tipos', i: 'list', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/tipos' },
+    { k: 'voluntarios', l: 'Mis voluntarios', i: 'heart', roles: 'rcol', group: 'Campaña actual' },
+    { k: 'catalogos', l: 'Catálogo', i: 'list', roles: 'admin', group: 'Administración', to: () => 'tiendas' },
     { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord', group: 'Administración' },
     { k: 'historico', l: 'Histórico', i: 'clock', roles: 'admin', group: 'Administración' },
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
     { k: 'flujos', l: 'Flujos de trabajo', i: 'route', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
   ];
-  const DETAIL = { tienda: 'admin coord rcol', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda' };
+  const DETAIL = { tiendas: 'admin coord', colaboradores: 'admin coord', voluntarios: 'admin coord rcol', tienda: 'admin coord rcol', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda' };
   const allowed = k => (DETAIL[k] || NAV.find(n => n.k === k)?.roles || '').split(' ').includes(S.user.role);
-  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), catalogos: 'Catálogo', perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios' };
+  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), catalogos: 'Catálogo', tiendas: 'Tiendas', colaboradores: 'Colaboradores', voluntarios: 'Voluntarios', perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios' };
   const PARENT = { tienda: 'tiendas', zona: 'catalogos/zonas', localidad: 'catalogos/localidades', cadena: 'catalogos/cadenas', grupo: 'grupos', voluntario: 'voluntarios', usuario: 'usuarios' };
 
   /* ---------- Esquemas de formulario: relaciones siempre como selector de objetos ---------- */
@@ -282,6 +277,7 @@
       </div></div></div>`;
   }
 
+  const isAdminCat = p => S.user?.role === 'admin' && ['tiendas', 'colaboradores', 'voluntarios', 'catalogos'].includes(p);
   function render() {
     if (!S.user) return login();
     Shifts.bind(S, render);
@@ -294,7 +290,7 @@
       usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), historico: () => V.historico(S) };
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
-    const active = exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
+    const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
     const navItem = n => { const c = n.count?.(); return `<button class="nav ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
@@ -303,7 +299,7 @@
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span>BANCOSOL</div>
-        ${groups.map(g => `${g === 'General' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign">${badge(V.helpers.activeCampaign().status)}<b>${esc(V.helpers.activeCampaign().name)}</b></div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
+        ${groups.map(g => `${g === 'General' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
@@ -316,7 +312,7 @@
             ${S.menu ? `<div class="menu"><div style="padding:8px 10px"><b>${esc(S.user.name)}</b><div class="small muted">${esc(S.user.email)}</div></div><hr>
               <button data-act="go" data-to="perfil">${icon('user')}Mi perfil</button><button data-act="go" data-to="flujos">${icon('route')}Flujos de trabajo</button>
               <button data-act="logout">${icon('users')}Cambiar de rol (demo)</button><hr><button data-act="logout" style="color:var(--danger)">${icon('logout')}Cerrar sesión</button></div>` : ''}</div>
-        </header><main class="content fade-in">${views[page]()}</main></div></div>`;
+        </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : ''}${views[page]()}</main></div></div>`;
     if (focus) { const el = app.querySelector(`[data-filter="${focus}"]`); el?.focus(); if (el?.setSelectionRange && caret != null) el.setSelectionRange(caret, caret); }
     if (S.f.focus) app.querySelector('.shift.focus')?.scrollIntoView?.({ block: 'center' });
   }

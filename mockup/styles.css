@@ -277,8 +277,7 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 /* Panel tipo Notion: lateral por defecto, ampliable a pantalla completa */
 .drawer.full { width: 100vw; }
 .drawer .row { gap: 4px; }
-.nav-campaign { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px 10px; font-size: 13px; }
-.nav-campaign .badge { align-self: flex-start; }
+.nav-campaign { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px 8px; font-size: 13px; }
 
 /* Turnos: vista dividida calendario + panel de asignación */
 .split { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
