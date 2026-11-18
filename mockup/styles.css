@@ -291,3 +291,14 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 .nav-tree { display: flex; flex-direction: column; gap: 4px; margin-left: 10px; padding-left: 4px; border-left: 2px solid var(--border); }
 .nav-tree .nav { white-space: nowrap; }
 .sidebar .brand { padding-bottom: 14px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+/* Barra lateral plegable: el botón junto a la marca deja solo los iconos */
+.sidebar .brand { display: flex; align-items: center; gap: 10px; }
+.side-toggle { margin-left: auto; }
+.layout { transition: grid-template-columns .15s ease; }
+.layout.collapsed { grid-template-columns: 64px 1fr; }
+.layout.collapsed .sidebar { padding-inline: 8px; align-items: center; }
+.layout.collapsed .lbl, .layout.collapsed .nav-label, .layout.collapsed .nav-campaign, .layout.collapsed .nav .count, .layout.collapsed .brand-mark { display: none; }
+.layout.collapsed .side-toggle { margin: 0; }
+.layout.collapsed .nav { justify-content: center; padding-inline: 0; width: 40px; }
+.layout.collapsed .nav-tree { margin-left: 0; padding-left: 0; border-left: 0; padding-top: 6px; border-top: 1px solid var(--border); }

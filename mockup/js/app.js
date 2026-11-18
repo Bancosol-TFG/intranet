@@ -7,6 +7,7 @@
   /* La sesión dura mientras la pestaña esté abierta: recargar no pide login; cerrar la pestaña o salir sí. */
   function saveSession(id) { try { if (id) sessionStorage.setItem('bs-user', String(id)); else sessionStorage.removeItem('bs-user'); } catch {} }
   try { const id = Number(sessionStorage.getItem('bs-user')); if (id) S.user = DB.users.find(u => u.id === id && u.status !== 'Inactivo') || null; } catch {}
+  try { S.collapsed = localStorage.getItem('bs-side') === '1'; } catch {}
   Views.bind(S);
   document.documentElement.dataset.theme = S.theme;
 
@@ -292,14 +293,14 @@
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
     const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
-    const navItem = n => { const c = n.count?.(); return `<button class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
+    const navItem = n => { const c = n.count?.(); return `<button title="${n.l}" class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}<span class="lbl">${n.l}</span>${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
     const sub = a && name ? name() : '';
     const parent = PARENT[page] && allowed(PARENT[page].split('/')[0]) ? PARENT[page] : page;
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
-    app.innerHTML = `<div class="layout">
-      <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span>BANCOSOL</div>
+    app.innerHTML = `<div class="layout ${S.collapsed ? 'collapsed' : ''}">
+      <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span><span class="lbl">BANCOSOL</span><button class="btn ghost icon sm side-toggle" data-act="collapse" title="${S.collapsed ? 'Mostrar' : 'Ocultar'} barra lateral">${icon('sidebar')}</button></div>
         ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${(items => g === 'Campaña actual' ? `<div class="nav-tree">${items}</div>` : items)(mine.filter(n => (n.group || 'General') === g).map(navItem).join(''))}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
@@ -328,6 +329,7 @@
     logout: () => { S.user = null; S.menu = false; saveSession(null); location.hash = ''; render(); },
     menu: () => { S.menu = !S.menu; render(); },
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = S.theme; try { localStorage.setItem('bs-theme', S.theme); } catch {} render(); },
+    collapse: () => { S.collapsed = !S.collapsed; try { localStorage.setItem('bs-side', S.collapsed ? '1' : ''); } catch {} render(); },
     side: () => document.getElementById('sidebar').classList.toggle('open'),
     'perm-edit': () => { drawer('Editar permisos', `<div class="card card-pad small" style="background:var(--danger-bg, #fde8e8);color:var(--danger);border-color:transparent;margin-bottom:16px">${icon('alert')} Cambiar permisos afecta a todos los usuarios del rol. Se hará una copia de seguridad antes de aplicar.</div>
       <div class="table-wrap"><table class="matrix"><thead><tr><th>Permiso</th>${DB.roles.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td><input type="checkbox" class="check perm-edit" data-role="${r.id}" data-perm="${k}" ${DB.rolePerms[r.id].includes(k) ? 'checked' : ''} ${r.id === 'admin' ? 'disabled' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
