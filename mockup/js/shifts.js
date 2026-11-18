@@ -28,7 +28,7 @@ window.Shifts = (() => {
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
     const tab = S.f.tab === 'tiendas' ? 'tiendas' : 'calendario';
     const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
-      H().exportBtn('shifts') + `<select class="input" style="width:230px" data-filter="campaign">${camps.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`);
+      H().exportBtn('shifts'));
     const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
     return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
   }

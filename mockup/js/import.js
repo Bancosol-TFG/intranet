@@ -31,7 +31,7 @@ window.Import = (() => {
     ] } },
   };
 
-  const fresh = () => ({ step: 1, campaign: H().activeCampaign().id, chain: '', file: '', sheets: null, sheet: '', headerRow: 0, map: {}, codeFallback: true, saveTpl: true, markMissing: true, skip: {}, rejected: {}, locChoice: {} });
+  const fresh = () => ({ step: 1, campaign: H().activeCampaign().id, chain: '', file: '', sheets: null, sheet: '', headerRow: 0, map: {}, codeFallback: true, saveTpl: true, markMissing: true, status: 'pending', skip: {}, rejected: {}, locChoice: {} });
   let I = fresh();
   const rows = () => I.sheets?.[I.sheet] || [];
   const headers = () => (rows()[I.headerRow] || []).map((h, i) => String(h || '').trim() || `Columna ${String.fromCharCode(65 + i)}`);
@@ -95,8 +95,8 @@ window.Import = (() => {
       <div class="card card-pad"><h2 style="margin-bottom:14px">2. Sube el fichero recibido</h2>
         <label class="dropzone ${I.chain ? '' : 'off'}">${icon('upload')}<b>Arrastra o elige un Excel o CSV</b><span class="small muted">.xlsx, .xls o .csv · los PDF se dan de alta a mano</span><input type="file" accept=".xlsx,.xls,.csv,.pdf" data-imp="file" hidden></label>
         <div class="row wrap small" style="margin-top:12px"><span class="muted">¿Sin fichero a mano? Prueba con los ejemplos de Bancosol:</span>${btn('Mercadona GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="1"' })}${btn('Dia Málaga GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="2"' })}</div></div>
-    </div><div class="stack"><div class="card card-pad"><h2 style="margin-bottom:12px">Campaña</h2><select class="input" data-imp="campaign">${camps.map(c => `<option value="${c.id}" ${c.id === I.campaign ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
-      <p class="small muted">Las tiendas del listado quedarán como <b>Participa</b> en esta campaña. Las nuevas toman la zona de su localidad.</p></div>
+    </div><div class="stack"><div class="card card-pad"><h2 style="margin-bottom:12px">Campaña ${esc(H().activeCampaign().name)}</h2><div class="field"><label>Las tiendas importadas quedan como</label><select class="input" data-imp="status"><option value="pending" ${I.status === 'pending' ? 'selected' : ''}>Pendiente de confirmar</option><option value="participa" ${I.status === 'participa' ? 'selected' : ''}>Participa (se generan sus turnos)</option></select></div>
+      <p class="small muted">Elige de forma explícita: no hay estado por defecto. Las nuevas toman la zona de su localidad.</p></div>
       <div class="card card-pad"><h2 style="margin-bottom:8px">¿La cadena envía un PDF?</h2><p class="small muted">Por ahora los PDF no se leen: da de alta las tiendas a mano y confirma su participación. Si alguna cadena los envía de forma habitual, se valorará convertirlos a Excel.</p>${btn('Alta manual de tienda', { icon: 'plus', act: 'new', data: 'data-entity="stores"' })}</div>${historyCard()}</div></div>`;
   }
 
@@ -163,7 +163,7 @@ window.Import = (() => {
         DB.stores.push(st); entry.created.push(st.id); [1, 2, 3, 4, 5, 6].forEach(d => DB.schedules.push({ store: st.id, week_day: d, open: chainObj().open, close: chainObj().close })); added++;
       } else { const accepted = diffs(rec, st).filter(x => !I.rejected[`${rs.find(r => r.existing === st).n}:${x.k}`]);
         if (accepted.length) { entry.updated.push({ id: st.id, before: Object.fromEntries(accepted.map(x => [x.k, st[x.k]])) }); accepted.forEach(x => { st[x.k] = x.k === 'locality' ? locality : x.after; }); } }
-      if (c.participation[st.id] !== true) {
+      if (I.status === 'participa' && c.participation[st.id] !== true) {
         c.participation[st.id] = true;
         const h = DB.schedules.find(x => x.store === st.id) || { open: '09:00', close: '21:30' };
         if (!DB.shifts.some(s => s.campaign === c.id && s.store === st.id)) c.days.forEach(date => [['Mañana', h.open, DB.settings.morningEnd], ['Tarde', DB.settings.afternoonStart, h.close]].forEach(([slot, start, end]) =>
@@ -220,7 +220,7 @@ window.Import = (() => {
       };
       rd.readAsArrayBuffer(f); return;
     }
-    if (k === 'campaign') I.campaign = Number(el.value);
+    if (k === 'status') I.status = el.value;
     else if (k === 'sheet') { I.sheet = el.value; I.headerRow = 0; autoMap(); }
     else if (k === 'map') I.map[el.dataset.k] = el.value === '' ? '' : Number(el.value);
     else if (k === 'skip') I.skip[el.dataset.n] = !el.checked;

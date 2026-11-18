@@ -392,8 +392,7 @@ window.Views = (() => {
         <div class="row" style="margin-top:10px;gap:4px">${assign && f < s.capacity ? btn('Asignar', { size: 'sm', icon: 'plus', act: 'assign', data: `data-id="${s.id}"` }) : ''}<span class="spacer"></span>${can(S, 'incidents.manage') ? btn('', { kind: 'ghost', size: 'sm', icon: 'alert', act: 'incident', data: `data-id="${s.id}"`, title: 'Registrar incidencia' }) : ''}</div>
       </div>`; };
     const myZones = isRole('admin') ? DB.zones : zonesOf(S.user.id).map(zone);
-    return `${pageHead('Turnos', `Mañana de apertura a ${DB.settings.morningEnd} y tarde de ${DB.settings.afternoonStart} a cierre. 2 personas por turno, 4 si la tienda tiene dos líneas de caja.`,
-        `<select class="input" style="width:230px" data-filter="campaign">${camps.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`)}
+    return `${pageHead('Turnos', `Mañana de apertura a ${DB.settings.morningEnd} y tarde de ${DB.settings.afternoonStart} a cierre. 2 personas por turno, 4 si la tienda tiene dos líneas de caja.`)}
       <div class="card" style="margin-bottom:16px"><div class="toolbar" style="border:0">
         <div class="seg">${days.map(d => `<button class="${d === day ? 'active' : ''}" data-act="filter" data-k="day" data-v="${d}">${fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' })}${c.days.includes(d) ? '' : ' '}</button>`).join('')}</div>
         <div class="seg">${['Todos', 'Sin cubrir', 'Parcial', 'Cubierto'].map(x => `<button class="${cov === x ? 'active' : ''}" data-act="filter" data-k="cov" data-v="${x}">${x}</button>`).join('')}</div>

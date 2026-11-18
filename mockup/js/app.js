@@ -13,14 +13,14 @@
   /* ---------- Navegación y permisos de ruta ---------- */
   const NAV = [
     { k: 'inicio', l: 'Inicio', i: 'home', roles: 'admin coord rcol rtienda' },
-    { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord' },
-    { k: 'tiendas', l: 'Tiendas', i: 'store', roles: 'admin coord' },
-    { k: 'turnos', l: 'Turnos', i: 'clock', roles: 'admin coord rcol rtienda' },
-    { k: 'colaboradores', l: 'Colaboradores', i: 'building', roles: 'admin coord' },
-    { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol' },
-    { k: 'grupos', l: 'Grupos', i: 'users', roles: 'admin coord rcol' },
-    { k: 'voluntarios', l: 'Voluntarios', i: 'heart', roles: 'admin coord rcol' },
-    { k: 'incidencias', l: 'Incidencias', i: 'alert', roles: 'admin coord rcol rtienda', count: () => { const ids = new Set(scope.shifts(S, Views.helpers.activeCampaign().id).map(s => s.id)); return DB.reports.filter(r => ids.has(r.shift) && !r.solved_by).length; } },
+    { k: 'turnos', l: 'Turnos', i: 'clock', roles: 'admin coord rcol rtienda', group: 'Campaña actual' },
+    { k: 'incidencias', l: 'Incidencias', i: 'alert', roles: 'admin coord rcol rtienda', group: 'Campaña actual', count: () => { const ids = new Set(scope.shifts(S, Views.helpers.activeCampaign().id).map(s => s.id)); return DB.reports.filter(r => ids.has(r.shift) && !r.solved_by).length; } },
+    { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord', group: 'Generales' },
+    { k: 'tiendas', l: 'Tiendas', i: 'store', roles: 'admin coord', group: 'Generales' },
+    { k: 'colaboradores', l: 'Colaboradores', i: 'building', roles: 'admin coord', group: 'Generales' },
+    { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol', group: 'Generales' },
+    { k: 'grupos', l: 'Grupos', i: 'users', roles: 'admin coord rcol', group: 'Generales' },
+    { k: 'voluntarios', l: 'Voluntarios', i: 'heart', roles: 'admin coord rcol', group: 'Generales' },
     { k: 'historico', l: 'Histórico', i: 'flag', roles: 'admin', group: 'Administración' },
     { k: 'catalogos', l: 'Catálogos', i: 'list', roles: 'admin', group: 'Administración' },
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
@@ -293,13 +293,13 @@
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span>BANCOSOL</div>
-        ${groups.map(g => `<div class="nav-label">${g}</div>${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
+        ${groups.map(g => `${g === 'General' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign">${badge(V.helpers.activeCampaign().status)}<b>${esc(V.helpers.activeCampaign().name)}</b></div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
           <div class="crumbs"><a href="#/${parent}" data-act="go" data-to="${parent}">${TITLES[page]}</a>${sub ? `${icon('chev')}<b>${esc(sub)}</b>` : ''}</div>
-          ${V.helpers.activeCampaigns().length > 1 ? `<select class="input inline" title="Campaña activa" data-act-change="pick-campaign">${V.helpers.activeCampaigns().map(c => `<option value="${c.id}" ${c.id === V.helpers.activeCampaign().id ? 'selected' : ''}>${esc(c.code)}</option>`).join('')}</select>` : ''}
           <div class="search" data-act="palette">${icon('search')}Buscar…<kbd>Ctrl K</kbd></div>
+          ${btn('', { kind: 'ghost', icon: 'help', act: 'help', title: 'Ayuda de esta vista' })}
           ${Shifts.bell(S)}
           ${btn('', { kind: 'ghost', icon: S.theme === 'dark' ? 'sun' : 'moon', act: 'theme', title: 'Cambiar tema' })}
           <div class="menu-wrap"><button class="user-btn" data-act="menu">${avatar(S.user.name)}<div style="text-align:left;line-height:1.2"><b class="small">${esc(S.user.name)}</b><div class="small faint">${esc(r.name)}</div></div></button>
@@ -322,7 +322,8 @@
     menu: () => { S.menu = !S.menu; render(); },
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = S.theme; try { localStorage.setItem('bs-theme', S.theme); } catch {} render(); },
     side: () => document.getElementById('sidebar').classList.toggle('open'),
-    palette, close, 'confirm-ok': () => UI._onConfirm?.(),
+    palette, close, help: () => UI.help(route().page, TITLES[route().page]),
+    'panel-size': () => document.querySelector('.drawer')?.classList.toggle('full'), 'confirm-ok': () => UI._onConfirm?.(),
     filter: d => { S.f[d.k] = d.v; render(); },
     new: d => openForm(d.entity), edit: d => openForm(d.entity, d.id), save: d => save(d.entity, d.id), delete: d => remove(d.entity, d.id),
     validate: d => { const c = byId(DB.collabs, d.id), pending = c.coords; c.status = 'Validado'; c.coords = pending; audit('collabs', c.id, 'Validado'); render(); toast(`${esc(c.name)} validado.${c.coords.length ? '' : ' Asígnale un coordinador.'}`); },
