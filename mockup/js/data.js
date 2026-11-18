@@ -101,6 +101,8 @@ window.DB = (() => {
     V(9, 3, 'Irene Molina', '677100206', 2, ['GR2025']), V(10, 3, 'Hugo Delgado', '677100207', 2, ['GR2024', 'GR2025']),
     V(11, 2, 'Rocío Peña', '655667788', 1, ['GR2024', 'GR2025']), V(12, 2, 'Nerea Campos', '677100212', 1, []),
   ];
+  /* Anonimización: Bancosol solo ve los datos de sus voluntarios independientes (colaborador 1) y de los que la entidad comparte; del resto solo ve un identificador. */
+  volunteers.forEach(v => { v.shared = v.collab === 1 || v.id % 4 === 0; });
   /* Grupos (propuesta): los crea el responsable del colaborador. Bancosol solo ve código y número de personas. */
   const groups = [
     { id: 1, collab: 2, code: 'UMA-01', members: [5, 6], leader: 5 },

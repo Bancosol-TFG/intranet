@@ -17,6 +17,8 @@ window.Views = (() => {
   const auditTrail = (entity, id) => DB.audit.filter(a => a.entity === entity && String(a.id) === String(id)).slice().reverse();
   const auditCard = (entity, id) => isRole('admin') ? `<div class="card"><div class="card-head"><div><h2>Historial de cambios</h2><div class="small muted">Solo Administración</div></div></div>${auditTrail(entity, id).map(a => `<div class="list-item"><div style="flex:1"><div class="small">${esc(a.text)}</div><div class="small faint">${R.user(a.who)} · ${esc(a.when)}</div></div></div>`).join('') || '<div class="card-pad small muted">Sin cambios registrados.</div>'}</div>` : '';
   const globalId = v => 'V-' + String(v.id).padStart(5, '0');
+  const anonV = v => isRole('admin', 'coord') && !v.shared;
+  const vName = v => anonV(v) ? `Voluntario ${globalId(v)}` : v.name;
   const volShifts = v => DB.shifts.filter(s => s.assignments.some(a => (a.kind === 'vol' && a.vol === v.id) || (a.kind === 'group' && byId(DB.groups, a.group)?.members.includes(v.id))));
   const volReports = v => DB.reports.filter(r => volShifts(v).some(s => s.id === r.shift));
   const hasAdult = (s, exceptId) => s.assignments.some(a => a.kind === 'group' ? byId(DB.groups, a.group)?.members.some(id => id !== exceptId && !byId(DB.volunteers, id)?.minor) : a.kind === 'vol' ? a.vol !== exceptId && !byId(DB.volunteers, a.vol)?.minor : true);
@@ -78,7 +80,7 @@ window.Views = (() => {
     group: id => { const g = byId(DB.groups, id); if (!g) return 'Grupo eliminado'; return isRole('admin') || inScope('groups', id) ? link(`grupo/${id}`, esc(g.code)) : esc(g.code); },
     campaign: id => { const c = byId(DB.campaigns, id); return isRole('admin') ? link(`campanas/${id}`, esc(c.name)) : esc(c.name); },
     user: id => { const u = user(id); if (!u) return '—'; return isRole('admin') ? link(`usuario/${id}`, esc(u.name), 'plain') : esc(u.name); },
-    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return inScope('volunteers', id) ? link(`voluntario/${id}`, esc(v.name)) : esc(v.name); },
+    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return anonV(v) ? `<span class="muted">${esc(vName(v))}</span>` : inScope('volunteers', id) ? link(`voluntario/${id}`, esc(v.name)) : esc(v.name); },
     shift: s => `<a class="ref plain" href="#" data-act="open-shift" data-id="${s.id}">${fmtDate(s.date, { weekday: 'short', day: 'numeric' })} · ${s.slot} ${s.start}–${s.end}</a>`,
   };
   const asg = a => a.kind === 'vol' ? R.vol(a.vol) : a.kind === 'group' ? `${R.group(a.group)} · ${asgPeople(a)} pers.` : `${R.collab(a.collab)} · ${a.people}`;
@@ -476,22 +478,22 @@ window.Views = (() => {
 
   /* ---------- Voluntarios ---------- */
   function voluntarios(S) {
-    const q = (S.f.q || '').toLowerCase(), base = scope.volunteers(S);
-    const list = base.filter(v => (v.name + v.phone + (loc(v.locality)?.name || '')).toLowerCase().includes(q) && (S.f.vstate !== 'baja' || toPurge(v)));
+    const cs = new Set(scope.collabs(S).map(c => c.id)), extra = isRole('admin', 'coord') ? DB.volunteers.filter(v => v.collab !== 1 && (isRole('admin') || cs.has(v.collab))) : [];
+    const q = (S.f.q || '').toLowerCase(), base = [...new Set([...scope.volunteers(S), ...extra])], vd = S.f.vdata || '';
+    const list = base.filter(v => (vName(v) + (anonV(v) ? '' : v.phone) + (loc(v.locality)?.name || '')).toLowerCase().includes(q) && (S.f.vstate !== 'baja' || toPurge(v)) && (!vd || (vd === 'anon') === anonV(v)));
     const purge = base.filter(toPurge).length, canConfirm = isRole('admin', 'coord', 'rcol');
     if (S.f.vtab === 'entidades' && isRole('admin', 'coord')) return anonymousVolunteers(S);
-    return `${pageHead('Voluntarios', S.user.role === 'rcol' ? 'Los voluntarios de tu entidad. Solo tú ves y gestionas sus datos.' : 'Voluntariado independiente que coordina Bancosol. Los voluntarios de las entidades solo los ve su responsable.', btn('Importar Excel', { icon: 'upload', act: 'vol-import' }) + btn('Nuevo voluntario', { kind: 'primary', icon: 'plus', act: 'new', data: 'data-entity="volunteers"' }))}
-      ${volTabs(S)}
+    return `${pageHead('Voluntarios', S.user.role === 'rcol' ? 'Los voluntarios de tu entidad. Solo tú ves y gestionas sus datos.' : 'Voluntarios independientes con sus datos y, anonimizados, los de las entidades. Solo vemos los datos que cada entidad comparte.', btn('Importar Excel', { icon: 'upload', act: 'vol-import' }) + btn('Nuevo voluntario', { kind: 'primary', icon: 'plus', act: 'new', data: 'data-entity="volunteers"' }))}
       ${purge ? `<div class="card" style="margin-bottom:16px;background:var(--warn-bg);border-color:transparent"><div class="card-pad row wrap">${icon('alert')}<div style="flex:1"><b>${purge} voluntarios llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.</b><div class="small muted">La app propone darlos de baja. ${canConfirm ? 'Debes confirmarlo.' : 'Lo confirmará coordinación o administración.'}</div></div>${canConfirm ? btn('Revisar propuesta', { kind: 'primary', size: 'sm', act: 'purge' }) : ''}</div></div>` : ''}
       <div class="card"><div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Nombre, teléfono, localidad…" data-filter="q" value="${esc(S.f.q || '')}"></div>
-        <span class="spacer"></span><div class="seg">${[['', 'Todos'], ['baja', 'Propuestos para baja']].map(([k, l]) => `<button class="${(S.f.vstate || '') === k ? 'active' : ''}" data-act="filter" data-k="vstate" data-v="${k}">${l}</button>`).join('')}</div></div>
+        <span class="spacer"></span>${extra.length ? `<div class="seg">${[['', 'Todos'], ['datos', 'Con datos'], ['anon', 'Anonimizados']].map(([k, l]) => `<button class="${vd === k ? 'active' : ''}" data-act="filter" data-k="vdata" data-v="${k}">${l}</button>`).join('')}</div>` : ''}<div class="seg">${[['', 'Todos'], ['baja', 'Propuestos para baja']].map(([k, l]) => `<button class="${(S.f.vstate || '') === k ? 'active' : ''}" data-act="filter" data-k="vstate" data-v="${k}">${l}</button>`).join('')}</div></div>
       ${table([
-        { label: 'Voluntario', render: r => `<div class="cell-main">${avatar(r.name)}<div>${R.vol(r.id)}<small>${globalId(r)} · ${r.minor ? `Menor${r.consent ? ' · autorización recibida' : ' · falta autorización'}` : 'Mayor de edad'}</small></div></div>` },
-        { label: 'Teléfono', render: r => esc(r.phone) }, { label: 'Localidad', render: r => R.loc(r.locality) },
+        { label: 'Voluntario', render: r => anonV(r) ? `<div class="cell-main">${avatar('?')}<div>${R.vol(r.id)}<small>${R.collab(r.collab)} · ${badge('Anonimizado', 'plain')}</small></div></div>` : `<div class="cell-main">${avatar(r.name)}<div>${R.vol(r.id)}<small>${globalId(r)} · ${r.minor ? `Menor${r.consent ? ' · autorización recibida' : ' · falta autorización'}` : 'Mayor de edad'}</small></div></div>` },
+        { label: 'Teléfono', render: r => anonV(r) ? '<span class="faint small">Oculto</span>' : esc(r.phone) }, { label: 'Localidad', render: r => R.loc(r.locality) },
         { label: 'Grupos', render: r => DB.groups.filter(x => x.members.includes(r.id)).map(g => R.group(g.id)).join(', ') || '<span class="faint small">—</span>' },
         { label: 'Participación', render: r => r.history.length ? `<div class="row wrap" style="gap:4px">${r.history.map(h => badge(h, 'plain')).join('')}</div>` : '<span class="faint small">Nuevo</span>' },
         { label: 'Estado', render: r => r.blocked ? badge('Bloqueado', 'danger') : toPurge(r) ? badge(`${missed(r)} sin participar`, 'warn') : badge('Activo') },
-        { label: '', width: '90px', render: r => rowActions('volunteers', r.id) },
+        { label: '', width: '90px', render: r => anonV(r) ? '' : rowActions('volunteers', r.id) },
       ], list)}</div>`;
   }
   const volTabs = S => isRole('admin', 'coord') ? `<div class="tabs">${[['', 'Independientes (Bancosol)'], ['entidades', 'Voluntarios de entidades']].map(([k, l]) => `<button class="tab ${(S.f.vtab || '') === k ? 'active' : ''}" data-act="filter" data-k="vtab" data-v="${k}">${l}</button>`).join('')}</div>` : '';
@@ -594,5 +596,5 @@ window.Views = (() => {
   }
 
   return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+    helpers: { vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();

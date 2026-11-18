@@ -11,25 +11,34 @@
   document.documentElement.dataset.theme = S.theme;
 
   /* ---------- Navegación y permisos de ruta ---------- */
+  /* Barra lateral: «Campaña actual» trabaja sobre la campaña activa; «Catálogo» es toda la base de datos; «Administración» la configura.
+     Las entradas con `to` son accesos directos a una ruta concreta (p. ej. pestañas de la campaña activa). */
+  const AC = () => Views.helpers.activeCampaign().id;
   const NAV = [
     { k: 'inicio', l: 'Inicio', i: 'home', roles: 'admin coord rcol rtienda' },
+    { k: 'c-resumen', l: 'Resumen', i: 'flag', roles: 'admin coord', group: 'Campaña actual', to: () => `campanas/${AC()}` },
+    { k: 'c-tiendas', l: 'Tiendas participantes', i: 'store', roles: 'admin coord', group: 'Campaña actual', to: () => `campanas/${AC()}/tiendas` },
+    { k: 'c-equipo', l: 'Colaboradores y equipo', i: 'building', roles: 'admin coord', group: 'Campaña actual', to: () => `campanas/${AC()}/equipo` },
     { k: 'turnos', l: 'Turnos', i: 'clock', roles: 'admin coord rcol rtienda', group: 'Campaña actual' },
+    { k: 'grupos', l: 'Grupos', i: 'users', roles: 'admin coord rcol', group: 'Campaña actual' },
     { k: 'incidencias', l: 'Incidencias', i: 'alert', roles: 'admin coord rcol rtienda', group: 'Campaña actual', count: () => { const ids = new Set(scope.shifts(S, Views.helpers.activeCampaign().id).map(s => s.id)); return DB.reports.filter(r => ids.has(r.shift) && !r.solved_by).length; } },
-    { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord', group: 'Generales' },
-    { k: 'tiendas', l: 'Tiendas', i: 'store', roles: 'admin coord', group: 'Generales' },
-    { k: 'colaboradores', l: 'Colaboradores', i: 'building', roles: 'admin coord', group: 'Generales' },
-    { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol', group: 'Generales' },
-    { k: 'grupos', l: 'Grupos', i: 'users', roles: 'admin coord rcol', group: 'Generales' },
-    { k: 'voluntarios', l: 'Voluntarios', i: 'heart', roles: 'admin coord rcol', group: 'Generales' },
-    { k: 'historico', l: 'Histórico', i: 'flag', roles: 'admin', group: 'Administración' },
-    { k: 'catalogos', l: 'Catálogos', i: 'list', roles: 'admin', group: 'Administración' },
+    { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol', group: 'Campaña actual' },
+    { k: 'tiendas', l: 'Tiendas', i: 'store', roles: 'admin coord', group: 'Catálogo' },
+    { k: 'colaboradores', l: 'Colaboradores', i: 'building', roles: 'admin coord', group: 'Catálogo' },
+    { k: 'voluntarios', l: 'Voluntarios', i: 'heart', roles: 'admin coord rcol', group: 'Catálogo' },
+    { k: 'catalogos', l: 'Zonas', i: 'map', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/zonas' },
+    { k: 'k-localidades', l: 'Localidades', i: 'pin', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/localidades' },
+    { k: 'k-cadenas', l: 'Cadenas', i: 'list', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/cadenas' },
+    { k: 'k-tipos', l: 'Tipos', i: 'list', roles: 'admin', group: 'Catálogo', to: () => 'catalogos/tipos' },
+    { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord', group: 'Administración' },
+    { k: 'historico', l: 'Histórico', i: 'clock', roles: 'admin', group: 'Administración' },
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
     { k: 'flujos', l: 'Flujos de trabajo', i: 'route', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
   ];
   const DETAIL = { tienda: 'admin coord rcol', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda' };
   const allowed = k => (DETAIL[k] || NAV.find(n => n.k === k)?.roles || '').split(' ').includes(S.user.role);
-  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios' };
+  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), catalogos: 'Catálogo', perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios' };
   const PARENT = { tienda: 'tiendas', zona: 'catalogos/zonas', localidad: 'catalogos/localidades', cadena: 'catalogos/cadenas', grupo: 'grupos', voluntario: 'voluntarios', usuario: 'usuarios' };
 
   /* ---------- Esquemas de formulario: relaciones siempre como selector de objetos ---------- */
@@ -284,8 +293,9 @@
       grupos: () => V.grupos(S), grupo: () => V.grupo(S, a), voluntarios: () => V.voluntarios(S), voluntario: () => V.voluntario(S, a), incidencias: () => V.incidencias(S),
       usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), historico: () => V.historico(S) };
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
-    const active = NAV.some(n => n.k === page) ? page : (PARENT[page] || '').split('/')[0];
-    const navItem = n => { const c = n.count?.(); return `<button class="nav ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
+    const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
+    const active = exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
+    const navItem = n => { const c = n.count?.(); return `<button class="nav ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
     const sub = a && name ? name() : '';

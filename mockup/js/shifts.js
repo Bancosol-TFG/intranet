@@ -64,14 +64,14 @@ window.Shifts = (() => {
     const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
     const q = (S.f.pq || '').toLowerCase(), free = s.capacity - H().filled(s);
     const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && g.code.toLowerCase().includes(q));
-    const vols = H().scope.volunteers(S).filter(v => !v.blocked && !busy(a => a.kind === 'vol' && a.vol === v.id) && v.name.toLowerCase().includes(q));
+    const vols = H().scope.volunteers(S).filter(v => !v.blocked && !busy(a => a.kind === 'vol' && a.vol === v.id) && H().vName(v).toLowerCase().includes(q));
     const byCollab = {}; groups.forEach(g => (byCollab[g.collab] ||= []).push(g));
     const item = (kind, ref, title, sub) => `<div class="pick" draggable="true" data-drag-kind="${kind}" data-drag-ref="${ref}" data-act="do-assign" data-id="${s.id}" data-kind="${kind}" data-ref="${ref}"><div style="flex:1"><b class="small">${esc(title)}</b><div class="small muted">${sub}</div></div>${icon('plus')}</div>`;
     return `<aside class="card card-pad side-pick"><div class="row"><h3 style="margin:0">${esc(s.date)} · ${s.start}–${s.end}</h3><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
       <p class="small muted">${free > 0 ? `Faltan ${free} personas` : 'Turno completo'} · solo aparecen los libres en esta franja. Arrastra al turno o pulsa para asignar.</p>
       <input class="input" placeholder="Filtrar por nombre…" data-filter="pq" value="${esc(S.f.pq || '')}">
       ${Object.entries(byCollab).map(([cid, gs]) => `<details open><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} grupos</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
-      <details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, v.name, esc(v.phone))).join('')}</details></aside>`;
+      <details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, H().vName(v), H().anonV(v) ? H().R.collab(v.collab) : esc(v.phone))).join('')}</details></aside>`;
   }
   /* Arrastrar candidatos del panel a un turno del calendario */
   document.addEventListener('dragstart', e => { const el = e.target.closest?.('[data-drag-kind]'); if (el) e.dataTransfer.setData('text/plain', JSON.stringify({ kind: el.dataset.dragKind, ref: el.dataset.dragRef })); });
