@@ -25,7 +25,8 @@
     { k: 'entidad', l: 'Mi entidad', i: 'building', roles: 'rcol', group: 'Campaña actual' },
     { k: 'voluntarios', l: 'Mis voluntarios', i: 'heart', roles: 'rcol', group: 'Campaña actual' },
     { k: 'catalogos', l: 'Catálogo', i: 'list', roles: 'admin', group: 'Administración', to: () => 'tiendas' },
-    { k: 'campanas', l: 'Campañas', i: 'flag', roles: 'admin coord', group: 'Administración' },
+    { k: 'campanas', l: 'Campañas', i: 'cal', roles: 'admin coord', group: 'Administración' },
+    { k: 'k-solicitudes', l: 'Solicitudes', i: 'file', roles: 'admin', group: 'Administración', to: () => 'catalogos/solicitudes', count: () => DB.catalogRequests.filter(r => r.status === 'Pendiente').length },
     { k: 'historico', l: 'Histórico', i: 'clock', roles: 'admin', group: 'Administración' },
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
@@ -277,7 +278,7 @@
       </div></div></div>`;
   }
 
-  const isAdminCat = p => S.user?.role === 'admin' && ['tiendas', 'colaboradores', 'voluntarios', 'catalogos'].includes(p);
+  const isAdminCat = p => S.user?.role === 'admin' && ['tiendas', 'colaboradores', 'voluntarios', 'catalogos'].includes(p) && !(p === 'catalogos' && route().a === 'solicitudes');
   function render() {
     if (!S.user) return login();
     Shifts.bind(S, render);
@@ -299,7 +300,7 @@
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span>BANCOSOL</div>
-        ${groups.map(g => `${g === 'General' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
+        ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
