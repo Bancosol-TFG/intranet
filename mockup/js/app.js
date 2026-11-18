@@ -300,7 +300,7 @@
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span>BANCOSOL</div>
-        ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${mine.filter(n => (n.group || 'General') === g).map(navItem).join('')}`).join('')}
+        ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${(items => g === 'Campaña actual' ? `<div class="nav-tree">${items}</div>` : items)(mine.filter(n => (n.group || 'General') === g).map(navItem).join(''))}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
