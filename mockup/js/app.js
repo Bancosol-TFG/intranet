@@ -292,7 +292,7 @@
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
     const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
-    const navItem = n => { const c = n.count?.(); return `<button class="nav ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
+    const navItem = n => { const c = n.count?.(); return `<button class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}${n.l}${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
     const sub = a && name ? name() : '';
