@@ -290,3 +290,4 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 /* Secciones de la campaña actual, indentadas bajo su nombre */
 .nav-tree { display: flex; flex-direction: column; gap: 4px; margin-left: 10px; padding-left: 4px; border-left: 2px solid var(--border); }
 .nav-tree .nav { white-space: nowrap; }
+.sidebar .brand { padding-bottom: 14px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
