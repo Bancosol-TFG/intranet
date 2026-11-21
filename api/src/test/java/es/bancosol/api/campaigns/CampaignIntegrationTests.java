@@ -190,7 +190,9 @@ class CampaignIntegrationTests {
             "{\"name\":\"   \",\"campaignTypeId\":1,\"startDate\":\"2026-11-02\",\"endDate\":\"2026-11-20\"}",
             "{\"name\":\"Campaña\",\"startDate\":\"2026-11-02\",\"endDate\":\"2026-11-20\"}",
             "{\"name\":\"Campaña\",\"campaignTypeId\":1,\"endDate\":\"2026-11-20\"}",
-            "{\"name\":\"Campaña\",\"campaignTypeId\":1,\"startDate\":\"2026-11-02\"}"
+            "{\"name\":\"Campaña\",\"campaignTypeId\":1,\"startDate\":\"2026-11-02\"}",
+            "{\"name\":\"Campaña\",\"campaignTypeId\":1,\"startDate\":\"2026-11-20\",\"endDate\":\"2026-11-02\"}",
+            "{\"name\":\"Campaña\",\"campaignTypeId\":0,\"startDate\":\"2026-11-02\",\"endDate\":\"2026-11-20\"}"
     })
     void rejectsMissingOrInvalidFields(String payload) throws Exception {
         mockMvc.perform(post("/campaigns").contentType(MediaType.APPLICATION_JSON).content(payload))
@@ -281,6 +283,14 @@ class CampaignIntegrationTests {
 
     private String uniqueName() {
         return UUID.randomUUID().toString();
+    }
+
+    @Test
+    void reportsEndDateWhenItIsBeforeStartDate() throws Exception {
+        mockMvc.perform(post("/campaigns").contentType(MediaType.APPLICATION_JSON)
+                        .content(body(uniqueName(), 1, END_DATE, START_DATE)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].field").value("endDate"));
     }
 
     private String body(String name, Integer campaignTypeId, LocalDate startDate, LocalDate endDate) {

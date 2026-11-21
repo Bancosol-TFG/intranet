@@ -4,7 +4,7 @@
 Proposed
 
 ## Contexto
-Los logs técnicos registran errores, excepciones y actividad de infraestructura para diagnóstico y operación. En las reuniones se discutieron archivos, almacenamiento temporal en base de datos, rotación y herramientas como Grafana y Loki. La auditoría de acciones de negocio es un registro independiente y se trata en el ADR-0018.
+Los logs técnicos registran errores, excepciones y actividad de infraestructura para diagnóstico y operación. En las reuniones se discutieron archivos, almacenamiento temporal en base de datos, rotación y herramientas como Grafana y Loki. La auditoría de acciones de negocio es un registro independiente y se trata en la DEC-0018.
 
 ## Opciones consideradas
 1. Guardar los logs técnicos en archivos con rotación.
