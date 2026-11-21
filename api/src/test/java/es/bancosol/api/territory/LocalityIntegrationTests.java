@@ -1,5 +1,6 @@
 package es.bancosol.api.territory;
 
+import java.util.Locale;
 import java.util.UUID;
 import es.bancosol.api.territory.entity.Locality;
 import es.bancosol.api.territory.repository.LocalityRepository;
@@ -126,18 +127,28 @@ class LocalityIntegrationTests {
     @Test
     void describesEachInvalidFieldInTheErrorResponse() throws Exception {
         mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON)
-                        .content(body("x".repeat(256), "ABCDE")))
+                        .locale(Locale.forLanguageTag("es-ES")).content(body("", "ABCDE")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("The request contains invalid data."))
                 .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[?(@.field == 'name')]").exists())
+                .andExpect(jsonPath("$.errors[?(@.field == 'name')].message").value(org.hamcrest.Matchers.contains("must not be blank")))
                 .andExpect(jsonPath("$.errors[?(@.field == 'postalCode')]").exists());
+    }
+
+    @Test
+    void acceptsNamesLongerThan255Characters() throws Exception {
+        String longName = "x".repeat(256);
+        mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON)
+                        .content(body(longName, "00123")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value(longName));
     }
 
     @Test
     void describesMalformedRequestBodies() throws Exception {
         mockMvc.perform(post("/localities").contentType(MediaType.APPLICATION_JSON).content("{\"name\":"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("The request body could not be read."))
                 .andExpect(jsonPath("$.errors.length()").value(0));
         mockMvc.perform(post("/campaigns").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"C\",\"campaignTypeId\":1,\"startDate\":\"no-date\",\"endDate\":\"2026-12-01\"}"))

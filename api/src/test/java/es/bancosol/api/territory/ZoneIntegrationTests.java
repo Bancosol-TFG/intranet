@@ -122,10 +122,11 @@ class ZoneIntegrationTests {
     }
 
     @Test
-    void rejectsValuesLongerThanTheMaximumLength() throws Exception {
+    void acceptsValuesLongerThan255Characters() throws Exception {
         String longValue = "x".repeat(256);
         mockMvc.perform(post("/zones").contentType(MediaType.APPLICATION_JSON).content(body(longValue, longValue)))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(2));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value(longValue))
+                .andExpect(jsonPath("$.code").value(longValue));
     }
 
     private String uniqueValue() {

@@ -152,11 +152,12 @@ class ChainIntegrationTests {
     }
 
     @Test
-    void rejectsValuesLongerThanTheMaximumLength() throws Exception {
+    void acceptsValuesLongerThan255Characters() throws Exception {
         String longValue = "x".repeat(256);
         mockMvc.perform(post("/chains").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + longValue + "\",\"code\":\"" + longValue + "\"}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.length()").value(2));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value(longValue))
+                .andExpect(jsonPath("$.code").value(longValue));
     }
 
     @ParameterizedTest

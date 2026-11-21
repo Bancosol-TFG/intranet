@@ -15,18 +15,18 @@ Los DTOs de entrada de la API validaban sobre todo la obligatoriedad de los camp
 Se propone la opción 2.
 
 - Todo DTO de entrada declara restricciones Jakarta Validation acordes con el modelo de dominio y se recibe con `@Valid`.
-- Los textos se limitan a 255 caracteres, incluidas las columnas `TEXT`, sin cambiar el esquema, con la anotación compartida `@ShortText`.
-- El código postal tiene exactamente 5 dígitos. El teléfono de usuarios y contactos (`@PhoneNumber`) tiene 9 dígitos seguidos, opcionalmente precedidos de un prefijo internacional (`+34`, `+32`…) y un espacio.
+- La longitud máxima se aplica según las reglas del campo y la columna correspondiente. Se usa `@ShortText` para los campos cuyo límite en el esquema es de 255 caracteres.
+- El código postal tiene exactamente 5 dígitos. El teléfono de usuarios y contactos (`@PhoneNumber`) es opcional. Si se informa, debe contener al menos un dígito y tener como máximo 50 caracteres. Se conserva el formato recibido.
 - Las reglas entre campos se implementan como validadores de clase que señalan el campo afectado (`endDate`, `openingTime`, `closingTime`). Las anotaciones y utilidades compartidas viven en `es.bancosol.api.common.validation`.
 - Los identificadores de referencia son positivos y la fecha de fin de una campaña no es anterior a la de inicio.
-- `ValidationExceptionHandler` (`es.bancosol.api.common.exception`) responde 400 con un `ProblemDetail` que incluye `errors`, una lista de objetos `{ "field", "message" }`. También cubre los cuerpos ilegibles: un valor con tipo o formato incorrecto indica su campo y un JSON mal formado devuelve `errors` vacío.
+- `ValidationExceptionHandler` (`es.bancosol.api.common.exception`) responde 400 con un `ProblemDetail` que incluye `errors`, una lista de objetos `{ "field", "message" }`. Los mensajes de validación de la API se devuelven en inglés. También cubre los cuerpos ilegibles: un valor con tipo o formato incorrecto indica su campo y un JSON mal formado devuelve `errors` vacío.
 
 ## Consecuencias
 
 **Positivas:**
 - Los datos inválidos se rechazan antes de llegar a los servicios y a la base de datos.
-- El frontend puede mostrar el error junto a cada campo.
+- El frontend actual muestra un aviso genérico en español para el 400. La presentación de errores por campo queda pendiente del nuevo frontend.
 
 **Negativas:**
 - Sustituye la decisión anterior de no tener manejador global de errores; solo cubre errores del cuerpo de la solicitud, no los `ResponseStatusException` de los servicios.
-- Los códigos postales y teléfonos con otros formatos dejan de aceptarse; los datos existentes no se migran.
+- Los códigos postales con otros formatos dejan de aceptarse. Los datos existentes se conservan.

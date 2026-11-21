@@ -17,16 +17,21 @@ class PhoneNumberTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"600111222", "952123456", "+34600111222", "+34 600111222", "+32 470123456",
-            "+351 912345678"})
-    void acceptsNineDigitsWithOptionalInternationalPrefix(String phoneNumber) {
+            "+351 912345678", "+44 (0)20 7946 0958 ext. 12", "+1 202-555-0144", "12345", "١٢٣"})
+    void acceptsDifferentLengthsAndFormats(String phoneNumber) {
         assertThat(VALIDATOR.validate(new Contact(phoneNumber))).isEmpty();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "         ", "60011122", "6001112223", "600 111 222", "+34", "34 600111222",
-            "+1234 600111222", "600-111-222", "llamar luego"})
-    void rejectsAnythingElse(String phoneNumber) {
+    @ValueSource(strings = {"", "         ", "+ () -", "call later"})
+    void rejectsValuesWithoutDigits(String phoneNumber) {
         assertThat(VALIDATOR.validate(new Contact(phoneNumber))).hasSize(1);
+    }
+
+    @Test
+    void limitsPhoneNumbersToFiftyCharacters() {
+        assertThat(VALIDATOR.validate(new Contact("1".repeat(50)))).isEmpty();
+        assertThat(VALIDATOR.validate(new Contact("1".repeat(51)))).hasSize(1);
     }
 
     @Test

@@ -139,10 +139,10 @@ class CollaboratorIntegrationTests {
                 .andExpect(jsonPath("$.errors[0].field").value("phoneNumber"));
         mockMvc.perform(put("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(contactBody("Actualizado", "nuevo@example.org", "+34600123456")))
+                        .content(contactBody("Actualizado", "nuevo@example.org", "+44 (0)20 7946 0958 ext. 12")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Actualizado"))
-                .andExpect(jsonPath("$.phoneNumber").value("+34600123456"));
+                .andExpect(jsonPath("$.phoneNumber").value("+44 (0)20 7946 0958 ext. 12"));
         mockMvc.perform(delete("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId))

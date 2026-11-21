@@ -287,14 +287,12 @@ class StoreIntegrationTests {
     }
 
     @Test
-    void rejectsNonPositiveReferenceIdsAndTooLongName() throws Exception {
+    void rejectsNonPositiveReferenceIds() throws Exception {
         mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON).content(body(uniqueName(), 0)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("chainId"));
         mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON)
                         .content(bodyWithLocality(uniqueName(), 1, -1)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("localityId"));
-        mockMvc.perform(post("/stores").contentType(MediaType.APPLICATION_JSON).content(body("x".repeat(256), 1)))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("name"));
     }
 
     private String uniqueName() {

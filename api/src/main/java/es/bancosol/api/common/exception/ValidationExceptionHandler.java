@@ -18,8 +18,8 @@ import tools.jackson.databind.DatabindException;
 @RestControllerAdvice
 public class ValidationExceptionHandler {
 
-    private static final String VALIDATION_DETAIL = "La solicitud contiene datos no válidos.";
-    private static final String UNREADABLE_DETAIL = "El cuerpo de la solicitud no es un JSON válido.";
+    private static final String VALIDATION_DETAIL = "The request contains invalid data.";
+    private static final String UNREADABLE_DETAIL = "The request body could not be read.";
     private static final String INVALID_VALUE_MESSAGE = "has an invalid value or format";
     private static final String ERRORS_PROPERTY = "errors";
 
