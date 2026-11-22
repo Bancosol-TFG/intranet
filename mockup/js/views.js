@@ -96,19 +96,28 @@ window.Views = (() => {
   const ago = date => { const n = Math.round((new Date('2026-11-12') - new Date(date)) / 864e5); return n <= 0 ? 'desde hoy' : `desde hace ${n} ${n === 1 ? 'día' : 'días'}`; };
   const openReports = shifts => { const ids = new Set(shifts.map(s => s.id)); return DB.reports.filter(r => ids.has(r.shift) && !r.solved_by); };
   const iconBox = (i, color = 'var(--brand)', bg = 'var(--brand-50)') => `<span style="width:36px;height:36px;border-radius:9px;background:${bg};color:${color};display:grid;place-items:center;flex:none">${icon(i)}</span>`;
-  const todo = (i, title, text, act) => `<div class="list-item">${iconBox(i)}<div style="flex:1"><b>${title}</b><div class="small muted">${text}</div></div>${act}</div>`;
+  const todo = (title, text, action) => {
+    const attributes = Object.entries(action.data || {}).map(([key, value]) => `data-${key}="${esc(value)}"`).join(' ');
+    const href = action.data?.to ? `#/${esc(action.data.to)}` : '#';
+    return `<div class="list-item todo-item"><div class="todo-copy"><a class="todo-title" href="${href}" data-act="${action.act}" ${attributes}>${title}</a><span class="todo-description small muted">${text}</span></div></div>`;
+  };
   const back = (to, label) => `<div class="row" style="margin-bottom:16px">${btn(label, { kind: 'ghost', size: 'sm', icon: 'back', act: 'go', data: `data-to="${to}"` })}</div>`;
   const detailHead = (ic, title, sub, actions = '', tag = '') => `<div class="row wrap" style="margin-bottom:24px;gap:16px">${iconBox(ic)}<div style="flex:1"><div class="row"><h1>${title}</h1>${tag}</div><div class="muted" style="margin-top:4px">${sub}</div></div>${actions}</div>`;
   const shiftRow = (s, extra = '') => `<div class="list-item"><div style="flex:1;min-width:0"><b>${R.store(s.store)}</b><div class="small muted">${R.shift(s)} · ${s.assignments.map(asg).join(', ') || 'Sin asignar'}</div></div>${badge(coverage(s), covTone(s))}${extra}</div>`;
   const visibleActivity = S => S.user.role === 'admin' ? DB.activity : DB.activity.filter(a => Object.entries(a.refs || {}).some(([k, id]) => ({ store: 'stores', collab: 'collabs', group: 'groups' })[k] && inScope(({ store: 'stores', collab: 'collabs', group: 'groups' })[k], id)));
-  const feed = S => { const items = visibleActivity(S); return `<div class="card"><div class="card-head"><h2>Actividad reciente</h2><span class="small muted">de tu ámbito</span></div>${items.length ? items.slice(0, 6).map(a => `<div class="list-item" style="align-items:flex-start">${avatar(user(a.who)?.name, 'sm')}<div><div class="small">${R.user(a.who)} ${activityText(a)}</div><div class="small faint">${esc(a.when)}</div></div></div>`).join('') : empty('Sin actividad', 'No hay cambios recientes en tu ámbito.')}</div>`; };
+  const feed = S => { const items = visibleActivity(S); return `<div class="card activity-feed"><div class="card-head"><h2>Actividad reciente</h2><span class="small muted">de tu ámbito</span></div>${items.length ? items.slice(0, 6).map(a => `<div class="list-item" style="align-items:flex-start">${avatar(user(a.who)?.name, 'sm')}<div><div class="small">${R.user(a.who)} ${activityText(a)}</div><div class="small faint">${esc(a.when)}</div></div></div>`).join('') : empty('Sin actividad', 'No hay cambios recientes en tu ámbito.')}</div>`; };
 
   /* ---------- Inicio ---------- */
   function inicio(S) {
     const campaign = activeCampaign(), user = S.user, shifts = scope.shifts(S, campaign.id), shiftStats = stats(shifts);
-    const pendingCard = items => `<div class="card"><div class="card-head"><h2>Pendiente</h2></div>${items.filter(Boolean).join('') || empty('Nada pendiente', 'Todo al día en tu ámbito.')}</div>`;
-    const uncoveredTodo = shiftStats.uncovered ? todo('clock', `${shiftStats.uncovered} turnos sin cubrir`, 'Asigna grupos o voluntarios a los turnos que aún necesitan personas.', btn('Asignar', { size: 'sm', act: 'go', data: 'data-to="turnos"' })) : '';
-    const reports = openReports(shifts), reportsTodo = reports.length ? todo('alert', `${reports.length} incidencias abiertas`, 'Revisa y resuelve las incidencias de tu ámbito.', btn('Ver', { size: 'sm', act: 'go', data: 'data-to="incidencias"' })) : '';
+    const collaboratorLabel = id => esc(byId(DB.collabs, id)?.name || 'Colaborador');
+    const pendingCard = items => `<div class="card quick-actions-card"><div class="card-head"><h2>Acciones rápidas</h2></div>${items.filter(Boolean).join('') || empty('Nada pendiente', 'Todo al día en tu ámbito.')}</div>`;
+    const pendingCategoriesCard = categories => `<div class="card quick-actions-card"><div class="card-head"><h2>Acciones rápidas</h2>${btn('Desplegar todo', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'pending-toggle-all', data: 'data-expanded="false"' })}</div><div class="pending-categories">${categories.map(([categoryIcon, title, tasks]) => {
+      const pending = tasks.filter(Boolean), hasPending = pending.length > 0;
+      return `<details class="pending-category" ${hasPending ? 'open' : ''}><summary><span class="pending-category-icon">${icon(categoryIcon)}</span><b>${title}</b><span class="badge plain ${hasPending ? 'warn' : 'ok'}">${hasPending ? `${pending.length} pendiente${pending.length === 1 ? '' : 's'}` : `${icon('check')} Al día`}</span></summary>${hasPending ? pending.join('') : '<div class="pending-category-empty small muted">Sin tareas pendientes</div>'}</details>`;
+    }).join('')}</div></div>`;
+    const uncoveredTodo = shiftStats.uncovered ? todo(`${shiftStats.uncovered} turnos sin cubrir`, 'Asigna grupos o voluntarios a los turnos que aún necesitan personas.', { act: 'go', data: { to: 'turnos' } }) : '';
+    const reports = openReports(shifts), reportsTodo = reports.length ? todo(`${reports.length} incidencias abiertas`, 'Revisa y resuelve las incidencias de tu ámbito.', { act: 'go', data: { to: 'incidencias' } }) : '';
     let pendingItems = [];
 
     if (user.role === 'admin') {
@@ -120,37 +129,50 @@ window.Views = (() => {
       const storesWithoutZone = DB.stores.filter(store => !store.zone).length;
       const zonesWithoutCoord = DB.zones.filter(zone => !coordsOfZone(zone.id).length);
 
-      pendingItems = [
-        ...pendingCollaborators.map(collaborator => todo('building', `Validar a ${R.collab(collaborator.id)}`, 'Nuevo colaborador: revisa sus datos y asígnale un coordinador.', btn('Revisar', { size: 'sm', act: 'go', data: `data-to="colaboradores/${collaborator.id}"` }))),
-        zonesWithoutCoord.length ? todo('map', `${zonesWithoutCoord.length} zonas sin coordinador en ${esc(campaign.code)}`, zonesWithoutCoord.map(zone => R.zone(zone.id)).join(', '), btn('Asignar', { size: 'sm', act: 'go', data: `data-to="campanas/${campaign.id}/coordinacion"` })) : '',
-        storesWithoutZone ? todo('map', `${storesWithoutZone} tiendas sin zona`, 'Asígnales zona para que un coordinador las vea.', btn('Asignar', { size: 'sm', act: 'go-filter', data: 'data-to="tiendas" data-k="zone" data-v="none"' })) : '',
-        chainsWithoutLists.length ? todo('file', `Faltan listados de ${chainsWithoutLists.length} cadenas`, chainsWithoutLists.map(chain => R.chain(chain.id)).join(', ') + ': impórtalos o confirma las tiendas a mano.', btn('Importar', { size: 'sm', act: 'go', data: 'data-to="importar"' })) : '',
-        ...DB.collabRequests.filter(request => request.status === 'Pendiente').map(request => todo('building', `Cambio propuesto en ${R.collab(request.collab)}`, 'El responsable propone actualizar los datos de su entidad.', btn('Revisar', { size: 'sm', act: 'go', data: `data-to="colaboradores/${request.collab}"` }))),
-        DB.catalogRequests.some(request => request.status === 'Pendiente') ? todo('list', `${DB.catalogRequests.filter(request => request.status === 'Pendiente').length} peticiones de localidad o zona`, 'Coordinación pide altas en los catálogos.', btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="catalogos/solicitudes"' })) : '',
-        pendingStoreRequests.length ? todo('edit', `${pendingStoreRequests.length} solicitudes de cambio en tiendas`, 'Coordinación propone cambios de datos: revísalos y acéptalos o recházalos.', btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="tiendas/solicitudes"' })) : '',
-        pendingStores ? todo('store', `${pendingStores} tiendas con participación pendiente`, 'Son de cadenas sin listado: confirma si participan.', btn('Revisar', { size: 'sm', act: 'go', data: `data-to="campanas/${campaign.id}/tiendas"` })) : '',
-        volunteersToPurge ? todo('users', `${volunteersToPurge} voluntarios propuestos para baja`, `Llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.`, btn('Revisar', { size: 'sm', act: 'purge' })) : '',
-      ];
+      const pendingCollaboratorChanges = DB.collabRequests.filter(request => request.status === 'Pendiente');
+      const pendingCatalogRequests = DB.catalogRequests.filter(request => request.status === 'Pendiente');
+      pendingItems = pendingCategoriesCard([
+        ['building', 'Colaboradores', [
+          ...pendingCollaborators.map(collaborator => todo(`Validar a ${collaboratorLabel(collaborator.id)}`, 'Nuevo colaborador: revisa sus datos y asígnale un coordinador.', { act: 'go', data: { to: `colaboradores/${collaborator.id}` } })),
+          ...pendingCollaboratorChanges.map(request => todo(`Cambio propuesto en ${collaboratorLabel(request.collab)}`, 'El responsable propone actualizar los datos de su entidad.', { act: 'go', data: { to: `colaboradores/${request.collab}` } })),
+        ]],
+        ['store', 'Tiendas y campaña', [
+          storesWithoutZone ? todo(`${storesWithoutZone} tiendas sin zona`, 'Asígnales zona para que un coordinador las vea.', { act: 'go-filter', data: { to: 'tiendas', k: 'zone', v: 'none' } }) : '',
+          chainsWithoutLists.length ? todo(`Faltan listados de ${chainsWithoutLists.length} cadenas`, chainsWithoutLists.map(chain => R.chain(chain.id)).join(', ') + ': impórtalos o confirma las tiendas a mano.', { act: 'go', data: { to: 'importar' } }) : '',
+          pendingStoreRequests.length ? todo(`${pendingStoreRequests.length} solicitudes de cambio en tiendas`, 'Coordinación propone cambios de datos: revísalos y acéptalos o recházalos.', { act: 'go', data: { to: 'tiendas/solicitudes' } }) : '',
+          pendingStores ? todo(`${pendingStores} tiendas con participación pendiente`, 'Son de cadenas sin listado: confirma si participan.', { act: 'go', data: { to: `campanas/${campaign.id}/tiendas` } }) : '',
+        ]],
+        ['map', 'Coordinación territorial', [
+          zonesWithoutCoord.length ? todo(`${zonesWithoutCoord.length} zonas sin coordinador en ${esc(campaign.code)}`, zonesWithoutCoord.map(zone => R.zone(zone.id)).join(', '), { act: 'go', data: { to: `campanas/${campaign.id}/coordinacion` } }) : '',
+        ]],
+        ['list', 'Catálogos', [
+          pendingCatalogRequests.length ? todo(`${pendingCatalogRequests.length} peticiones de localidad o zona`, 'Coordinación pide altas en los catálogos.', { act: 'go', data: { to: 'catalogos/solicitudes' } }) : '',
+        ]],
+        ['users', 'Voluntariado', [
+          volunteersToPurge ? todo(`${volunteersToPurge} voluntarios propuestos para baja`, `Llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.`, { act: 'purge' }) : '',
+        ]],
+        ['clock', 'Turnos e incidencias', [uncoveredTodo, reportsTodo]],
+      ]);
     } else if (user.role === 'coord') {
       pendingItems = [
         uncoveredTodo,
         reportsTodo,
-        ...scope.collabs(S).filter(collaborator => collabPart(collaborator)?.status === 'Pendiente').map(collaborator => todo('phone', `Llamar a ${R.collab(collaborator.id)}`, `Confirma si participa en ${esc(campaign.code)}.`, btn('Ver', { size: 'sm', act: 'go', data: `data-to="colaboradores/${collaborator.id}"` }))),
-        ...scope.collabs(S).filter(collaborator => collaborator.status !== 'Validado').map(collaborator => todo('building', `${R.collab(collaborator.id)} pendiente de validar`, 'Administración debe validarlo antes de asignarle turnos.', '')),
+        ...scope.collabs(S).filter(collaborator => collabPart(collaborator)?.status === 'Pendiente').map(collaborator => todo(`Llamar a ${collaboratorLabel(collaborator.id)}`, `Confirma si participa en ${esc(campaign.code)}.`, { act: 'go', data: { to: `colaboradores/${collaborator.id}` } })),
+        ...scope.collabs(S).filter(collaborator => collaborator.status !== 'Validado').map(collaborator => todo(`${collaboratorLabel(collaborator.id)} pendiente de validar`, 'Administración debe validarlo antes de asignarle turnos.', { act: 'go', data: { to: `colaboradores/${collaborator.id}` } })),
       ];
     } else if (user.role === 'rcol') {
       const collaborator = byId(DB.collabs, user.collab), volunteers = scope.volunteers(S);
       pendingItems = [
         ...DB.shifts.filter(shift => shift.campaign === campaign.id).flatMap(shift => shift.assignments.map((assignment, index) => ({ shift, assignment, index })))
           .filter(({ assignment }) => assignment.kind === 'group' && assignment.people && !assignment.members && byId(DB.groups, assignment.group)?.collab === collaborator.id)
-          .map(({ shift, assignment, index }) => todo('users', `Elige quién va de ${R.group(assignment.group)}`, `${assignment.people} de ${gsize(byId(DB.groups, assignment.group))} personas · ${R.shift(shift)}`, btn('Elegir', { size: 'sm', kind: 'primary', act: 'nominate', data: `data-id="${shift.id}" data-i="${index}"` }))),
+          .map(({ shift, assignment, index }) => todo(`Elige quién va de ${R.group(assignment.group)}`, `${assignment.people} de ${gsize(byId(DB.groups, assignment.group))} personas · ${R.shift(shift)}`, { act: 'nominate', data: { id: shift.id, i: index } })),
         uncoveredTodo,
         reportsTodo,
-        volunteers.filter(toPurge).length ? todo('users', `${volunteers.filter(toPurge).length} voluntarios propuestos para baja`, `Llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.`, btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="voluntarios"' })) : '',
+        volunteers.filter(toPurge).length ? todo(`${volunteers.filter(toPurge).length} voluntarios propuestos para baja`, `Llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.`, { act: 'go', data: { to: 'voluntarios' } }) : '',
       ];
     }
 
-    return `${pageHead(`Hola, ${user.first_name}`, 'Esto es lo que necesita tu atención.', '', fmtDate('2026-11-12', { weekday: 'long', day: 'numeric', month: 'long' }))}<div class="stack">${pendingCard(pendingItems)}${feed(S)}</div>`;
+    return `${pageHead(`Hola, ${user.first_name}`, 'Esto es lo que necesita tu atención.', '', fmtDate('2026-11-12', { weekday: 'long', day: 'numeric', month: 'long' }))}<div class="stack">${user.role === 'admin' ? pendingItems : pendingCard(pendingItems)}${feed(S)}</div>`;
   }
 
   /* ---------- Campañas ---------- */

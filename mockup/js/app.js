@@ -331,6 +331,12 @@
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = S.theme; try { localStorage.setItem('bs-theme', S.theme); } catch {} render(); },
     collapse: () => { S.collapsed = !S.collapsed; try { localStorage.setItem('bs-side', S.collapsed ? '1' : ''); } catch {} render(); },
     side: () => document.getElementById('sidebar').classList.toggle('open'),
+    'pending-toggle-all': d => {
+      const expanded = d.expanded !== 'true';
+      document.querySelectorAll('.pending-category').forEach(category => { category.open = expanded; });
+      const button = document.querySelector('[data-act="pending-toggle-all"]');
+      if (button) { button.dataset.expanded = String(expanded); button.textContent = expanded ? 'Contraer todo' : 'Desplegar todo'; }
+    },
     'perm-edit': () => { drawer('Editar permisos', `<div class="card card-pad small" style="background:var(--danger-bg, #fde8e8);color:var(--danger);border-color:transparent;margin-bottom:16px">${icon('alert')} Cambiar permisos afecta a todos los usuarios del rol. Se hará una copia de seguridad antes de aplicar.</div>
       <div class="table-wrap"><table class="matrix"><thead><tr><th>Permiso</th>${DB.roles.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td><input type="checkbox" class="check perm-edit" data-role="${r.id}" data-perm="${k}" ${DB.rolePerms[r.id].includes(k) ? 'checked' : ''} ${r.id === 'admin' ? 'disabled' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
       btn('Cancelar', { act: 'close' }) + btn('Revisar cambios', { kind: 'danger solid', act: 'perm-review' })); document.querySelector('.drawer')?.classList.add('full'); },

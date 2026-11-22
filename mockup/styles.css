@@ -124,6 +124,29 @@ textarea.input { height: 90px; padding: 8px 10px; resize: vertical; }
 
 .list-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); }
 .list-item:last-child { border-bottom: 0; }
+.pending-categories { display: flex; flex-direction: column; padding: 0 20px 10px; }
+.pending-category { padding: 0 0 5px; margin-bottom: 5px; border: 0; border-bottom: 1px solid var(--border); }
+.pending-category:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+.pending-category summary { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; list-style: none; font-size: 15px; }
+.pending-category summary::-webkit-details-marker { display: none; }
+.pending-category summary::after { content: "⌄"; color: var(--text-3); font-size: 16px; transition: transform .12s; }
+.pending-category[open] summary::after { transform: rotate(180deg); }
+.pending-category[open] summary { padding-bottom: 2px; }
+.pending-category summary b { flex: 1; min-width: 0; }
+.pending-category summary .badge { margin-left: auto; }
+.pending-category-icon { width: 32px; height: 32px; display: grid; place-items: center; flex: none; border-radius: 8px; background: var(--brand-50); color: var(--brand); }
+.pending-category-icon svg.i { width: 18px; height: 18px; }
+.pending-category .list-item { padding: 5px 0 5px 44px; border-bottom: 0; }
+.pending-category[open] > .todo-item:first-of-type { padding-top: 6px; }
+.todo-copy { display: flex; align-items: baseline; gap: 8px; min-width: 0; width: 100%; }
+.todo-title { flex: none; color: var(--text); font-size: 15px; font-weight: 500; white-space: nowrap; }
+.todo-title:hover { color: var(--brand-600); text-decoration: underline; }
+.todo-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 1.4; }
+.pending-category-empty { padding: 0 0 10px 44px; }
+.activity-feed .card-head h2, .quick-actions-card .card-head h2 { font-size: 17px; }
+.activity-feed .card-head .small, .activity-feed .list-item .small { font-size: 13px; }
+.quick-actions-card .card-head [data-act="pending-toggle-all"] { color: var(--brand-600); border-color: var(--brand-100); background: var(--brand-50); font-weight: 600; }
+.quick-actions-card .card-head [data-act="pending-toggle-all"]:hover { border-color: var(--brand); background: var(--brand-100); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex: none; }
 .dl { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; } .dl dt { color: var(--text-3); } .dl dd { margin: 0; font-weight: 500; }
 
