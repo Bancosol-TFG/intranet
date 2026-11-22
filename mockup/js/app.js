@@ -297,7 +297,9 @@
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
     const sub = a && name ? name() : '';
-    const parent = PARENT[page] && allowed(PARENT[page].split('/')[0]) ? PARENT[page] : page;
+    const catalogDetail = ['zona', 'localidad', 'cadena'].includes(page);
+    const parent = catalogDetail ? (allowed('catalogos') ? PARENT[page] : 'tiendas') : PARENT[page] && allowed(PARENT[page].split('/')[0]) ? PARENT[page] : page;
+    const crumbTitle = catalogDetail && parent === 'tiendas' ? 'Tiendas' : TITLES[page];
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout ${S.collapsed ? 'collapsed' : ''}">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span><span class="lbl">BANCOSOL</span><button class="btn ghost icon sm side-toggle" data-act="collapse" title="${S.collapsed ? 'Mostrar' : 'Ocultar'} barra lateral">${icon('sidebar')}</button></div>
@@ -305,7 +307,7 @@
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
-          <div class="crumbs"><a href="#/${parent}" data-act="go" data-to="${parent}">${TITLES[page]}</a>${sub ? `${icon('chev')}<b>${esc(sub)}</b>` : ''}</div>
+          <div class="crumbs"><a href="#/${parent}" data-act="go" data-to="${parent}">${crumbTitle}</a>${sub ? `${icon('chev')}<b>${esc(sub)}</b>` : ''}</div>
           <div class="search" data-act="palette">${icon('search')}Buscar…<kbd>Ctrl K</kbd></div>
           ${btn('', { kind: 'ghost', icon: 'help', act: 'help', title: 'Ayuda de esta vista' })}
           ${Shifts.bell(S)}
