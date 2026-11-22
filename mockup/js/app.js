@@ -331,17 +331,33 @@
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = S.theme; try { localStorage.setItem('bs-theme', S.theme); } catch {} render(); },
     collapse: () => { S.collapsed = !S.collapsed; try { localStorage.setItem('bs-side', S.collapsed ? '1' : ''); } catch {} render(); },
     side: () => document.getElementById('sidebar').classList.toggle('open'),
-    'perm-edit': () => { drawer('Editar permisos', `<div class="card card-pad small" style="background:var(--danger-bg, #fde8e8);color:var(--danger);border-color:transparent;margin-bottom:16px">${icon('alert')} Cambiar permisos afecta a todos los usuarios del rol. Se hará una copia de seguridad antes de aplicar.</div>
-      <div class="table-wrap"><table class="matrix"><thead><tr><th>Permiso</th>${DB.roles.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td><input type="checkbox" class="check perm-edit" data-role="${r.id}" data-perm="${k}" ${DB.rolePerms[r.id].includes(k) ? 'checked' : ''} ${r.id === 'admin' ? 'disabled' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
-      btn('Cancelar', { act: 'close' }) + btn('Revisar cambios', { kind: 'danger solid', act: 'perm-review' })); document.querySelector('.drawer')?.classList.add('full'); },
-    'perm-review': () => { const changes = [...document.querySelectorAll('.perm-edit')].filter(el => el.checked !== DB.rolePerms[el.dataset.role].includes(el.dataset.perm)).map(el => ({ role: el.dataset.role, perm: el.dataset.perm, on: el.checked }));
-      if (!changes.length) return toast('No hay cambios');
-      const label = c => `${c.on ? '+' : '−'} ${esc(DB.permissions.find(p => p[0] === c.perm)[1])} · ${esc(DB.roles.find(r => r.id === c.role).name)}`;
-      modal('Confirmar cambios de permisos', `<p class="small" style="color:var(--danger);margin-top:0">Esta acción cambia lo que pueden hacer los usuarios de estos roles.</p>${changes.map(c => `<div class="small">${label(c)}</div>`).join('')}
-        <div class="field" style="margin-top:12px"><label>Escribe CONFIRMAR para aplicar</label><input class="input" id="perm-ok"></div>`, btn('Cancelar', { act: 'close' }) + btn('Aplicar', { kind: 'danger solid', act: 'perm-apply' }), 'sm');
-      S.permChanges = changes; },
-    'perm-apply': () => { if (document.getElementById('perm-ok').value.trim() !== 'CONFIRMAR') return toast('Escribe CONFIRMAR para aplicar');
-      S.permChanges.forEach(c => { const l = DB.rolePerms[c.role]; if (c.on) l.push(c.perm); else l.splice(l.indexOf(c.perm), 1); }); toast(`${S.permChanges.length} cambios aplicados · copia de seguridad guardada`); S.permChanges = null; close(); render(); },
+    'perm-edit': () => confirm('Advertencia: edición de permisos', 'Cambiar permisos afecta a todos los usuarios de cada rol y puede comprometer la seguridad y el funcionamiento del sistema. Continúa solo si sabes exactamente qué cambios vas a realizar.', () => {
+      close();
+      S.permDraft = Object.fromEntries(DB.roles.map(role => [role.id, [...DB.rolePerms[role.id]]]));
+      S.permEditing = true;
+      render();
+    }, 'Entiendo el riesgo'),
+    'perm-cancel': () => { S.permEditing = false; S.permDraft = null; render(); },
+    'perm-save': () => {
+      const changes = DB.roles.flatMap(role => DB.permissions.flatMap(([permission]) => {
+        const wasEnabled = DB.rolePerms[role.id].includes(permission);
+        const willBeEnabled = S.permDraft[role.id].includes(permission);
+        return wasEnabled === willBeEnabled ? [] : [{ role: role.id, permission, enabled: willBeEnabled }];
+      }));
+      if (!changes.length) { S.permEditing = false; S.permDraft = null; render(); return toast('No hay cambios que guardar'); }
+      confirm('Copia de seguridad antes de guardar', 'Se creará una copia de seguridad y se aplicarán los cambios. Esta operación puede tardar y provocar cierta carga o ralentización del sistema. No la realices en hora punta. ¿Quieres continuar?', () => {
+        close();
+        changes.forEach(({ role, permission, enabled }) => {
+          const permissions = DB.rolePerms[role];
+          if (enabled) permissions.push(permission);
+          else permissions.splice(permissions.indexOf(permission), 1);
+        });
+        S.permEditing = false;
+        S.permDraft = null;
+        render();
+        toast(`${changes.length} cambios aplicados · copia de seguridad guardada`);
+      }, 'Crear copia y guardar');
+    },
     palette, close, help: () => UI.help(route().page, TITLES[route().page]),
     'panel-size': () => document.querySelector('.drawer')?.classList.toggle('full'), 'confirm-ok': () => UI._onConfirm?.(),
     filter: d => { S.f[d.k] = d.v; render(); },
@@ -527,7 +543,6 @@
       if (!fd.get('access') && acc) DB.users.splice(DB.users.indexOf(acc), 1);
       close(); render(); toast(`Grupo <b>${esc(g.code)}</b> guardado · ${members.length} personas`); },
     'del-group': d => { const g = byId(DB.groups, d.id); confirm('Eliminar grupo', `¿Eliminar <b>${esc(g.code)}</b>? Se quitará de los turnos asignados.`, () => { DB.groups.splice(DB.groups.indexOf(g), 1); DB.shifts.forEach(s => s.assignments = s.assignments.filter(a => !(a.kind === 'group' && a.group === g.id))); close(); go('grupos'); toast('Grupo eliminado'); }); },
-    perm: (d, el) => { const l = DB.rolePerms[d.role]; el.checked ? l.push(d.perm) : l.splice(l.indexOf(d.perm), 1); toast('Permisos actualizados'); },
     'save-settings': () => { new FormData(document.getElementById('settings-form')).forEach((v, k) => DB.settings[k] = v); toast('Configuración guardada'); },
     ...Import.actions(() => render(), go),
   };
@@ -551,6 +566,12 @@
   });
   document.addEventListener('input', e => { const k = e.target.dataset.filter; if (k) { S.f[k] = e.target.value; render(); } });
   document.addEventListener('change', e => {
+    if (e.target.matches('.permission-toggle')) {
+      const permissions = S.permDraft[e.target.dataset.role];
+      if (e.target.checked) permissions.push(e.target.dataset.perm);
+      else permissions.splice(permissions.indexOf(e.target.dataset.perm), 1);
+      return render();
+    }
     if (e.target.dataset.imp) return Import.onChange(e.target, render);
     if (e.target.id === 'vi-file') { const f = e.target.files[0], rd = new FileReader(); rd.onload = () => { try { const rows = /\.csv$/i.test(f.name) ? new TextDecoder().decode(rd.result).split(/\r?\n/).map(l => l.split(/[;,]/)) : XLSX.utils.sheet_to_json(XLSX.read(rd.result).Sheets[XLSX.read(rd.result).SheetNames[0]], { header: 1, defval: '' }); importVolunteers(rows.slice(1)); } catch (err) { toast('No se pudo leer el fichero'); } }; rd.readAsArrayBuffer(f); return; }
     const a = e.target.dataset.actChange; if (a && changeActions[a]) { changeActions[a](e.target.dataset, e.target.value); render(); }
