@@ -39,7 +39,9 @@ window.Views = (() => {
   const fieldText = (k, v) => k === 'locality' ? esc(loc(v)?.name || '—') : k === 'exception' ? (v ? `${fmtDate(v.date)}: ${v.closed ? 'cerrada' : `${v.open}–${v.close}`}` : '—') : k === 'schedule' ? (v ? `${v.open}–${v.close}` : '—') : esc(v ?? '—');
   const can = (S, p) => DB.rolePerms[S.user.role].includes(p);
   const activeCampaigns = () => DB.campaigns.filter(c => c.status === 'Activa');
-  const activeCampaign = () => CS?.campaignSelectionRequired ? null : DB.campaigns.find(c => c.id === CS?.campaign && c.status !== 'Finalizada') || activeCampaigns()[0] || DB.campaigns.find(c => c.status === 'Planificada') || DB.campaigns[0];
+  const defaultCampaign = () => activeCampaigns()[0] || DB.campaigns.find(c => c.status === 'Planificada') || DB.campaigns[0];
+  const selectedCampaign = () => CS?.campaignSelectionRequired ? null : DB.campaigns.find(c => c.id === CS?.campaign) || defaultCampaign();
+  const activeCampaign = () => selectedCampaign() || defaultCampaign();
   const zonesOf = (uid, cid = activeCampaign().id) => DB.zoneAssignments.filter(z => z.user === uid && z.campaign === cid).map(z => z.zone);
   const coordsOfZone = (zid, cid = activeCampaign().id) => DB.zoneAssignments.filter(z => z.zone === zid && z.campaign === cid).map(z => z.user);
   const contactsOf = cid => DB.contacts.filter(k => k.collab === cid);
@@ -195,17 +197,17 @@ window.Views = (() => {
   }
 
   function seleccionarCampana() {
-    const campaigns = DB.campaigns.filter(c => c.status !== 'Finalizada');
+    const campaigns = DB.campaigns.slice().sort((a, b) => b.start.localeCompare(a.start));
     return `${pageHead('Seleccionar campaña', 'Elige qué campaña quieres consultar desde los controles de la barra lateral.')}
       <div class="grid g-3">${campaigns.map(c => `<div class="card card-pad campaign-pick-card">
         <div class="row" style="margin-bottom:14px">${iconBox('flag')}<span class="spacer"></span>${badge(c.status)}</div>
         <h2>${esc(c.name)}</h2><div class="small muted" style="margin:4px 0 18px">${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start)} – ${fmtDate(c.end, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-        ${btn('Usar esta campaña', { kind: 'primary', icon: 'check', act: 'select-campaign', data: `data-id="${c.id}"` })}
+        ${btn(c.status === 'Finalizada' ? 'Consultar en solo lectura' : 'Usar esta campaña', { kind: 'primary', icon: c.status === 'Finalizada' ? 'clock' : 'check', act: 'select-campaign', data: `data-id="${c.id}"` })}
       </div>`).join('') || `<div class="card">${empty('No hay campañas disponibles', 'No hay campañas activas o planificadas para seleccionar.')}</div>`}</div>`;
   }
 
   function campana(S, id, tab = 'resumen') {
-    const c = byId(DB.campaigns, id); if (!c || (!isRole('admin') && c.status === 'Finalizada')) return empty('Campaña no encontrada', '');
+    const c = byId(DB.campaigns, id); if (!c) return empty('Campaña no encontrada', '');
     const sh = DB.shifts.filter(s => s.campaign === c.id), st = stats(sh), locked = c.status === 'Finalizada' || !isRole('admin');
     const coordHtml = () => `<div class="card"><div class="card-head"><div><h2>Coordinación por zona</h2><div class="small muted">Quién coordina cada zona, cuántas plazas quedan y qué entidades están cerca para repartir.</div></div></div>
       ${table([{ label: 'Zona', render: z => `${R.zone(z.id)} <span class="small faint">${esc(z.code)}</span>` },
@@ -256,8 +258,7 @@ window.Views = (() => {
     const tabs = [['resumen', c.status === 'Planificada' ? 'Preparación' : 'Resumen'], ['tiendas', `Tiendas${pend ? ` (${pend})` : ''}`], ['equipo', `Equipo${zonesNoCoord + toCall ? ` (${zonesNoCoord + toCall})` : ''}`]];
     return `${back('campanas', 'Campañas')}
       ${pageHead(c.name, `${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start, { day: 'numeric', month: 'long' })} – ${fmtDate(c.end, { day: 'numeric', month: 'long', year: 'numeric' })}`, c.status === 'Finalizada' ? badge('Finalizada · solo lectura') : !isRole('admin') ? badge(c.status) : badge(c.status) + btn('Editar', { icon: 'edit', act: 'edit', data: `data-entity="campaigns" data-id="${c.id}"` }) + btn(c.status === 'Activa' ? 'Finalizar campaña' : 'Activar campaña', { kind: 'primary', icon: c.status === 'Activa' ? 'check' : 'flag', act: 'campaign-status', data: `data-id="${c.id}" data-status="${c.status === 'Activa' ? 'Finalizada' : 'Activa'}"` }))}
-      ${c.status === 'Finalizada' ? '<div class="card card-pad small" style="margin-bottom:16px;background:var(--warn-bg);border-color:transparent">Campaña finalizada: turnos, asignaciones y configuración en solo lectura. Las incidencias pendientes se pueden seguir cerrando.</div>' : ''}
-      <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="campanas/${c.id}/${k}">${l}</button>`).join('')}</div><div class="fade-in">${body}</div>`;
+       <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="campanas/${c.id}/${k}">${l}</button>`).join('')}</div><div class="fade-in">${body}</div>`;
   }
 
   /* Balance de una campaña: kilos, voluntarios que asistieron, asistencia y cobertura. */
@@ -291,9 +292,9 @@ window.Views = (() => {
           { label: 'Tienda', render: r => `${R.store(r.id)}<div class="small faint">${esc(storeSub(r))} · ${esc(loc(r.locality)?.name)}</div>` },
           { label: 'Zona', render: r => R.zone(r.zone) },
           can(S, 'history.last') && { label: 'Campaña anterior', render: r => DB.history[r.id] ? R.collab(DB.history[r.id]) : '<span class="faint small">—</span>' },
-          { label: 'Participa en ' + c.code, render: r => can(S, 'stores.participation') ? `<div class="seg">${['Participa', 'Pendiente', 'No participa'].map(v => `<button class="${part(c, r.id) === v ? 'active' : ''}" data-act="participation" data-id="${r.id}" data-v="${v}" data-c="${c.id}">${v}</button>`).join('')}</div>${c.reasons[r.id] && part(c, r.id) === 'No participa' ? `<div class="small faint" style="margin-top:4px">${esc(c.reasons[r.id])}</div>` : ''}` : badge(part(c, r.id), partTone[part(c, r.id)]) },
+           { label: 'Participa en ' + c.code, render: r => can(S, 'stores.participation') && c.status !== 'Finalizada' ? `<div class="seg">${['Participa', 'Pendiente', 'No participa'].map(v => `<button class="${part(c, r.id) === v ? 'active' : ''}" data-act="participation" data-id="${r.id}" data-v="${v}" data-c="${c.id}">${v}</button>`).join('')}</div>${c.reasons[r.id] && part(c, r.id) === 'No participa' ? `<div class="small faint" style="margin-top:4px">${esc(c.reasons[r.id])}</div>` : ''}` : badge(part(c, r.id), partTone[part(c, r.id)]) },
           { label: 'Turnos', render: r => { const t = DB.shifts.filter(s => s.campaign === c.id && s.store === r.id); return t.length ? `${t.length} <span class="small faint">· ${t.filter(s => coverage(s) === 'Cubierto').length} cubiertos</span>` : '<span class="faint small">—</span>'; } },
-          c.status !== 'Planificada' && isRole('admin', 'coord') && { label: 'Kilos recogidos', render: r => part(c, r.id) === 'Participa' ? `<input class="input inline" style="width:90px" type="number" min="0" placeholder="kg" data-act-change="kilos" data-c="${c.id}" data-id="${r.id}" value="${(c.kilos || {})[r.id] ?? ''}">` : '' },
+           c.status !== 'Planificada' && c.status !== 'Finalizada' && isRole('admin', 'coord') && { label: 'Kilos recogidos', render: r => part(c, r.id) === 'Participa' ? `<input class="input inline" style="width:90px" type="number" min="0" placeholder="kg" data-act-change="kilos" data-c="${c.id}" data-id="${r.id}" value="${(c.kilos || {})[r.id] ?? ''}">` : '' },
         ], list)}</div>`;
     return body;
   }
@@ -610,5 +611,5 @@ window.Views = (() => {
   }
 
   return { bind: S => { CS = S; }, historico, inicio, campanas, seleccionarCampana, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+    helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, selectedCampaign, iconBox, storeSub, zonesOf, part } };
 })();

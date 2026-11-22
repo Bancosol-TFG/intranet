@@ -50,7 +50,7 @@ window.Flows = (() => {
         <div>• Solo Administración crea colaboradores y los valida.</div><div>• Un colaborador puede tener varios coordinadores.</div>
         <div>• Jerarquía: decisor → responsable colaborador → responsables de tienda.</div><div>• Los voluntarios entran siempre por un colaborador; Bancosol es colaborador de los independientes y solo tiene los datos de estos.</div><div>• De las entidades, Bancosol solo conoce sus grupos: identificador y número de personas.</div>
         <div>• Si la entidad no gestiona voluntarios en la app, solo se asocia la entidad a la tienda.</div><div>• Las asignaciones no necesitan confirmación.</div>
-        <div>• Solo Administración ve el histórico de campañas finalizadas; el resto de roles trabaja con las planificadas o activas.</div><div>• Horario: cada tienda hereda el de su cadena y puede tener uno propio y excepciones por fecha. Pendiente de definir con Bancosol: estadísticas.</div></div></div>`;
+        <div>• Las campañas finalizadas se pueden consultar en modo de solo lectura; los cambios solo están disponibles en campañas activas o planificadas.</div><div>• Horario: cada tienda hereda el de su cadena y puede tener uno propio y excepciones por fecha. Pendiente de definir con Bancosol: estadísticas.</div></div></div>`;
   }
   return { view };
 })();
