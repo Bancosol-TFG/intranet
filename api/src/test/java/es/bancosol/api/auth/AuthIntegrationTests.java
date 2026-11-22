@@ -152,6 +152,11 @@ class AuthIntegrationTests {
         mockMvc.perform(post("/users").header(HttpHeaders.AUTHORIZATION, bearer(login(adminEmail, PASSWORD, "WEB")))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.temporaryPassword").isNotEmpty());
+        String invalidPhoneBody = "{\"firstName\":\"Ana\",\"phoneNumber\":\"llamar luego\",\"email\":\"%s\",\"roles\":[\"ADMIN\"]}"
+                .formatted(uniqueEmail());
+        mockMvc.perform(post("/users").header(HttpHeaders.AUTHORIZATION, bearer(login(adminEmail, PASSWORD, "WEB")))
+                        .contentType(MediaType.APPLICATION_JSON).content(invalidPhoneBody))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].field").value("phoneNumber"));
     }
 
     private String createUser(boolean mustChangePassword) {

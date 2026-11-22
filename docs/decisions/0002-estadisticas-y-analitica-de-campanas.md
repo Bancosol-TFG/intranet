@@ -1,4 +1,4 @@
-# ADR-0002: Inclusión de estadísticas y analítica de campañas
+# DEC-0002: Inclusión de estadísticas y analítica de campañas
 
 ## Estado
 Proposed

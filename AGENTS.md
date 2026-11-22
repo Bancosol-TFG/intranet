@@ -27,7 +27,7 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
   - Skills are written in English, but the content they produce for the team must be in Spanish.
 - Open pull requests against `dev`.
 - Do not edit `.env`, `frontend/src/routeTree.gen.ts`, or `volumes/`.
-- Before proposing an architecture change, check the ADRs in `docs/adr/`. If a decision on architecture or technology is needed, ask the team first and record it as an ADR. Do not decide it silently in code.
+- Before proposing an architecture change, check the ADRs in `docs/adr/` and the product and domain decisions in `docs/decisions/`. If a decision on architecture or technology is needed, ask the team first and record it as an ADR; record product, scope, or domain decisions in `docs/decisions/`. Each folder keeps its own numbering. Do not decide it silently in code.
 - Deliver each feature complete in one pull request: backend, frontend, tests, and documentation.
 - Tests must check real behavior. Do not write tests that always pass.
 - Every endpoint declares the roles allowed to use it. If the roles are not specified, ask before implementing.
@@ -38,6 +38,7 @@ Bancosol intranet, developed as a final degree project (TFG). The repository con
 
 - Identifiers and code in English. Do not write comments; names must explain the code.
 - Constants in `UPPER_SNAKE_CASE`, at the top of the file, right below the imports.
+- Every request DTO declares Jakarta Validation constraints for each field, matching the domain model and the database schema: required values, maximum lengths where required by the field or its database column, formats, positive reference ids, and cross-field rules. Reuse the shared constraints in `es.bancosol.api.common.validation` (`@ShortText`, `@PhoneNumber`) instead of repeating limits or patterns, and report cross-field rules on the affected field with a class-level validator. Controllers receive the DTO with `@Valid`, and tests cover valid and invalid input (see ADR-0023).
 - `camelCase` for functions and variables, with descriptive names. Do not use one-letter names.
 - Keep functions short, reusable, and with a single clear responsibility.
 - Keep the code of the three developers consistent with each other.

@@ -1,6 +1,6 @@
 # Colaboradores y contactos
 
-El módulo `collaborator` gestiona colaboradores y sus contactos. Un colaborador tiene nombre, dirección y una localidad existente; los contactos pertenecen siempre al colaborador de la ruta. El correo es opcional y, si se informa, debe tener formato válido. El teléfono se conserva como texto.
+El módulo `collaborator` gestiona colaboradores y sus contactos. Un colaborador tiene nombre, dirección y una localidad existente; los contactos pertenecen siempre al colaborador de la ruta. El correo es opcional y, si se informa, debe tener formato válido. El teléfono es opcional y, si se informa, debe contener al menos un dígito y tener como máximo 50 caracteres. Se conserva el formato enviado, por ejemplo `+44 (0)20 7946 0958 ext. 12`.
 
 ## API
 

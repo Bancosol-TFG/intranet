@@ -1,4 +1,4 @@
-# ADR-0018: Auditoría de acciones de negocio
+# DEC-0018: Auditoría de acciones de negocio
 
 ## Estado
 Proposed

@@ -102,7 +102,7 @@ class CollaboratorIntegrationTests {
         Integer secondCollaboratorId = createCollaborator(createLocality());
         String createdContact = mockMvc.perform(post("/collaborators/{collaboratorId}/contacts", firstCollaboratorId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(contactBody("Contacto A", "a@example.org", "+34 600")))
+                        .content(contactBody("Contacto A", "a@example.org", "+34 600111222")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("a@example.org"))
                 .andReturn().getResponse().getContentAsString();
@@ -132,12 +132,17 @@ class CollaboratorIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(contactBody("Email inválido", "no-es-un-correo", null)))
                 .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/collaborators/{collaboratorId}/contacts", firstCollaboratorId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(contactBody("Teléfono inválido", null, "texto libre")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("phoneNumber"));
         mockMvc.perform(put("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(contactBody("Actualizado", "nuevo@example.org", "texto libre")))
+                        .content(contactBody("Actualizado", "nuevo@example.org", "+44 (0)20 7946 0958 ext. 12")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Actualizado"))
-                .andExpect(jsonPath("$.phoneNumber").value("texto libre"));
+                .andExpect(jsonPath("$.phoneNumber").value("+44 (0)20 7946 0958 ext. 12"));
         mockMvc.perform(delete("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/collaborators/{collaboratorId}/contacts/{contactId}", firstCollaboratorId, contactId))

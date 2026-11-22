@@ -83,8 +83,8 @@ Se acordó cerrar las pull requests abiertas para que `dev` tenga ya una base co
 - Reparto definitivo de las tres tareas entre Miguel, Adrián y Salma.
 - Hora y lugar de la sesión del viernes: se habló de empezar entre las 10:00 y las 11:00 y trabajar unas horas, en casa de Miguel o en la universidad.
 - Mecanismo de autenticación y gestión del token. ADR-0015 deja la autenticación de la API por detallar.
-- Alcance del «registro»: ADR-0003, en estado *Proposed*, no ha decidido quién crea las cuentas ni si habrá autorregistro, alta administrada o invitación. La tarea de registro depende de esa decisión.
-- Diseño de roles y permisos dentro de lo ya decidido en ADR-0012 (roles y permisos separados) y ADR-0005 (alcance por campaña), y cómo y cuándo se aplicarán a los endpoints.
+- Alcance del «registro»: DEC-0003, en estado *Proposed*, no ha decidido quién crea las cuentas ni si habrá autorregistro, alta administrada o invitación. La tarea de registro depende de esa decisión.
+- Diseño de roles y permisos dentro de lo ya decidido en ADR-0012 (roles y permisos separados) y DEC-0005 (alcance por campaña), y cómo y cuándo se aplicarán a los endpoints.
 - Estructura común del frontend y del cliente de API: ubicación de `lib`, organización por dominio y gestión de errores de autenticación.
 - Flujo de ramas: la skill `tfg-branch-conventions` indica que toda rama de trabajo sale de `origin/dev` y vuelve a `dev`, mientras que en la reunión se habló de ramas de funcionalidad con subramas y pilas de pull requests. Conviene decidir si se recoge esa variante en las convenciones.
 - Cambios de base de datos que necesiten usuarios, roles y permisos.
