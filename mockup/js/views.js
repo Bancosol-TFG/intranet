@@ -150,7 +150,7 @@ window.Views = (() => {
       ];
     }
 
-    return `${pageHead(`¡Te damos la bienvenida, ${user.first_name}!`)}<div class="stack">${pendingCard(pendingItems)}${feed(S)}</div>`;
+    return `${pageHead(`Hola, ${user.first_name}`, 'Esto es lo que necesita tu atención.', '', fmtDate('2026-11-12', { weekday: 'long', day: 'numeric', month: 'long' }))}<div class="stack">${pendingCard(pendingItems)}${feed(S)}</div>`;
   }
 
   /* ---------- Campañas ---------- */
