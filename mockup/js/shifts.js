@@ -1,6 +1,6 @@
 /* Turnos: calendario semanal por tienda, listado de tiendas, edición de turnos y avisos. */
 window.Shifts = (() => {
-  const { esc, icon, badge, btn, progress, empty, pageHead, fmtDate, modal, toast, close } = UI;
+  const { esc, icon, badge, btn, progress, empty, fmtDate, modal, toast, close } = UI;
   const H = () => Views.helpers;
   const HOUR_FROM = 8, HOUR_TO = 22, HOUR_PX = 44;
   const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -27,10 +27,8 @@ window.Shifts = (() => {
     const camps = DB.campaigns.filter(c => c.status !== 'Finalizada'), c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
     const tab = S.f.tab === 'tiendas' ? 'tiendas' : 'calendario';
-    const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
-      H().exportBtn('shifts'));
-    const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
-    return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
+    const tabs = `<div class="tabs" style="align-items:center">${[['calendario', 'Calendario por tienda'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}<span class="spacer"></span>${H().exportBtn('shifts')}</div>`;
+    return tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
   }
 
   function storeList(S, c, stores) {

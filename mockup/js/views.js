@@ -20,7 +20,12 @@ window.Views = (() => {
   /* Pestañas del catálogo (solo Administración): toda la base de datos en una única entrada de la barra lateral */
   const CAT_TABS = [['tiendas', 'Tiendas'], ['colaboradores', 'Colaboradores'], ['voluntarios', 'Voluntarios'], ['catalogos/zonas', 'Zonas'], ['catalogos/localidades', 'Localidades'], ['catalogos/cadenas', 'Cadenas'], ['catalogos/tipos', 'Tipos de campaña'], ['catalogos/incidencias', 'Tipos de incidencia']];
   const catalogTabs = here => { const cur = here === 'catalogos' ? 'catalogos/zonas' : CAT_TABS.find(([k]) => here === k || here.startsWith(k + '/'))?.[0];
-    return `<div class="eyebrow" style="margin-bottom:6px">Catálogo</div><div class="tabs" style="margin-bottom:20px">${CAT_TABS.map(([k, l]) => `<button class="tab ${cur === k ? 'active' : ''}" data-act="go" data-to="${k}">${l}</button>`).join('')}</div>`; };
+    return `<div class="tabs" style="margin-bottom:20px">${CAT_TABS.map(([k, l]) => `<button class="tab ${cur === k ? 'active' : ''}" data-act="go" data-to="${k}">${l}</button>`).join('')}</div>`; };
+  const changeRequestTabs = here => `<div class="tabs" style="margin-bottom:20px"><button class="tab ${here === 'solicitudes-cambio/tiendas' ? 'active' : ''}" data-act="go" data-to="solicitudes-cambio/tiendas">Tiendas</button></div>`;
+  const catalogHead = (title, sub, actions = '', show = !isRole('admin')) => show
+    ? pageHead(title, sub, actions)
+    : actions ? `<div class="row wrap" style="justify-content:flex-end;margin-bottom:24px">${actions}</div>` : '';
+  const catalogActionsMenu = actions => actions ? `<div class="catalog-actions-bar"><details class="catalog-actions"><summary class="btn ghost icon catalog-actions-trigger" aria-label="Más acciones" title="Más acciones">${icon('more')}</summary><div class="catalog-actions-menu">${actions}</div></details></div>` : '';
   const anonV = v => isRole('admin', 'coord') && !v.shared;
   const vName = v => anonV(v) ? `Voluntario ${globalId(v)}` : v.name;
   const volShifts = v => DB.shifts.filter(s => s.assignments.some(a => (a.kind === 'vol' && a.vol === v.id) || (a.kind === 'group' && byId(DB.groups, a.group)?.members.includes(v.id))));
@@ -142,7 +147,7 @@ window.Views = (() => {
           ${noList.length ? todo('file', `Faltan listados de ${noList.length} cadenas`, noList.map(x => R.chain(x.id)).join(', ') + ': impórtalos o confirma las tiendas a mano.', btn('Importar', { size: 'sm', act: 'go', data: 'data-to="importar"' })) : ''}
           ${DB.collabRequests.filter(r => r.status === 'Pendiente').map(r => todo('building', `Cambio propuesto en ${R.collab(r.collab)}`, 'El responsable propone actualizar los datos de su entidad.', btn('Revisar', { size: 'sm', act: 'go', data: `data-to="colaboradores/${r.collab}"` }))).join('')}
           ${DB.catalogRequests.filter(r => r.status === 'Pendiente').length ? todo('list', `${DB.catalogRequests.filter(r => r.status === 'Pendiente').length} peticiones de localidad o zona`, 'Coordinación pide altas en los catálogos.', btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="catalogos/solicitudes"' })) : ''}
-          ${reqs.length ? todo('edit', `${reqs.length} solicitudes de cambio en tiendas`, 'Coordinación propone cambios de datos: revísalos y acéptalos o recházalos.', btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="tiendas/solicitudes"' })) : ''}
+          ${reqs.length ? todo('edit', `${reqs.length} solicitudes de cambio en tiendas`, 'Coordinación propone cambios de datos: revísalos y acéptalos o recházalos.', btn('Revisar', { size: 'sm', act: 'go', data: 'data-to="solicitudes-cambio/tiendas"' })) : ''}
           ${pendStores ? todo('store', `${pendStores} tiendas con participación pendiente`, 'Son de cadenas sin listado: confirma si participan.', btn('Revisar', { size: 'sm', act: 'go', data: `data-to="campanas/${activeCampaign().id}/tiendas"` })) : ''}
           ${purge ? todo('users', `${purge} voluntarios propuestos para baja`, `Llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.`, btn('Revisar', { size: 'sm', act: 'purge' })) : ''}
           </div>
@@ -184,13 +189,31 @@ window.Views = (() => {
 
   /* ---------- Campañas ---------- */
   function campanas(S) {
-    return `${pageHead('Campañas', isRole('admin') ? 'Cada campaña dura una semana; el voluntariado presencial es viernes y sábado, con excepciones por cadena.' : 'Campaña actual y próximas en las que coordinas.', isRole('admin') ? btn('Nueva campaña', { kind: 'primary', icon: 'plus', act: 'new-campaign' }) : '')}
-      <div class="grid g-3">${DB.campaigns.filter(c => isRole('admin') || c.status !== 'Finalizada').map(c => { const sh = DB.shifts.filter(s => s.campaign === c.id), st = stats(sh); return `
+    const campaigns = DB.campaigns.filter(c => isRole('admin') || c.status !== 'Finalizada');
+    const campaignView = S.f.campaignView || 'cards';
+    const viewControl = `<div class="seg">${[['cards', 'Tarjetas'], ['table', 'Tabla']].map(([view, label]) => `<button class="${campaignView === view ? 'active' : ''}" data-act="filter" data-k="campaignView" data-v="${view}">${label}</button>`).join('')}</div>`;
+    const cards = `<div class="grid g-3">${campaigns.map(c => { const sh = DB.shifts.filter(s => s.campaign === c.id), st = stats(sh), balance = campaignBalance(c); return `
         <div class="card hover card-pad" data-act="go" data-to="campanas/${c.id}">
           <div class="row" style="margin-bottom:14px">${iconBox('flag')}<span class="spacer"></span>${badge(c.status)}</div>
           <h2>${esc(c.name)}</h2><div class="small muted" style="margin:4px 0 16px">${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start)} – ${fmtDate(c.end, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
           ${c.status === 'Finalizada' ? '<div class="small muted">Referencia de cobertura para la siguiente campaña.</div>' : `<div class="row small"><span class="muted">Cobertura</span><span class="spacer"></span><b>${st.pct}%</b></div>${progress(st.pct)}<div class="row small faint" style="margin-top:10px;gap:14px"><span data-act="go" data-to="campanas/${c.id}/tiendas" style="cursor:pointer;text-decoration:underline">${icon('store')} ${Object.values(c.participation).filter(v => v === true).length} tiendas</span><span>${icon('building')} ${DB.collabParticipation.filter(p => p.campaign === c.id).length}</span><span>${icon('map')} ${new Set(DB.zoneAssignments.filter(z => z.campaign === c.id).map(z => z.zone)).size} zonas</span></div>`}
+          <div class="row small" style="margin-top:12px"><span class="muted">Kilos recogidos</span><span class="spacer"></span><b>${balance.kilos.toLocaleString('es-ES')} kg</b></div>
         </div>`; }).join('')}</div>`;
+    const campaignRows = campaigns.slice().sort((first, second) => second.start.localeCompare(first.start));
+    const rows = campaignRows.map(c => ({ id: c.id, campaign: c, balance: campaignBalance(c) }));
+    const historicRows = campaignRows.filter(c => c.status !== 'Planificada').map(c => ({ campaign: c, balance: campaignBalance(c) }));
+    const maxKilos = Math.max(1, ...historicRows.map(row => row.balance.kilos));
+    const kilosChart = `<div class="card" style="margin-bottom:20px"><div class="card-head"><h2>Kilos por campaña</h2></div>${historicRows.map(({ campaign, balance }) => `<div class="list-item"><div style="width:220px">${R.campaign(campaign.id)}<div class="small faint">${esc(campaign.code)} · ${esc(campaign.status)}</div></div><div style="flex:1">${progress(balance.kilos / maxKilos, 'ok')}</div><b style="width:90px;text-align:right">${balance.kilos.toLocaleString('es-ES')} kg</b></div>`).join('') || '<div class="card-pad small muted">Aún no hay campañas con datos históricos.</div>'}</div>`;
+    const campaignTable = `${kilosChart}<div class="card campaign-table">${table([
+      { label: 'Campaña', width: '28%', render: r => `<a class="ref" style="white-space:nowrap" href="#/campanas/${r.id}" data-act="go" data-to="campanas/${r.id}">${esc(r.campaign.name)}</a><div class="small faint">${esc(ctype(r.campaign.type)?.name)} · ${esc(r.campaign.code)} · ${fmtDate(r.campaign.start, { month: 'short', year: 'numeric' })}</div>` },
+      { label: 'Estado', width: '13%', render: r => badge(r.campaign.status) },
+      { label: 'Tiendas', width: '8%', render: r => r.balance.stores },
+      { label: 'Voluntarios', width: '12%', render: r => r.balance.vols },
+      { label: 'Asistencia', width: '11%', render: r => r.balance.attendance == null ? '<span class="faint">—</span>' : `${r.balance.attendance}%` },
+      { label: 'Turnos cubiertos', width: '17%', render: r => r.balance.coverage == null ? '<span class="faint">—</span>' : `${r.balance.coverage}%` },
+      { label: 'Kilos', width: '11%', render: r => r.balance.kilos.toLocaleString('es-ES') },
+    ], rows)}</div>`;
+    return `<div class="row wrap" style="justify-content:flex-end;margin-bottom:24px">${viewControl}${isRole('admin') ? btn('Nueva campaña', { kind: 'primary', icon: 'plus', act: 'new-campaign' }) : ''}</div>${campaignView === 'table' ? campaignTable : cards}`;
   }
 
   function campana(S, id, tab = 'resumen') {
@@ -236,6 +259,7 @@ window.Views = (() => {
       [ps.length > 0 && !toCall, 'Colaboradores', ps.length ? `${ps.length} en la campaña · ${toCall} por llamar` : 'Ninguno añadido', goBtn(toCall || !ps.length ? 'Confirmar' : 'Ver', `campanas/${c.id}/equipo`, toCall || !ps.length)],
       [st.pct >= 100, 'Turnos', `${st.pct}% cubierto · ${st.uncovered} turnos sin cubrir`, goBtn('Cubrir huecos', 'turnos', st.uncovered)],
     ];
+    const campaignActions = c.status === 'Finalizada' ? badge('Finalizada · solo lectura') : badge(c.status) + (isRole('admin') ? btn('Editar', { icon: 'edit', act: 'edit', data: `data-entity="campaigns" data-id="${c.id}"` }) : '');
     const done = checks.filter(x => x[0]).length;
     const checklist = `<div class="card" style="margin-bottom:20px"><div class="card-head"><div><h2>${c.status === 'Planificada' ? 'Preparación de la campaña' : 'Pendiente'}</h2><div class="small muted">${done} de ${checks.length} listos</div></div><div style="width:200px">${progress(done / checks.length * 100, done === checks.length ? 'ok' : 'warn')}</div></div>
       ${checks.map(([ok, title, detail, action]) => `<div class="list-item">${iconBox(ok ? 'check' : 'alert', ok ? 'var(--ok)' : 'var(--warn)', ok ? 'var(--ok-bg)' : 'var(--warn-bg)')}<div style="flex:1"><b>${title}</b><div class="small muted">${detail}</div></div>${c.status === 'Finalizada' ? '' : action}</div>`).join('')}</div>`;
@@ -243,7 +267,7 @@ window.Views = (() => {
       : tab === 'equipo' ? coordHtml() + `<div style="margin-top:20px">${collabHtml()}</div>`
       : c.status === 'Planificada' ? checklist + daysHtml() : c.status === 'Finalizada' ? balanceHtml(c) + kpiHtml() : kpiHtml() + `<div style="margin-top:20px">${checklist}</div>`;
     const tabs = [['resumen', c.status === 'Planificada' ? 'Preparación' : 'Resumen'], ['tiendas', `Tiendas${pend ? ` (${pend})` : ''}`], ['equipo', `Equipo${zonesNoCoord + toCall ? ` (${zonesNoCoord + toCall})` : ''}`]];
-    return `${pageHead(c.name, `${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start, { day: 'numeric', month: 'long' })} – ${fmtDate(c.end, { day: 'numeric', month: 'long', year: 'numeric' })}`, c.status === 'Finalizada' ? badge('Finalizada · solo lectura') : !isRole('admin') ? badge(c.status) : badge(c.status) + btn('Editar', { icon: 'edit', act: 'edit', data: `data-entity="campaigns" data-id="${c.id}"` }) + btn(c.status === 'Activa' ? 'Finalizar campaña' : 'Activar campaña', { kind: 'primary', icon: c.status === 'Activa' ? 'check' : 'flag', act: 'campaign-status', data: `data-id="${c.id}" data-status="${c.status === 'Activa' ? 'Finalizada' : 'Activa'}"` }))}
+    return `${tab === 'tiendas' || tab === 'equipo' ? '' : pageHead(c.name, `${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start, { day: 'numeric', month: 'long' })} – ${fmtDate(c.end, { day: 'numeric', month: 'long', year: 'numeric' })}`, campaignActions)}
       ${c.status === 'Finalizada' ? '<div class="card card-pad small" style="margin-bottom:16px;background:var(--warn-bg);border-color:transparent">Campaña finalizada: turnos, asignaciones y configuración en solo lectura. Las incidencias pendientes se pueden seguir cerrando.</div>' : ''}
       <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="campanas/${c.id}/${k}">${l}</button>`).join('')}</div><div class="fade-in">${body}</div>`;
   }
@@ -256,13 +280,6 @@ window.Views = (() => {
   const balanceHtml = c => { const b = campaignBalance(c), top = Object.entries(c.kilos || {}).sort((x, y) => y[1] - x[1]).slice(0, 5);
     return `<div class="grid g-4" style="margin-bottom:20px">${kpi('Kilos recogidos', b.kilos.toLocaleString('es-ES'), 'box', `${b.stores} tiendas`)}${kpi('Voluntarios que asistieron', b.vols, 'heart', 'personas distintas')}${kpi('Asistencia', b.attendance == null ? '—' : b.attendance + '%', 'check', 'de lo asignado')}${kpi('Turnos cubiertos', b.coverage == null ? '—' : b.coverage + '%', 'clock', 'de las plazas')}</div>
       ${top.length ? `<div class="card" style="margin-bottom:20px"><div class="card-head"><h2>Tiendas con más kilos</h2></div>${top.map(([id, kg]) => `<div class="list-item"><div style="flex:1">${R.store(Number(id))}</div><div style="width:200px">${progress(kg / top[0][1] * 100, 'ok')}</div><b style="width:80px;text-align:right">${kg.toLocaleString('es-ES')} kg</b></div>`).join('')}</div>` : ''}`; };
-  function historico(S) {
-    const cs = DB.campaigns.filter(c => c.status !== 'Planificada').sort((a, b) => b.start.localeCompare(a.start)), rows = cs.map(c => ({ c, b: campaignBalance(c) })), max = Math.max(1, ...rows.map(r => r.b.kilos));
-    return `${pageHead('Histórico de recogidas', 'Cómo ha ido cada campaña: kilos, voluntarios, asistencia y cobertura.', '')}
-      <div class="card" style="margin-bottom:20px"><div class="card-head"><h2>Kilos por campaña</h2></div>${rows.map(({ c, b }) => `<div class="list-item"><div style="width:220px">${R.campaign(c.id)}<div class="small faint">${esc(c.code)} · ${esc(c.status)}</div></div><div style="flex:1">${progress(b.kilos / max * 100, 'ok')}</div><b style="width:90px;text-align:right">${b.kilos.toLocaleString('es-ES')} kg</b></div>`).join('')}</div>
-      <div class="card">${table([{ label: 'Campaña', render: r => `${R.campaign(r.c.id)}<div class="small faint">${fmtDate(r.c.start, { month: 'short', year: 'numeric' })}</div>` }, { label: 'Tiendas', render: r => r.b.stores }, { label: 'Voluntarios', render: r => r.b.vols }, { label: 'Asistencia', render: r => r.b.attendance == null ? '<span class="faint">—</span>' : r.b.attendance + '%' }, { label: 'Turnos cubiertos', render: r => r.b.coverage == null ? '<span class="faint">—</span>' : r.b.coverage + '%' }, { label: 'Kilos', render: r => `<b>${r.b.kilos.toLocaleString('es-ES')}</b>` }], rows.map(r => ({ ...r, id: r.c.id })))}</div>`;
-  }
-
   /* ---------- Tiendas ---------- */
   function participacionBody(S, c) {
     c.reasons ||= {}; c.participation ||= {}; c.sources ||= [];
@@ -291,18 +308,16 @@ window.Views = (() => {
     const q = (S.f.q || '').toLowerCase(), ch = S.f.chain || '', z = S.f.zone || '';
     const showArchived = S.f.archived === '1', picked = S.picked || [];
     const list = scope.stores(S).filter(s => (showArchived || !s.archived) && (s.name + (loc(s.locality)?.name || '') + (s.code || '')).toLowerCase().includes(q) && (!ch || String(s.chain) === ch) && (!z || (z === 'none' ? !s.zone : String(s.zone) === z)));
+    const actions = exportBtn('stores') + (admin ? btn('Alta manual', { icon: 'plus', act: 'new', data: 'data-entity="stores"' }) + btn('Importar listado', { kind: 'primary', icon: 'upload', act: 'go', data: 'data-to="importar"' }) : isRole('coord') ? btn('Pedir localidad o zona', { icon: 'pin', act: 'request-catalog' }) : '');
     const filters = `<div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Nombre, código o localidad…" data-filter="q" value="${esc(S.f.q || '')}"></div>
       <select class="input" style="width:170px" data-filter="chain"><option value="">Todas las cadenas</option>${DB.chains.map(x => `<option value="${x.id}" ${String(x.id) === ch ? 'selected' : ''}>${x.name}</option>`).join('')}</select>
       <select class="input" style="width:170px" data-filter="zone"><option value="">Todas las zonas</option><option value="none" ${z === 'none' ? 'selected' : ''}>Sin zona</option>${DB.zones.map(x => `<option value="${x.id}" ${String(x.id) === z ? 'selected' : ''}>${x.name}</option>`).join('')}</select>${admin ? `<label class="row small"><input type="checkbox" class="check" data-act="toggle-archived" ${showArchived ? 'checked' : ''}>Ver archivadas</label>` : ''}<span class="spacer"></span><span class="small muted">${list.length} tiendas</span></div>`;
     const bulk = admin ? `<div class="toolbar" style="border-top:1px solid var(--border)"><span class="small"><b>${picked.length}</b> seleccionadas</span><select class="input inline" id="bulk-zone"><option value="">Sin zona</option>${DB.zones.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>${btn('Asignar zona', { size: 'sm', act: 'bulk-zone' })}<span class="spacer"></span>${btn('Zona por localidad', { size: 'sm', icon: 'map', act: 'zone-by-locality', title: 'Asigna a las tiendas sin zona la zona de su localidad' })}</div>` : '';
     let body;
-    if (tab === 'solicitudes' && admin) {
-      const reqs = DB.storeRequests.slice().reverse();
-      body = `<div class="card">${reqs.length ? reqs.map(r => requestItem(S, r)).join('') : empty('Sin solicitudes', 'Coordinación no ha propuesto cambios.')}</div>`;
-    } else if (tab === 'participacion') {
+    if (tab === 'participacion') {
       body = `<div class="card card-pad row">${icon('alert')}<span style="flex:1">La participación de las tiendas se gestiona dentro de cada campaña.</span>${btn(`Abrir ${esc(c.code)}`, { kind: 'primary', size: 'sm', act: 'go', data: `data-to="campanas/${c.id}/tiendas"` })}</div>`;
     } else {
-      body = `<div class="card">${filters}${bulk}${table([
+      body = `<div class="card">${catalogActionsMenu(admin ? actions : '')}${filters}${bulk}${table([
           admin && { label: '', width: '36px', render: r => `<input type="checkbox" class="check" data-act="store-pick" data-id="${r.id}" ${picked.includes(r.id) ? 'checked' : ''}>` },
           { label: 'Tienda', render: r => `<div class="cell-main">${iconBox('store')}<div>${R.store(r.id)}${r.archived ? ' ' + badge('Archivada') : ''}<small>${esc(r.address)}</small></div></div>` },
           { label: 'Cadena', render: r => R.chain(r.chain) },
@@ -313,14 +328,18 @@ window.Views = (() => {
           { label: '', width: '90px', render: r => admin ? rowActions('stores', r.id) : '' },
         ], list)}</div>`;
     }
-    return `${pageHead('Tiendas', 'Catálogo de puntos de recogida y su participación en la campaña.', exportBtn('stores') + (admin ? btn('Alta manual', { icon: 'plus', act: 'new', data: 'data-entity="stores"' }) + btn('Importar listado', { kind: 'primary', icon: 'upload', act: 'go', data: 'data-to="importar"' }) : isRole('coord') ? btn('Pedir localidad o zona', { icon: 'pin', act: 'request-catalog' }) : ''))}
-      <div class="tabs">${[['catalogo', 'Catálogo'], ...(admin ? [['solicitudes', `Solicitudes de cambio${pendingRequests().length ? ` (${pendingRequests().length})` : ''}`]] : [])].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="tiendas/${k}">${l}</button>`).join('')}</div><div class="fade-in">${body}</div>`;
+    return `${catalogHead('Tiendas', 'Catálogo de puntos de recogida y su participación en la campaña.', admin ? '' : actions)}
+      <div class="fade-in">${body}</div>`;
   }
 
   const requestItem = (S, r) => `<div class="list-item" style="align-items:flex-start">${avatar(user(r.by)?.name, 'sm')}<div style="flex:1"><div class="small"><b>${R.user(r.by)}</b> propone cambios en ${R.store(r.store)} <span class="faint">· ${fmtDate(r.date)}</span>${r.status === 'Pendiente' ? ` <span class="small" style="color:var(--warn)">· pendiente ${ago(r.date)}</span>` : ''}</div>
       <table class="small" style="margin:8px 0"><tbody>${Object.entries(r.changes).map(([k, v]) => `<tr><td class="muted" style="padding-right:12px">${STORE_FIELDS.find(f => f[0] === k)?.[1] || { exception: 'Excepción de horario', schedule: 'Horario semanal' }[k] || k}</td><td>${k === 'exception' ? `<b>${fieldText(k, v)}</b>` : `<s class="faint">${fieldText(k, k === 'schedule' ? DB.schedules.find(h => h.store === r.store) : byId(DB.stores, r.store)[k])}</s> → <b>${fieldText(k, v)}</b>`}</td></tr>`).join('')}</tbody></table>
       ${r.note ? `<div class="small muted">«${esc(r.note)}»</div>` : ''}</div>
       ${r.status === 'Pendiente' && can(S, 'stores.import') ? btn('Rechazar', { size: 'sm', act: 'review-request', data: `data-id="${r.id}" data-ok=""` }) + btn('Aceptar', { kind: 'primary', size: 'sm', icon: 'check', act: 'review-request', data: `data-id="${r.id}" data-ok="1"` }) : badge(r.status, { Aceptada: 'ok', Rechazada: '', Pendiente: 'warn' }[r.status])}</div>`;
+  function solicitudesCambio(S, category = 'tiendas') {
+    const reqs = category === 'tiendas' ? DB.storeRequests.slice().reverse() : [];
+    return `<div class="card">${reqs.length ? reqs.map(r => requestItem(S, r)).join('') : empty('Sin solicitudes', 'No hay solicitudes de cambio de tiendas.')}</div>`;
+  }
 
   function tienda(S, id) {
     const s = byId(DB.stores, id); if (!s) return empty('Tienda no encontrada', '');
@@ -392,8 +411,7 @@ window.Views = (() => {
         <div class="row" style="margin-top:10px;gap:4px">${assign && f < s.capacity ? btn('Asignar', { size: 'sm', icon: 'plus', act: 'assign', data: `data-id="${s.id}"` }) : ''}<span class="spacer"></span>${can(S, 'incidents.manage') ? btn('', { kind: 'ghost', size: 'sm', icon: 'alert', act: 'incident', data: `data-id="${s.id}"`, title: 'Registrar incidencia' }) : ''}</div>
       </div>`; };
     const myZones = isRole('admin') ? DB.zones : zonesOf(S.user.id).map(zone);
-    return `${pageHead('Turnos', `Mañana de apertura a ${DB.settings.morningEnd} y tarde de ${DB.settings.afternoonStart} a cierre. 2 personas por turno, 4 si la tienda tiene dos líneas de caja.`)}
-      <div class="card" style="margin-bottom:16px"><div class="toolbar" style="border:0">
+    return `<div class="card" style="margin-bottom:16px"><div class="toolbar" style="border:0">
         <div class="seg">${days.map(d => `<button class="${d === day ? 'active' : ''}" data-act="filter" data-k="day" data-v="${d}">${fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' })}${c.days.includes(d) ? '' : ' '}</button>`).join('')}</div>
         <div class="seg">${['Todos', 'Sin cubrir', 'Parcial', 'Cubierto'].map(x => `<button class="${cov === x ? 'active' : ''}" data-act="filter" data-k="cov" data-v="${x}">${x}</button>`).join('')}</div>
         ${isRole('admin', 'coord') ? `<select class="input" style="width:170px" data-filter="zone"><option value="">Todas tus zonas</option>${myZones.map(z => `<option value="${z.id}" ${String(z.id) === zf ? 'selected' : ''}>${esc(z.name)}</option>`).join('')}</select>` : ''}
@@ -409,8 +427,9 @@ window.Views = (() => {
   /* ---------- Colaboradores ---------- */
   function colaboradores(S) {
     const list = scope.collabs(S), admin = can(S, 'collabs.create');
-    return `${pageHead('Colaboradores', admin ? 'Entidades que aportan voluntariado. Solo Administración las da de alta, las valida y les asigna coordinador.' : 'Colaboradores que tienes asignados para contactar.', exportBtn('collabs') + (admin ? btn('Nuevo colaborador', { kind: 'primary', icon: 'plus', act: 'new-collab' }) : isRole('coord') ? btn('Proponer colaborador', { icon: 'plus', act: 'new-collab' }) : ''))}
-      <div class="card">${table([
+    const actions = exportBtn('collabs') + (admin ? btn('Nuevo colaborador', { kind: 'primary', icon: 'plus', act: 'new-collab' }) : isRole('coord') ? btn('Proponer colaborador', { icon: 'plus', act: 'new-collab' }) : '');
+    return `${catalogHead('Colaboradores', admin ? 'Entidades que aportan voluntariado. Solo Administración las da de alta, las valida y les asigna coordinador.' : 'Colaboradores que tienes asignados para contactar.', admin ? '' : actions)}
+      <div class="card">${catalogActionsMenu(admin ? actions : '')}${table([
         { label: 'Colaborador', render: r => `<div class="cell-main">${avatar(r.name)}<div>${R.collab(r.id)}<small>${esc(r.type)}${r.oneCampaign ? ' · Solo una campaña' : ''}</small></div></div>` },
         { label: 'Contacto principal', render: r => { const p = mainContact(r.id); return p ? `${esc(p.name)}<div class="small faint">${esc(p.phone)}</div>` : '—'; } },
         { label: 'Coordinación', render: r => r.coords.map(R.user).join(', ') || '<span class="faint small">Sin asignar</span>' },
@@ -451,10 +470,10 @@ window.Views = (() => {
   /* ---------- Grupos ---------- */
   function grupos(S) {
     const own = S.user.role === 'rcol', list = scope.groups(S);
-    if (own) return `${pageHead('Grupos', 'Organiza tus voluntarios en grupos y nombra un líder. Los grupos se conservan entre campañas: revisa sus miembros al empezar cada una. Un voluntario puede estar en varios grupos si sus turnos no coinciden.', btn('Nuevo grupo', { kind: 'primary', icon: 'plus', act: 'group-form' }))}
+    if (own) return `<div class="row wrap" style="justify-content:flex-end;margin-bottom:24px">${btn('Nuevo grupo', { kind: 'primary', icon: 'plus', act: 'group-form' })}</div>
       ${list.length ? `<div class="grid g-3">${list.map(g => `<div class="card hover card-pad" data-act="go" data-to="grupo/${g.id}"><div class="row" style="margin-bottom:12px">${iconBox('users')}<div style="flex:1"><h2>${esc(g.code)}</h2><div class="small muted">${gsize(g)} personas · ${groupShifts(g.id).length} turnos</div></div>${g.reviewedFor === activeCampaign().id ? badge('Revisado', 'ok') : badge(`Revisar para ${esc(activeCampaign().code)}`, 'warn')}</div>
         <div class="small muted" style="margin-bottom:6px">Líder: <b>${esc(byId(DB.volunteers, g.leader)?.name || 'sin asignar')}</b></div><div class="avatars">${g.members.map(id => avatar(byId(DB.volunteers, id)?.name, 'sm')).join('')}</div>${g.reviewedFor === activeCampaign().id ? '' : `<div class="row" style="margin-top:12px;gap:6px">${btn('Confirmar miembros', { size: 'sm', icon: 'check', act: 'group-review', data: `data-id="${g.id}"` })}${btn('Ajustar', { size: 'sm', icon: 'edit', act: 'group-form', data: `data-id="${g.id}"` })}</div>`}</div>`).join('')}</div>` : `<div class="card">${empty('Aún no tienes grupos', 'Crea un grupo con tus voluntarios para poder asignarlo a turnos.')}</div>`}`;
-    return `${pageHead('Grupos', 'Grupos que han creado las entidades colaboradoras. Por protección de datos, solo se ve el identificador y el número de personas.', '')}
+    return `
       <div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:transparent"><div class="card-pad row small">${icon('shield')}<span>Los nombres y teléfonos de estos voluntarios solo los ve el responsable de su entidad. Para cualquier gestión, contacta con él.</span></div></div>
       <div class="card">${table([
         { label: 'Grupo', render: r => `<div class="cell-main">${iconBox('users')}<div>${R.group(r.id)}<small>ID ${r.id}</small></div></div>` },
@@ -477,11 +496,12 @@ window.Views = (() => {
     const cs = new Set(scope.collabs(S).map(c => c.id)), extra = isRole('admin', 'coord') ? DB.volunteers.filter(v => v.collab !== 1 && (isRole('admin') || cs.has(v.collab))) : [];
     const q = (S.f.q || '').toLowerCase(), base = [...new Set([...scope.volunteers(S), ...extra])], vd = S.f.vdata || '';
     const list = base.filter(v => (vName(v) + (anonV(v) ? '' : v.phone) + (loc(v.locality)?.name || '')).toLowerCase().includes(q) && (S.f.vstate !== 'baja' || toPurge(v)) && (!vd || (vd === 'anon') === anonV(v)));
-    const purge = base.filter(toPurge).length, canConfirm = isRole('admin', 'coord', 'rcol');
+    const purge = base.filter(toPurge).length, canConfirm = isRole('admin', 'coord', 'rcol'), admin = isRole('admin');
     if (S.f.vtab === 'entidades' && isRole('admin', 'coord')) return anonymousVolunteers(S);
-    return `${pageHead('Voluntarios', S.user.role === 'rcol' ? 'Los voluntarios de tu entidad. Solo tú ves y gestionas sus datos.' : 'Voluntarios independientes con sus datos y, anonimizados, los de las entidades. Solo vemos los datos que cada entidad comparte.', btn('Importar Excel', { icon: 'upload', act: 'vol-import' }) + btn('Nuevo voluntario', { kind: 'primary', icon: 'plus', act: 'new', data: 'data-entity="volunteers"' }))}
+    const actions = btn('Importar Excel', { icon: 'upload', act: 'vol-import' }) + btn('Nuevo voluntario', { kind: 'primary', icon: 'plus', act: 'new', data: 'data-entity="volunteers"' });
+    return `${catalogHead('Voluntarios', S.user.role === 'rcol' ? 'Los voluntarios de tu entidad. Solo tú ves y gestionas sus datos.' : 'Voluntarios independientes con sus datos y, anonimizados, los de las entidades. Solo vemos los datos que cada entidad comparte.', admin ? '' : actions)}
       ${purge ? `<div class="card" style="margin-bottom:16px;background:var(--warn-bg);border-color:transparent"><div class="card-pad row wrap">${icon('alert')}<div style="flex:1"><b>${purge} voluntarios llevan ${DB.settings.inactiveCampaigns} o más campañas sin participar.</b><div class="small muted">La app propone darlos de baja. ${canConfirm ? 'Debes confirmarlo.' : 'Lo confirmará coordinación o administración.'}</div></div>${canConfirm ? btn('Revisar propuesta', { kind: 'primary', size: 'sm', act: 'purge' }) : ''}</div></div>` : ''}
-      <div class="card"><div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Nombre, teléfono, localidad…" data-filter="q" value="${esc(S.f.q || '')}"></div>
+      <div class="card">${catalogActionsMenu(admin ? actions : '')}<div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Nombre, teléfono, localidad…" data-filter="q" value="${esc(S.f.q || '')}"></div>
         <span class="spacer"></span>${extra.length ? `<div class="seg">${[['', 'Todos'], ['datos', 'Con datos'], ['anon', 'Anonimizados']].map(([k, l]) => `<button class="${vd === k ? 'active' : ''}" data-act="filter" data-k="vdata" data-v="${k}">${l}</button>`).join('')}</div>` : ''}<div class="seg">${[['', 'Todos'], ['baja', 'Propuestos para baja']].map(([k, l]) => `<button class="${(S.f.vstate || '') === k ? 'active' : ''}" data-act="filter" data-k="vstate" data-v="${k}">${l}</button>`).join('')}</div></div>
       ${table([
         { label: 'Voluntario', render: r => anonV(r) ? `<div class="cell-main">${avatar('?')}<div>${R.vol(r.id)}<small>${R.collab(r.collab)} · ${badge('Anonimizado', 'plain')}</small></div></div>` : `<div class="cell-main">${avatar(r.name)}<div>${R.vol(r.id)}<small>${globalId(r)} · ${r.minor ? `Menor${r.consent ? ' · autorización recibida' : ' · falta autorización'}` : 'Mayor de edad'}</small></div></div>` },
@@ -496,7 +516,7 @@ window.Views = (() => {
   function anonymousVolunteers(S) {
     const cs = new Set(scope.collabs(S).map(c => c.id)), q = (S.f.q || '').toLowerCase();
     const list = DB.volunteers.filter(v => v.collab !== 1 && (isRole('admin') || cs.has(v.collab)) && (globalId(v) + byId(DB.collabs, v.collab).name).toLowerCase().includes(q));
-    return `${pageHead('Voluntarios', 'Por protección de datos, de los voluntarios de entidades solo se ve su identificador global, su historial e incidencias. Los datos personales los gestiona su responsable.', '')}${volTabs(S)}
+    return `${catalogHead('Voluntarios', 'Por protección de datos, de los voluntarios de entidades solo se ve su identificador global, su historial e incidencias.', '')}${volTabs(S)}
       <div class="card"><div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Identificador o entidad…" data-filter="q" value="${esc(S.f.q || '')}"></div><span class="spacer"></span><span class="small muted">${list.length} voluntarios</span></div>
       ${table([{ label: 'Identificador', render: r => `<code>${globalId(r)}</code>${r.minor ? ' ' + badge('Menor', 'info') : ''}` }, { label: 'Entidad', render: r => R.collab(r.collab) },
         { label: 'Campañas', render: r => r.history.length ? r.history.map(h => badge(h, 'plain')).join(' ') : '<span class="faint small">Nuevo</span>' },
@@ -517,9 +537,8 @@ window.Views = (() => {
     const c = activeCampaign(), shIds = new Set(scope.shifts(S, c.id).map(s => s.id));
     const sf = S.f.shift || '', st = S.f.rstate || 'abiertas';
     const rows = DB.reports.filter(r => r.campaign === c.id && shIds.has(r.shift) && (!sf || String(r.shift) === sf) && (st === 'todas' || (st === 'abiertas' ? !r.solved_by : r.solved_by))).sort((a, b) => (!a.solved_by && a.urgent ? 0 : 1) - (!b.solved_by && b.urgent ? 0 : 1));
-    return `${pageHead('Incidencias', 'Ausencias, voluntarios que no se presentan, falta de petos… Las urgentes salen primero. Las resuelven coordinación, el responsable del colaborador o administración.', exportBtn('reports'))}
-      <div class="row wrap" style="margin-bottom:16px"><div class="seg">${[['abiertas', 'Abiertas'], ['resueltas', 'Resueltas'], ['todas', 'Todas']].map(([k, l]) => `<button class="${st === k ? 'active' : ''}" data-act="filter" data-k="rstate" data-v="${k}">${l}</button>`).join('')}</div>
-        ${sf ? `<span class="chip">${icon('clock')}Turno ${esc(byId(DB.stores, byId(DB.shifts, sf).store).name)}<button data-act="filter" data-k="shift" data-v="" title="Quitar filtro">${icon('x')}</button></span>` : ''}</div>
+    return `<div class="row wrap" style="margin-bottom:16px"><div class="seg">${[['abiertas', 'Abiertas'], ['resueltas', 'Resueltas'], ['todas', 'Todas']].map(([k, l]) => `<button class="${st === k ? 'active' : ''}" data-act="filter" data-k="rstate" data-v="${k}">${l}</button>`).join('')}</div>
+        ${sf ? `<span class="chip">${icon('clock')}Turno ${esc(byId(DB.stores, byId(DB.shifts, sf).store).name)}<button data-act="filter" data-k="shift" data-v="" title="Quitar filtro">${icon('x')}</button></span>` : ''}<span class="spacer"></span>${exportBtn('reports')}</div>
       <div class="card">${table([
         { label: 'Tipo', render: r => `${badge(rtype(r.type).name, r.solved_by ? 'ok' : r.urgent ? 'danger' : 'warn')}${r.urgent && !r.solved_by ? ' ' + badge('Urgente', 'danger') : ''}` },
         { label: 'Turno', render: r => { const s = byId(DB.shifts, r.shift); return `${R.store(s.store)}<div class="small">${R.shift(s)}</div>`; } },
@@ -544,8 +563,7 @@ window.Views = (() => {
         { label: 'Estado', render: r => badge(r.status, r.status === 'Inactivo' ? 'danger' : undefined) }, { label: 'Último acceso', render: r => `<span class="muted small">${esc(r.last)}</span>` },
         { label: '', width: '130px', render: r => `<span class="row" style="gap:4px;justify-content:flex-end">${btn('', { kind: 'ghost', size: 'sm', icon: 'shield', act: 'reset-password', title: 'Restablecer contraseña', data: `data-id="${r.id}"` })}${btn('', { kind: 'ghost', size: 'sm', icon: 'edit', act: 'edit', data: `data-entity="users" data-id="${r.id}"`, title: 'Editar' })}${btn('', { kind: r.status === 'Inactivo' ? 'ghost' : 'ghost danger', size: 'sm', icon: r.status === 'Inactivo' ? 'check' : 'x', act: 'delete', data: `data-entity="users" data-id="${r.id}"`, title: r.status === 'Inactivo' ? 'Reactivar' : 'Desactivar' })}</span>` },
       ], DB.users)}</div>`;
-    return `${pageHead('Usuarios y roles', 'Quién accede a la intranet, con qué rol y sobre qué ámbito.', btn('Invitar usuario', { kind: 'primary', icon: 'mail', act: 'new', data: 'data-entity="users"' }), 'Administración')}
-      <div class="tabs">${[['usuarios', `Usuarios (${DB.users.length})`], ['roles', 'Roles y permisos']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="usuarios/${k}">${l}</button>`).join('')}</div><div class="fade-in">${body}</div>`;
+    return `<div class="tabs" style="align-items:center">${[['usuarios', `Usuarios (${DB.users.length})`], ['roles', 'Roles y permisos']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="go" data-to="usuarios/${k}">${l}</button>`).join('')}<span class="spacer"></span>${btn('Invitar usuario', { kind: 'primary', icon: 'mail', act: 'new', data: 'data-entity="users"' })}</div><div class="fade-in">${body}</div>`;
   }
   function usuario(S, id, self = false) {
     const u = user(id); if (!u) return empty('Usuario no encontrado', '');
@@ -572,9 +590,10 @@ window.Views = (() => {
       solicitudes: [`Solicitudes${DB.catalogRequests.filter(r => r.status === 'Pendiente').length ? ` (${DB.catalogRequests.filter(r => r.status === 'Pendiente').length})` : ''}`, null, []],
     };
     const [title, entity, cols] = T[tab] || T.zonas, showArchived = S.f.archived === '1';
-    return `${pageHead(tab === 'solicitudes' ? 'Solicitudes' : 'Catálogos', tab === 'solicitudes' ? 'Peticiones de coordinación para dar de alta localidades o zonas.' : 'Datos maestros que se usan en el resto de la aplicación. Se eligen siempre de una lista, nunca como texto libre.', entity ? btn('Añadir', { kind: 'primary', icon: 'plus', act: 'new', data: `data-entity="${entity}"` }) : '', 'Administración')}
+    const addAction = entity ? btn('Añadir', { kind: 'primary', icon: 'plus', act: 'new', data: `data-entity="${entity}"` }) : '';
+    return `${catalogHead(tab === 'solicitudes' ? 'Solicitudes' : 'Catálogos', tab === 'solicitudes' ? 'Peticiones de coordinación para dar de alta localidades o zonas.' : 'Datos maestros que se usan en el resto de la aplicación. Se eligen siempre de una lista, nunca como texto libre.', isRole('admin') && entity ? '' : addAction, tab === 'solicitudes')}
       ${isRole('admin') ? '' : `<div class="tabs">${Object.entries(T).map(([k, [l]]) => `<button class="tab ${(T[tab] ? tab : 'zonas') === k ? 'active' : ''}" data-act="go" data-to="catalogos/${k}">${l}</button>`).join('')}</div>`}
-      ${entity ? `<div class="card fade-in"><div class="toolbar"><span class="small muted">Los elementos no se borran: se archivan y dejan de aparecer en las listas.</span><span class="spacer"></span><label class="row small"><input type="checkbox" class="check" data-act="toggle-archived" ${showArchived ? 'checked' : ''}>Ver archivados</label></div>${table([...cols.map((col, i) => i ? col : { ...col, render: r => col.render(r) + (r.archived ? ' ' + badge('Archivado') : '') }), { label: '', width: '110px', render: r => r.archived ? btn('Restaurar', { size: 'sm', act: 'restore-catalog', data: `data-entity="${entity}" data-id="${r.id}"` }) : rowActions(entity, r.id) }], DB[entity].filter(r => showArchived || !r.archived))}</div>`
+      ${entity ? `<div class="card fade-in">${catalogActionsMenu(isRole('admin') ? addAction : '')}<div class="toolbar"><span class="small muted">Los elementos no se borran: se archivan y dejan de aparecer en las listas.</span><span class="spacer"></span><label class="row small"><input type="checkbox" class="check" data-act="toggle-archived" ${showArchived ? 'checked' : ''}>Ver archivados</label></div>${table([...cols.map((col, i) => i ? col : { ...col, render: r => col.render(r) + (r.archived ? ' ' + badge('Archivado') : '') }), { label: '', width: '110px', render: r => r.archived ? btn('Restaurar', { size: 'sm', act: 'restore-catalog', data: `data-entity="${entity}" data-id="${r.id}"` }) : rowActions(entity, r.id) }], DB[entity].filter(r => showArchived || !r.archived))}</div>`
         : `<div class="card fade-in">${DB.catalogRequests.length ? DB.catalogRequests.slice().reverse().map(r => `<div class="list-item">${iconBox(r.kind === 'zone' ? 'map' : 'pin')}<div style="flex:1"><b class="small">${r.kind === 'zone' ? 'Zona' : 'Localidad'} «${esc(r.name)}»${r.postal_code ? ` · CP ${esc(r.postal_code)}` : ''}</b><div class="small muted">${R.user(r.by)} · ${fmtDate(r.date)}${r.note ? ` · «${esc(r.note)}»` : ''}</div></div>
           ${r.status === 'Pendiente' ? btn('Rechazar', { size: 'sm', act: 'review-catalog', data: `data-id="${r.id}" data-ok=""` }) + btn('Crear', { kind: 'primary', size: 'sm', icon: 'check', act: 'review-catalog', data: `data-id="${r.id}" data-ok="1"` }) : badge(r.status, r.status === 'Aceptada' ? 'ok' : '')}</div>`).join('') : empty('Sin solicitudes', 'Coordinación no ha pedido localidades ni zonas nuevas.')}</div>`}`;
   }
@@ -582,14 +601,13 @@ window.Views = (() => {
   function configuracion() {
     const st = DB.settings;
     const f = (k, l, t = 'text', h = '') => `<div class="field"><label>${l}</label><input class="input" name="${k}" type="${t}" value="${esc(st[k])}">${h ? `<span class="hint">${h}</span>` : ''}</div>`;
-    return `${pageHead('Configuración', 'Reglas por defecto de turnos y depuración de voluntarios.', btn('Ir a catálogos', { icon: 'list', act: 'go', data: 'data-to="catalogos"' }), 'Administración')}
-      <div class="card" style="max-width:720px"><div class="card-head"><h2>Turnos por defecto</h2></div><div class="card-pad"><form id="settings-form" class="form-grid">
+    return `<div class="card" style="max-width:720px"><div class="card-head"><h2>Turnos por defecto</h2>${btn('Ir a catálogos', { icon: 'list', act: 'go', data: 'data-to="catalogos"' })}</div><div class="card-pad"><form id="settings-form" class="form-grid">
           ${f('morningEnd', 'Fin del turno de mañana', 'time', 'Empieza a la apertura de la tienda (schedule)')}${f('afternoonStart', 'Inicio del turno de tarde', 'time', 'Termina al cierre de la tienda')}
           ${f('baseCapacity', 'Personas por turno', 'number')}${f('twoLinesCapacity', 'Con dos líneas de caja', 'number')}
           ${f('inactiveCampaigns', 'Proponer baja tras… campañas sin participar', 'number', 'La baja la confirma el responsable de cada colaborador (o Administración)')}
         </form><div class="row" style="margin-top:16px;justify-content:flex-end">${btn('Guardar cambios', { kind: 'primary', act: 'save-settings' })}</div></div></div>`;
   }
 
-  return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+  return { bind: S => { CS = S; }, inicio, campanas, campana, tiendas, solicitudesCambio, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
+    helpers: { catalogTabs, changeRequestTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();

@@ -176,7 +176,7 @@ window.Import = (() => {
     DB.importHistory.push(entry);
     DB.activity.unshift({ who: 1, text: `importó ${rs.length} tiendas de {chain} (${added} nuevas)`, refs: { chain: I.chain }, when: 'Ahora' });
     UI.toast(`${rs.length} tiendas de ${esc(chainObj().name)} confirmadas · ${added} nuevas${entry.localities.length ? ` · ${entry.localities.length} localidades creadas` : ''}${entry.updated.length ? ` · ${entry.updated.length} actualizadas` : ''}`);
-    I = fresh(); go('tiendas/catalogo');
+    I = fresh(); go('tiendas');
   }
 
   function undoImport(id, render) { const e = DB.importHistory.find(x => x.id === Number(id)), c = H().byId(DB.campaigns, e.campaign), keepShifts = new Set(e.shifts);

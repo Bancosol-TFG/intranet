@@ -99,6 +99,7 @@ h3 { font-size: 14px; margin: 0; }
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; padding: 10px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
 td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.campaign-table th, .campaign-table td { padding-left: 8px; padding-right: 8px; }
 tbody tr { transition: background .1s; } tbody tr:hover { background: var(--surface-2); }
 tbody tr.click { cursor: pointer; } tbody tr:last-child td { border-bottom: 0; }
 td .actions { display: flex; gap: 4px; justify-content: flex-end; opacity: .4; transition: .1s; } tr:hover .actions { opacity: 1; }
@@ -163,6 +164,12 @@ textarea.input { height: 90px; padding: 8px 10px; resize: vertical; }
 /* Menu */
 .menu-wrap { position: relative; }
 .menu { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); min-width: 220px; padding: 6px; z-index: 30; animation: pop .12s; }
+.catalog-actions-bar { display: flex; justify-content: flex-end; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.catalog-actions { position: relative; }
+.catalog-actions-trigger { list-style: none; }
+.catalog-actions-trigger::-webkit-details-marker { display: none; }
+.catalog-actions-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: flex; flex-direction: column; gap: 4px; min-width: 200px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); animation: pop .12s; }
+.catalog-actions-menu .btn { width: 100%; justify-content: flex-start; }
 .menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; text-align: left; }
 .menu button:hover { background: var(--muted-bg); } .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 .user-btn { display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 4px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; }

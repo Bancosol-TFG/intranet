@@ -27,8 +27,7 @@
     { k: 'voluntarios', l: 'Mis voluntarios', i: 'heart', roles: 'rcol', group: 'Campaña actual' },
     { k: 'catalogos', l: 'Catálogo', i: 'list', roles: 'admin', group: 'Administración', to: () => 'tiendas' },
     { k: 'campanas', l: 'Campañas', i: 'cal', roles: 'admin coord', group: 'Administración' },
-    { k: 'k-solicitudes', l: 'Solicitudes', i: 'file', roles: 'admin', group: 'Administración', to: () => 'catalogos/solicitudes', count: () => DB.catalogRequests.filter(r => r.status === 'Pendiente').length },
-    { k: 'historico', l: 'Histórico', i: 'clock', roles: 'admin', group: 'Administración' },
+    { k: 'solicitudes-cambio', l: 'Solicitudes', i: 'file', roles: 'admin', group: 'Administración', to: () => 'solicitudes-cambio/tiendas', count: () => DB.storeRequests.filter(r => r.status === 'Pendiente').length },
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
     { k: 'flujos', l: 'Flujos de trabajo', i: 'route', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
@@ -284,22 +283,31 @@
     if (!S.user) return login();
     Shifts.bind(S, render);
     let { page, a, b } = route();
+    if (page === 'tiendas' && a === 'solicitudes') { page = 'solicitudes-cambio'; a = 'tiendas'; b = null; }
     if (!allowed(page)) page = 'inicio';
     const V = Views;
     const views = { inicio: () => V.inicio(S), campanas: () => a === 'nueva' ? CampaignWizard.view(S) : a ? V.campana(S, a, b) : V.campanas(S), tiendas: () => V.tiendas(S, a), tienda: () => V.tienda(S, a), zona: () => V.zona(S, a), localidad: () => V.localidad(S, a), cadena: () => V.cadena(S, a),
       importar: () => Import.view(S), turnos: () => Shifts.view(S), colaboradores: () => a ? V.colaborador(S, a) : V.colaboradores(S), entidad: () => V.colaborador(S, S.user.collab),
       grupos: () => V.grupos(S), grupo: () => V.grupo(S, a), voluntarios: () => V.voluntarios(S), voluntario: () => V.voluntario(S, a), incidencias: () => V.incidencias(S),
-      usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), historico: () => V.historico(S) };
+      'solicitudes-cambio': () => V.solicitudesCambio(S, a), usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S) };
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
     const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
     const navItem = n => { const c = n.count?.(); return `<button title="${n.l}" class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}<span class="lbl">${n.l}</span>${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
-    const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
+    const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name, 'solicitudes-cambio': () => a === 'tiendas' ? 'Tiendas' : '' }[page];
     const sub = a && name ? name() : '';
+    const campaignScope = ['turnos', 'grupos', 'incidencias'].includes(page);
+    const campaign = campaignScope ? Views.helpers.activeCampaign() : null;
+    const campaignSubcategory = campaignScope ? TITLES[page] : page === 'campanas' ? { tiendas: 'Tiendas participantes', listados: 'Tiendas participantes', equipo: 'Colaboradores y equipo', coordinacion: 'Colaboradores y equipo', colaboradores: 'Colaboradores y equipo' }[b] || '' : '';
     const catalogDetail = ['zona', 'localidad', 'cadena'].includes(page);
-    const parent = catalogDetail ? (allowed('catalogos') ? PARENT[page] : 'tiendas') : PARENT[page] && allowed(PARENT[page].split('/')[0]) ? PARENT[page] : page;
-    const crumbTitle = catalogDetail && parent === 'tiendas' ? 'Tiendas' : TITLES[page];
+    const parent = campaignScope ? 'campanas' : catalogDetail ? (allowed('catalogos') ? PARENT[page] : 'tiendas') : PARENT[page] && allowed(PARENT[page].split('/')[0]) ? PARENT[page] : page;
+    const crumbTitle = campaignScope ? 'Campañas' : catalogDetail && parent === 'tiendas' ? 'Tiendas' : TITLES[page];
+    const crumb = campaignScope
+      ? `${allowed('campanas') ? `<a href="#/campanas" data-act="go" data-to="campanas">${crumbTitle}</a>` : `<span>${crumbTitle}</span>`}${icon('chev')}${allowed('campanas') ? `<a href="#/campanas/${campaign.id}" data-act="go" data-to="campanas/${campaign.id}">${esc(campaign.name)}</a>` : esc(campaign.name)}${icon('chev')}<b>${esc(campaignSubcategory)}</b>`
+      : sub || campaignSubcategory
+        ? `<a href="#/${parent}" data-act="go" data-to="${parent}">${crumbTitle}</a>${sub ? `${icon('chev')}${campaignSubcategory ? `<span>${esc(sub)}</span>` : `<b>${esc(sub)}</b>`}` : ''}${campaignSubcategory ? `${icon('chev')}<b>${esc(campaignSubcategory)}</b>` : ''}`
+        : `<b>${crumbTitle}</b>`;
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout ${S.collapsed ? 'collapsed' : ''}">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span><span class="lbl">BANCOSOL</span><button class="btn ghost icon sm side-toggle" data-act="collapse" title="${S.collapsed ? 'Mostrar' : 'Ocultar'} barra lateral">${icon('sidebar')}</button></div>
@@ -307,7 +315,7 @@
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
-          <div class="crumbs"><a href="#/${parent}" data-act="go" data-to="${parent}">${crumbTitle}</a>${sub ? `${icon('chev')}<b>${esc(sub)}</b>` : ''}</div>
+          <div class="crumbs">${crumb}</div>
           <div class="search" data-act="palette">${icon('search')}Buscar…<kbd>Ctrl K</kbd></div>
           ${btn('', { kind: 'ghost', icon: 'help', act: 'help', title: 'Ayuda de esta vista' })}
           ${Shifts.bell(S)}
@@ -316,7 +324,7 @@
             ${S.menu ? `<div class="menu"><div style="padding:8px 10px"><b>${esc(S.user.name)}</b><div class="small muted">${esc(S.user.email)}</div></div><hr>
               <button data-act="go" data-to="perfil">${icon('user')}Mi perfil</button><button data-act="go" data-to="flujos">${icon('route')}Flujos de trabajo</button>
               <button data-act="logout">${icon('users')}Cambiar de rol (demo)</button><hr><button data-act="logout" style="color:var(--danger)">${icon('logout')}Cerrar sesión</button></div>` : ''}</div>
-        </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : ''}${views[page]()}</main></div></div>`;
+        </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : page === 'solicitudes-cambio' ? V.helpers.changeRequestTabs(here) : ''}${views[page]()}</main></div></div>`;
     if (focus) { const el = app.querySelector(`[data-filter="${focus}"]`); el?.focus(); if (el?.setSelectionRange && caret != null) el.setSelectionRange(caret, caret); }
     if (S.f.focus) app.querySelector('.shift.focus')?.scrollIntoView?.({ block: 'center' });
   }
@@ -544,6 +552,11 @@
     'add-collab-part': (d, v) => { if (!v) return; DB.collabParticipation.push({ id: nextId(DB.collabParticipation), collab: Number(v), campaign: Number(d.c) }); toast(`${esc(byId(DB.collabs, v).name)} participa en la campaña`); },
   };
 
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.catalog-actions[open]').forEach(menu => {
+      if (!menu.contains(e.target) || e.target.closest('.catalog-actions-menu [data-act]')) menu.open = false;
+    });
+  }, true);
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
     if (!el) { if ((S.menu || S.notif) && !e.target.closest('.menu')) { S.menu = false; S.notif = false; render(); } return; }
