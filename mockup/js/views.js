@@ -599,6 +599,18 @@ window.Views = (() => {
         </form><div class="row" style="margin-top:16px;justify-content:flex-end">${btn('Guardar cambios', { kind: 'primary', act: 'save-settings' })}</div></div></div>`;
   }
 
+  function tutoriales() {
+    return `${pageHead('Tutoriales', 'Guías breves que te muestran qué puedes hacer en cada pantalla.', btn('Probar el tutorial de esta vista', { kind: 'primary', act: 'tutorial' }), 'Ayuda')}
+      <div class="tutorial-cards">
+        <section class="card card-pad tutorial-intro"><div class="row" style="margin-bottom:12px;color:var(--brand)">${icon('help')}<h2>Inicia una guía desde cualquier pantalla</h2></div>
+          <p class="muted">Pulsa el icono de pregunta de la barra superior para abrir el tutorial de la vista en la que estás. Cada pantalla tiene un recorrido propio y solo incluye los pasos que necesita.</p></section>
+        <section class="card card-pad tutorial-controls"><div class="row" style="margin-bottom:12px;color:var(--brand)">${icon('list')}<h2>Avanza a tu ritmo</h2></div>
+          <p class="muted">Usa <b>Anterior</b> y <b>Siguiente</b> para recorrerlo; también puedes cerrar con <b>Esc</b>. El indicador te dice en qué paso estás.</p></section>
+        <section class="card card-pad tutorial-scope"><div class="row" style="margin-bottom:12px;color:var(--brand)">${icon('lock')}<h2>La pantalla queda protegida</h2></div>
+          <p class="muted">Durante el tutorial, la página se oscurece y no puedes activar sus controles. El elemento explicado conserva su color para que lo localices; alguna guía también puede señalar dónde continuar en el menú lateral.</p></section>
+      </div>`;
+  }
+
   return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+    tutoriales, helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();

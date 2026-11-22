@@ -3,6 +3,151 @@
   const { esc, icon, avatar, btn, badge, drawer, modal, confirm, close, toast, form, readForm } = UI;
   const { R, byId, filled, can, scope, toPurge, asgText, storeSub, gsize, iconBox } = Views.helpers;
   const app = document.getElementById('app');
+  const TOUR_HEADER = '.page-head, main.content > .row.wrap';
+  const TOUR_GUIDES = {
+    inicio: [
+      { selector: '.page-head', title: 'Tu resumen', text: 'Aquí aparecen la fecha, el saludo y el mensaje principal de tu campaña.' },
+      { selector: '.hero, main.content > .card[style*="border-color:var(--brand)"]', title: 'La campaña y sus turnos', text: 'Consulta los días de voluntariado y el nivel de cobertura de tu ámbito.' },
+      { selector: '.grid.g-main', title: 'Avisos y actividad', text: 'Revisa lo que necesita atención y los cambios recientes.' },
+      { selector: '.sidebar .nav[data-to="turnos"]', title: 'Ir a Turnos', text: 'Si quieres asignar o consultar turnos con más detalle, entra desde aquí.' },
+    ],
+    campanas: [
+      { selector: '.stepper', title: 'Pasos de la campaña', text: 'El asistente organiza la configuración en etapas y conserva lo que ya has completado.' },
+      { selector: '.content > .card.card-pad', title: 'Configura este paso', text: 'Completa los datos que aparecen aquí antes de continuar.' },
+      { selector: 'main.content > .row:last-child', title: 'Avanza o vuelve', text: 'Usa estos controles para recorrer el asistente sin perder lo introducido.' },
+    ],
+    campanasList: [
+      { selector: TOUR_HEADER, title: 'Campañas', text: 'Desde aquí puedes consultar las campañas y, si tienes permiso, crear una nueva.' },
+      { selector: '.page-head .row.wrap', title: 'Acciones de campaña', text: 'Los botones de esta zona permiten iniciar las acciones disponibles para tu rol.' },
+      { selector: '.grid.g-3', title: 'Abre una campaña', text: 'Cada tarjeta resume el estado de una campaña. Pulsa una para ver su preparación, equipo y tiendas.' },
+      { selector: '.sidebar .nav[data-to="historico"]', title: 'Consultar el histórico', text: 'Para comparar campañas ya terminadas, puedes ir al Histórico desde este acceso.' },
+    ],
+    campana: [
+      { selector: TOUR_HEADER, title: 'Ficha de campaña', text: 'El encabezado identifica la campaña y muestra su estado y las acciones disponibles.' },
+      { selector: '.tabs', title: 'Cambia de sección', text: 'Usa estas pestañas para consultar el resumen, la participación de tiendas o el equipo.' },
+      { selector: '.fade-in .kpi, .fade-in .card', title: 'Revisa el contenido', text: 'Aquí se muestran los datos y tareas propios de la pestaña seleccionada.' },
+      { selector: '.sidebar .nav[data-to="campanas"]', title: 'Volver a las campañas', text: 'Si quieres abrir otra campaña, vuelve al listado desde este acceso lateral.' },
+    ],
+    historico: [
+      { selector: TOUR_HEADER, title: 'Histórico de recogidas', text: 'Esta pantalla reúne los resultados de campañas anteriores.' },
+      { selector: 'main.content > .card:first-of-type', title: 'Comparar kilos', text: 'La gráfica permite comparar visualmente los kilos recogidos en cada campaña.' },
+      { selector: '.table-wrap', title: 'Consultar resultados', text: 'La tabla reúne tiendas, voluntariado, asistencia, cobertura y kilos.' },
+    ],
+    tiendas: [
+      { selector: TOUR_HEADER, title: 'Tiendas', text: 'El encabezado explica el catálogo y muestra las acciones que tienes disponibles.' },
+      { selector: '.tabs', title: 'Elige la sección', text: 'Cambia entre el catálogo y las solicitudes, cuando estén disponibles para tu rol.' },
+      { selector: '.toolbar', title: 'Filtra el listado', text: 'Busca por nombre y limita los resultados por cadena o zona.' },
+      { selector: '.table-wrap, main.content .card .list-item', title: 'Consulta o gestiona tiendas', text: 'Abre una tienda para ver sus datos. Las acciones de cada fila dependen de tus permisos.' },
+    ],
+    tienda: [
+      { selector: TOUR_HEADER, title: 'Ficha de tienda', text: 'Aquí tienes su identificación, participación y las acciones que puedes realizar.' },
+      { selector: '.grid.g-main > .stack > .card:first-child', title: 'Turnos e incidencias', text: 'Consulta los turnos de esta tienda y las incidencias asociadas.' },
+      { selector: '.grid.g-main > .stack .card.card-pad', title: 'Datos de la tienda', text: 'La columna lateral reúne localidad, zona, coordinación y otros datos de referencia.' },
+      { selector: '.sidebar .nav[data-to="turnos"]', title: 'Ver todos los turnos', text: 'Si quieres comparar esta tienda con las demás, abre la pantalla general de Turnos aquí.' },
+    ],
+    turnos: [
+      { selector: TOUR_HEADER, title: 'Turnos de la campaña', text: 'Consulta los horarios y la capacidad de las tiendas de tu ámbito.' },
+      { selector: '.tabs', title: 'Elige cómo consultar', text: 'Cambia entre el calendario por tienda y el listado de tiendas.' },
+      { selector: '.fade-in .toolbar', title: 'Filtra la vista', text: 'Selecciona día, cobertura, zona o tienda para localizar los turnos que buscas.' },
+      { selector: '.cal, .side-pick, .fade-in .table-wrap, .fade-in .shift', title: 'Consulta y asigna', text: 'Abre un turno para ver sus asignaciones; si tu rol puede gestionarlo, aquí aparecerán sus controles.' },
+    ],
+    colaboradores: [
+      { selector: TOUR_HEADER, title: 'Colaboradores', text: 'Consulta las entidades de tu ámbito y su estado en la campaña.' },
+      { selector: '.page-head .row.wrap', title: 'Acciones disponibles', text: 'Desde aquí puedes dar de alta, proponer o exportar colaboradores según tu rol.' },
+      { selector: '.table-wrap', title: 'Listado de colaboradores', text: 'Cada fila reúne sus datos principales. Pulsa el nombre para abrir su ficha.' },
+    ],
+    colaborador: [
+      { selector: TOUR_HEADER, title: 'Ficha de colaborador', text: 'Aquí se muestran los datos de la entidad y las acciones disponibles para tu rol.' },
+      { selector: '.grid.g-main > .stack > .card:first-child', title: 'Personas de contacto', text: 'Consulta quién toma decisiones y quién coordina el trabajo diario.' },
+      { selector: '.grid.g-main > .stack .card', title: 'Grupos y tiendas', text: 'Revisa qué grupos, tiendas y turnos están relacionados con esta entidad.' },
+      { selector: '.sidebar .nav[data-to="grupos"]', title: 'Ir a Grupos', text: 'Si quieres revisar los grupos de voluntariado, puedes abrirlos desde aquí.' },
+    ],
+    grupos: [
+      { selector: TOUR_HEADER, title: 'Grupos', text: 'Los responsables de colaborador organizan aquí sus voluntarios; otros roles consultan los grupos de su ámbito.' },
+      { selector: '.page-head .row.wrap', title: 'Crear un grupo', text: 'Si tienes permiso, usa este botón para formar un grupo y asignarle un líder.' },
+      { selector: '.grid.g-3, .table-wrap', title: 'Revisa los grupos', text: 'Abre una tarjeta o una fila para consultar el grupo y sus turnos.' },
+    ],
+    grupo: [
+      { selector: TOUR_HEADER, title: 'Ficha de grupo', text: 'El encabezado muestra el grupo, su entidad y el número de personas.' },
+      { selector: '.grid.g-main > .card', title: 'Turnos asignados', text: 'Aquí aparecen los turnos en los que participa el grupo.' },
+      { selector: '.grid.g-main > .stack', title: 'Miembros y contacto', text: 'Consulta los miembros visibles para tu rol y a quién contactar si necesitas ayuda.' },
+      { selector: '.sidebar .nav[data-to="turnos"]', title: 'Consultar otros turnos', text: 'Para buscar turnos de otras tiendas, abre la vista general desde aquí.' },
+    ],
+    voluntarios: [
+      { selector: TOUR_HEADER, title: 'Voluntarios', text: 'Consulta los voluntarios que puedes gestionar y los datos permitidos para tu rol.' },
+      { selector: '.tabs', title: 'Cambiar el listado', text: 'Si aparecen pestañas, permiten alternar entre voluntarios con datos y registros anonimizados.' },
+      { selector: '.toolbar', title: 'Buscar y filtrar', text: 'Usa el buscador y los filtros para encontrar personas o revisar propuestas de baja.' },
+      { selector: '.table-wrap', title: 'Consultar voluntarios', text: 'La tabla resume su localidad, grupos, participación y estado. Pulsa un nombre para abrir su ficha.' },
+    ],
+    voluntario: [
+      { selector: TOUR_HEADER, title: 'Ficha de voluntario', text: 'Consulta la información que tu rol puede ver sobre esta persona.' },
+      { selector: '.grid.g-main > .card', title: 'Turnos', text: 'Aquí aparecen los turnos y grupos asociados al voluntario.' },
+      { selector: '.grid.g-main > .card.card-pad', title: 'Datos y participación', text: 'La ficha reúne identificador, campañas, localidades e incidencias.' },
+      { selector: '.sidebar .nav[data-to="grupos"]', title: 'Ver sus grupos', text: 'Si quieres consultar la organización del voluntariado, abre Grupos desde aquí.' },
+    ],
+    incidencias: [
+      { selector: TOUR_HEADER, title: 'Incidencias', text: 'Las urgentes y abiertas se muestran primero para facilitar su seguimiento.' },
+      { selector: '.seg', title: 'Filtra por estado', text: 'Alterna entre incidencias abiertas, resueltas o todas.' },
+      { selector: '.table-wrap', title: 'Revisa y resuelve', text: 'Consulta el turno, la descripción y quién la reportó. Las acciones aparecen según tu rol y el estado.' },
+    ],
+    usuarios: [
+      { selector: TOUR_HEADER, title: 'Usuarios y roles', text: 'Administra quién accede, qué rol tiene y cuál es su ámbito.' },
+      { selector: '.tabs', title: 'Usuarios o permisos', text: 'Cambia entre el listado de usuarios y la matriz de roles y permisos.' },
+      { selector: '.matrix, .table-wrap', title: 'Consulta la información', text: 'Revisa los usuarios o los permisos. La edición de permisos requiere una confirmación adicional.' },
+    ],
+    usuario: [
+      { selector: TOUR_HEADER, title: 'Perfil de usuario', text: 'Consulta los datos personales, el rol y su ámbito de trabajo.' },
+      { selector: '.grid.g-main', title: 'Información y permisos', text: 'Aquí aparecen los datos del perfil y, cuando corresponde, las zonas o permisos relacionados.' },
+      { selector: '.sidebar .nav[data-to="usuarios"]', title: 'Volver a Usuarios', text: 'Si necesitas gestionar otra cuenta, vuelve al listado desde este acceso.' },
+    ],
+    catalogos: [
+      { selector: '.tabs', title: 'Tipos de catálogo', text: 'Cambia entre zonas, localidades, cadenas y los demás catálogos disponibles.' },
+      { selector: TOUR_HEADER, title: 'Gestiona los datos maestros', text: 'El encabezado describe el catálogo actual y ofrece las acciones disponibles.' },
+      { selector: '.toolbar', title: 'Ajusta la consulta', text: 'En los catálogos que lo permiten, puedes mostrar elementos archivados u ordenar la vista.' },
+      { selector: '.table-wrap, main.content .card .list-item', title: 'Consulta y edita', text: 'Revisa los datos y utiliza las acciones de la fila para editar, archivar o revisar solicitudes.' },
+    ],
+    configuracion: [
+      { selector: TOUR_HEADER, title: 'Configuración', text: 'Aquí se definen valores por defecto que afectan a los turnos y a las propuestas de baja.' },
+      { selector: '.form-grid', title: 'Reglas de turnos', text: 'Edita horarios y capacidades por defecto. Los cambios se guardan con el botón al final del formulario.' },
+      { selector: '.sidebar .nav[data-to="catalogos"]', title: 'Ir a Catálogos', text: 'Si necesitas mantener los datos maestros, los encontrarás en Catálogo dentro de Administración.' },
+    ],
+    zona: [
+      { selector: TOUR_HEADER, title: 'Ficha de zona', text: 'Consulta su código, cobertura y número de tiendas.' },
+      { selector: '.grid.g-4', title: 'Indicadores de la zona', text: 'Los indicadores resumen turnos por cubrir, tiendas y coordinadores.' },
+      { selector: '.grid.g-main', title: 'Tiendas y coordinación', text: 'Revisa las tiendas de la zona y quién la coordina en cada campaña.' },
+    ],
+    localidad: [
+      { selector: TOUR_HEADER, title: 'Ficha de localidad', text: 'El encabezado muestra el nombre y el código postal.' },
+      { selector: '.grid.g-2', title: 'Tiendas y colaboradores', text: 'Consulta qué tiendas y entidades están vinculadas con esta localidad.' },
+      { selector: '.sidebar .nav[data-to="catalogos"]', title: 'Volver a Catálogo', text: 'Si necesitas consultar otra localidad o zona, vuelve al Catálogo desde aquí.' },
+    ],
+    cadena: [
+      { selector: TOUR_HEADER, title: 'Ficha de cadena', text: 'Consulta el horario por defecto, la nota y los datos de la cadena.' },
+      { selector: '.grid.g-main > .card', title: 'Tiendas de la cadena', text: 'El listado permite consultar sus tiendas y la participación en la campaña.' },
+      { selector: '.grid.g-main > .stack', title: 'Listado y plantilla', text: 'Aquí puedes revisar el fichero recibido y la plantilla de importación guardada.' },
+    ],
+    perfil: [
+      { selector: '.page-head', title: 'Mi perfil', text: 'Consulta tus datos y la descripción del rol con el que has iniciado sesión.' },
+      { selector: '.grid.g-main', title: 'Tus permisos', text: 'En esta zona aparecen tus datos y las capacidades asociadas a tu rol.' },
+    ],
+    flujos: [
+      { selector: '.seg', title: 'Filtra por rol', text: 'Administración puede consultar todos los flujos; los demás roles ven el suyo.' },
+      { selector: '.flow', title: 'Recorre las fases', text: 'Las columnas organizan el trabajo de la campaña. Pulsa cualquier paso para abrir su pantalla.' },
+      { selector: '.flow-phase', title: 'Responsables y tareas', text: 'Cada tarjeta indica quién realiza una tarea y qué debe hacer.' },
+    ],
+    tutoriales: [
+      { selector: '.topbar [data-act="tutorial"]', title: 'Inicia el tutorial actual', text: 'Este botón abre una guía para la pantalla que estés viendo; cada guía tiene sus propios pasos.' },
+      { selector: '.tutorial-intro', title: 'Guías por pantalla', text: 'Los tutoriales resaltan partes concretas de la página y explican para qué sirven.' },
+      { selector: '.tutorial-controls', title: 'Avanza a tu ritmo', text: 'Puedes volver atrás, continuar o cerrar el recorrido cuando quieras.' },
+      { selector: '.tutorial-scope', title: 'Durante el recorrido', text: 'La interacción queda bloqueada para evitar cambios accidentales. La barra lateral no tiene guía propia, aunque un recorrido puede señalar una de sus opciones.' },
+    ],
+    importar: [
+      { selector: '.stepper', title: 'Pasos de importación', text: 'El asistente te guía desde el fichero hasta la revisión final.' },
+      { selector: '.fade-in .card', title: 'Completa el paso actual', text: 'Según la etapa, selecciona la cadena, identifica la cabecera, asigna columnas o revisa los cambios.' },
+      { selector: '.fade-in .table-wrap, .fade-in .dropzone, .fade-in .map-row', title: 'Revisa los datos', text: 'Comprueba la información detectada antes de confirmar la importación.' },
+      { selector: '.fade-in .row', title: 'Continúa con el asistente', text: 'Usa los controles al final para avanzar o volver a la etapa anterior.' },
+    ],
+  };
   const S = { user: null, f: {}, menu: false, theme: (() => { try { return localStorage.getItem('bs-theme') || 'light'; } catch { return 'light'; } })() };
   /* La sesión dura mientras la pestaña esté abierta: recargar no pide login; cerrar la pestaña o salir sí. */
   function saveSession(id) { try { if (id) sessionStorage.setItem('bs-user', String(id)); else sessionStorage.removeItem('bs-user'); } catch {} }
@@ -32,6 +177,7 @@
     { k: 'usuarios', l: 'Usuarios y roles', i: 'shield', roles: 'admin', group: 'Administración' },
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
     { k: 'flujos', l: 'Flujos de trabajo', i: 'route', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
+    { k: 'tutoriales', l: 'Tutoriales', i: 'help', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
   ];
   const DETAIL = { tiendas: 'admin coord', colaboradores: 'admin coord', voluntarios: 'admin coord rcol', tienda: 'admin coord rcol', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda' };
   const allowed = k => (DETAIL[k] || NAV.find(n => n.k === k)?.roles || '').split(' ').includes(S.user.role);
@@ -289,7 +435,7 @@
     const views = { inicio: () => V.inicio(S), campanas: () => a === 'nueva' ? CampaignWizard.view(S) : a ? V.campana(S, a, b) : V.campanas(S), tiendas: () => V.tiendas(S, a), tienda: () => V.tienda(S, a), zona: () => V.zona(S, a), localidad: () => V.localidad(S, a), cadena: () => V.cadena(S, a),
       importar: () => Import.view(S), turnos: () => Shifts.view(S), colaboradores: () => a ? V.colaborador(S, a) : V.colaboradores(S), entidad: () => V.colaborador(S, S.user.collab),
       grupos: () => V.grupos(S), grupo: () => V.grupo(S, a), voluntarios: () => V.voluntarios(S), voluntario: () => V.voluntario(S, a), incidencias: () => V.incidencias(S),
-      usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), historico: () => V.historico(S) };
+      usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), tutoriales: () => V.tutoriales(S), historico: () => V.historico(S) };
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
     const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
@@ -307,7 +453,7 @@
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
           <div class="crumbs"><a href="#/${parent}" data-act="go" data-to="${parent}">${TITLES[page]}</a>${sub ? `${icon('chev')}<b>${esc(sub)}</b>` : ''}</div>
           <div class="search" data-act="palette">${icon('search')}Buscar…<kbd>Ctrl K</kbd></div>
-          ${btn('', { kind: 'ghost', icon: 'help', act: 'help', title: 'Ayuda de esta vista' })}
+          ${btn('', { kind: 'ghost', icon: 'help', act: 'tutorial', title: 'Tutorial de esta vista' })}
           ${Shifts.bell(S)}
           ${btn('', { kind: 'ghost', icon: S.theme === 'dark' ? 'sun' : 'moon', act: 'theme', title: 'Cambiar tema' })}
           <div class="menu-wrap"><button class="user-btn" data-act="menu">${avatar(S.user.name)}<div style="text-align:left;line-height:1.2"><b class="small">${esc(S.user.name)}</b><div class="small faint">${esc(r.name)}</div></div></button>
@@ -317,6 +463,105 @@
         </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : ''}${views[page]()}</main></div></div>`;
     if (focus) { const el = app.querySelector(`[data-filter="${focus}"]`); el?.focus(); if (el?.setSelectionRange && caret != null) el.setSelectionRange(caret, caret); }
     if (S.f.focus) app.querySelector('.shift.focus')?.scrollIntoView?.({ block: 'center' });
+  }
+
+  function tutorialGuide() {
+    const { page, a } = route();
+    if (page === 'campanas') return a === 'nueva' ? TOUR_GUIDES.campanas : a ? TOUR_GUIDES.campana : TOUR_GUIDES.campanasList;
+    if (page === 'colaboradores' || page === 'entidad') return a || page === 'entidad' ? TOUR_GUIDES.colaborador : TOUR_GUIDES.colaboradores;
+    if (page === 'tienda') return TOUR_GUIDES.tienda;
+    if (page === 'grupo') return TOUR_GUIDES.grupo;
+    if (page === 'voluntario') return TOUR_GUIDES.voluntario;
+    if (page === 'usuario') return TOUR_GUIDES.usuario;
+    return TOUR_GUIDES[page] || [
+      { selector: TOUR_HEADER, title: 'Esta pantalla', text: 'El encabezado identifica la sección y resume para qué sirve.' },
+      { selector: 'main.content .card, main.content .table-wrap', title: 'Contenido de la sección', text: 'Aquí encontrarás la información y las acciones disponibles para tu rol.' },
+    ];
+  }
+
+  function tutorialTitle() {
+    const { page, a } = route();
+    if (page === 'campanas' && a === 'nueva') return 'Nueva campaña';
+    if (page === 'campanas' && a) return 'Ficha de campaña';
+    if ((page === 'colaboradores' && a) || page === 'entidad') return 'Ficha de colaborador';
+    return TITLES[page] || page;
+  }
+
+  function startTutorial() {
+    const steps = tutorialGuide().map(step => ({ ...step, target: document.querySelector(step.selector) }))
+      .filter(step => {
+        if (!step.target) return false;
+        const bounds = step.target.getBoundingClientRect(), style = getComputedStyle(step.target);
+        return bounds.width > 0 && bounds.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      });
+    if (!steps.length) return toast('No hay un tutorial disponible para esta pantalla.');
+    S.tour = { title: tutorialTitle(), steps, index: 0 };
+    renderTutorialStep();
+  }
+
+  function closeTutorial() {
+    if (!S.tour) return;
+    S.tour = null;
+    close();
+    document.querySelector('.topbar [data-act="tutorial"]')?.focus();
+  }
+
+  function positionTutorialPanel(targetRect) {
+    const panel = document.querySelector('.tour-panel');
+    if (!panel) return;
+    const margin = 16, gap = 18, width = panel.offsetWidth, height = panel.offsetHeight;
+    const clamp = (value, size, limit) => Math.min(Math.max(margin, value), Math.max(margin, limit - size - margin));
+    const centeredLeft = clamp(targetRect.left + targetRect.width / 2 - width / 2, width, innerWidth);
+    const candidates = [
+      { left: targetRect.right + gap, top: targetRect.top },
+      { left: targetRect.left - width - gap, top: targetRect.top },
+      { left: centeredLeft, top: targetRect.bottom + gap },
+      { left: centeredLeft, top: targetRect.top - height - gap },
+      { left: innerWidth - width - margin, top: innerHeight - height - margin },
+      { left: margin, top: innerHeight - height - margin },
+    ];
+    const fits = ({ left, top }) => left >= margin && top >= margin && left + width <= innerWidth - margin && top + height <= innerHeight - margin;
+    const overlapsTarget = ({ left, top }) => left < targetRect.right + gap && left + width > targetRect.left - gap && top < targetRect.bottom + gap && top + height > targetRect.top - gap;
+    const position = candidates.find(candidate => fits(candidate) && !overlapsTarget(candidate))
+      || candidates.find(fits) || candidates[candidates.length - 1];
+    panel.style.left = `${position.left}px`;
+    panel.style.top = `${position.top}px`;
+  }
+
+  function renderTutorialStep() {
+    if (!S.tour) return;
+    const { title, steps, index } = S.tour;
+    const step = steps[index];
+    step.target.scrollIntoView?.({ block: 'center', inline: 'nearest' });
+    const rect = step.target.getBoundingClientRect(), padding = 8;
+    const x = Math.max(0, rect.left - padding), y = Math.max(0, rect.top - padding);
+    const right = Math.min(innerWidth, rect.right + padding), bottom = Math.min(innerHeight, rect.bottom + padding);
+    const path = `M0 0H${innerWidth}V${innerHeight}H0Z M${x} ${y}H${right}V${bottom}H${x}Z`;
+    const progress = Math.round((index + 1) / steps.length * 100);
+    const prevDisabled = index === 0 ? 'disabled' : '';
+    const nextLabel = index === steps.length - 1 ? 'Finalizar' : 'Siguiente';
+    document.getElementById('overlay').innerHTML = `<div class="tour-layer">
+      <svg class="tour-shade" viewBox="0 0 ${innerWidth} ${innerHeight}" preserveAspectRatio="none" aria-hidden="true"><path d="${path}" fill="rgba(15,23,42,.58)" fill-rule="evenodd"></path></svg>
+      <div class="tour-highlight" style="left:${x}px;top:${y}px;width:${right - x}px;height:${bottom - y}px" aria-hidden="true"></div>
+      <section class="tour-panel" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-description">
+        <div class="tour-panel-head"><span class="tour-label">${esc(title)}</span>${btn('', { kind: 'ghost', size: 'sm', icon: 'x', act: 'tutorial-close', title: 'Cerrar tutorial' })}</div>
+        <div class="tour-progress"><span style="width:${progress}%"></span></div>
+        <div class="tour-step-count">Paso ${index + 1} de ${steps.length}</div>
+        <h2 id="tour-title">${esc(step.title)}</h2><p id="tour-description">${esc(step.text)}</p>
+        <div class="tour-panel-actions">${btn('Anterior', { kind: 'ghost', size: 'sm', act: 'tutorial-prev', data: prevDisabled })}${btn(nextLabel, { kind: 'primary', size: 'sm', act: 'tutorial-next' })}</div>
+      </section>
+    </div>`;
+    positionTutorialPanel({ left: x, top: y, right, bottom, width: right - x, height: bottom - y });
+    document.querySelector('.tour-panel [data-act="tutorial-next"]')?.focus({ preventScroll: true });
+  }
+
+  function moveTutorial(offset) {
+    if (!S.tour) return;
+    const index = S.tour.index + offset;
+    if (index < 0) return;
+    if (index >= S.tour.steps.length) return closeTutorial();
+    S.tour.index = index;
+    renderTutorialStep();
   }
 
   /* ---------- Acciones ---------- */
@@ -342,7 +587,8 @@
       S.permChanges = changes; },
     'perm-apply': () => { if (document.getElementById('perm-ok').value.trim() !== 'CONFIRMAR') return toast('Escribe CONFIRMAR para aplicar');
       S.permChanges.forEach(c => { const l = DB.rolePerms[c.role]; if (c.on) l.push(c.perm); else l.splice(l.indexOf(c.perm), 1); }); toast(`${S.permChanges.length} cambios aplicados · copia de seguridad guardada`); S.permChanges = null; close(); render(); },
-    palette, close, help: () => UI.help(route().page, TITLES[route().page]),
+    palette, close, help: () => UI.help(route().page, TITLES[route().page]), tutorial: startTutorial,
+    'tutorial-prev': () => moveTutorial(-1), 'tutorial-next': () => moveTutorial(1), 'tutorial-close': closeTutorial,
     'panel-size': () => document.querySelector('.drawer')?.classList.toggle('full'), 'confirm-ok': () => UI._onConfirm?.(),
     filter: d => { S.f[d.k] = d.v; render(); },
     new: d => openForm(d.entity), edit: d => openForm(d.entity, d.id), save: d => save(d.entity, d.id), delete: d => remove(d.entity, d.id),
@@ -543,22 +789,42 @@
   };
 
   document.addEventListener('click', e => {
+    if (S.tour && !e.target.closest('.tour-panel')) { e.preventDefault(); e.stopPropagation(); return; }
     const el = e.target.closest('[data-act]');
     if (!el) { if ((S.menu || S.notif) && !e.target.closest('.menu')) { S.menu = false; S.notif = false; render(); } return; }
     const fn = actions[el.dataset.act]; if (!fn) return;
     if (el.tagName !== 'INPUT') e.preventDefault();
     e.stopPropagation(); fn(el.dataset, el);
   });
-  document.addEventListener('input', e => { const k = e.target.dataset.filter; if (k) { S.f[k] = e.target.value; render(); } });
+  document.addEventListener('input', e => { if (S.tour) return; const k = e.target.dataset.filter; if (k) { S.f[k] = e.target.value; render(); } });
   document.addEventListener('change', e => {
+    if (S.tour) return;
     if (e.target.dataset.imp) return Import.onChange(e.target, render);
     if (e.target.id === 'vi-file') { const f = e.target.files[0], rd = new FileReader(); rd.onload = () => { try { const rows = /\.csv$/i.test(f.name) ? new TextDecoder().decode(rd.result).split(/\r?\n/).map(l => l.split(/[;,]/)) : XLSX.utils.sheet_to_json(XLSX.read(rd.result).Sheets[XLSX.read(rd.result).SheetNames[0]], { header: 1, defval: '' }); importVolunteers(rows.slice(1)); } catch (err) { toast('No se pudo leer el fichero'); } }; rd.readAsArrayBuffer(f); return; }
     const a = e.target.dataset.actChange; if (a && changeActions[a]) { changeActions[a](e.target.dataset, e.target.value); render(); }
   });
   document.addEventListener('keydown', e => {
+    if (S.tour) {
+      if (e.key === 'Escape') { e.preventDefault(); closeTutorial(); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); moveTutorial(1); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); moveTutorial(-1); return; }
+      if (e.key === 'Tab') {
+        const controls = [...document.querySelectorAll('.tour-panel button:not(:disabled)')];
+        const first = controls[0], last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') return;
+      if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Meta') e.preventDefault();
+      return;
+    }
     if (e.key === 'Escape') close();
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.user) { e.preventDefault(); palette(); }
   });
-  window.addEventListener('hashchange', () => { const p = route().page; if (S._page !== p || S.pendingF) { S.f = { campaign: S.f.campaign, ...(S.pendingF || {}) }; S.pendingF = null; } S._page = p; close(); render(); if (!S.f.focus) window.scrollTo?.(0, 0); });
+  document.addEventListener('wheel', e => { if (S.tour && !e.target.closest('.tour-panel')) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => { if (S.tour && !e.target.closest('.tour-panel')) e.preventDefault(); }, { passive: false });
+  window.addEventListener('resize', () => { if (S.tour) renderTutorialStep(); });
+  window.addEventListener('hashchange', () => { const p = route().page; if (S._page !== p || S.pendingF) { S.f = { campaign: S.f.campaign, ...(S.pendingF || {}) }; S.pendingF = null; } S._page = p; S.tour = null; close(); render(); if (!S.f.focus) window.scrollTo?.(0, 0); });
   render();
 })();
