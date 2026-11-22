@@ -4,11 +4,64 @@ window.Shifts = (() => {
   const H = () => Views.helpers;
   const HOUR_FROM = 8, HOUR_TO = 22, HOUR_PX = 44;
   const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const CALENDAR_VIEWS = [['week', 'Semana'], ['three-days', '3 días'], ['campaign', 'Días de campaña']];
   const toMinutes = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
   const addDays = (date, n) => { const d = new Date(date + 'T12:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const weekOf = date => { const d = new Date(date + 'T12:00'), shift = (d.getDay() + 6) % 7; return Array.from({ length: 7 }, (_, i) => addDays(date, i - shift)); };
-  const campaignDates = c => [...c.days, ...c.exceptions.map(e => e.date)];
+  const campaignDates = campaign => [...new Set([...campaign.days, ...campaign.exceptions.map(exception => exception.date)])].sort();
   const over = s => H().filled(s) - s.capacity;
+
+  function calendarPeriods(dates, mode) {
+    if (mode === 'campaign' || mode === 'list') return [dates];
+    if (mode === 'week') return [...new Map(dates.map(date => {
+      const week = weekOf(date);
+      return [week[0], week];
+    })).values()];
+    const periods = [];
+    for (const date of dates) {
+      if (!periods.at(-1)?.includes(date)) periods.push([date, addDays(date, 1), addDays(date, 2)]);
+    }
+    return periods;
+  }
+
+  function periodLabel(days) {
+    const options = { day: 'numeric', month: 'short' };
+    return `${fmtDate(days[0], options)} – ${fmtDate(days.at(-1), options)}`;
+  }
+
+  function periodArrow(period, dates, direction) {
+    const previous = direction === 'previous';
+    const label = previous ? 'Anterior' : 'Siguiente';
+    const date = period?.find(day => dates.includes(day));
+    const description = period ? `${label}: ${periodLabel(period)}` : label;
+    return `<button type="button" id="calendar-${direction}" class="btn icon sm" aria-label="${description}" title="${description}" ${date ? `data-act="calendar-step" data-date="${date}" data-direction="${direction}"` : 'disabled'}>${icon(previous ? 'back' : 'chev')}</button>`;
+  }
+
+  function calendarToolbar(mode, periods, days, dates) {
+    const currentLabel = CALENDAR_VIEWS.find(([value]) => value === mode)[1];
+    const currentPeriod = periods.indexOf(days);
+    return `<div class="toolbar calendar-toolbar">
+      <details class="calendar-view-picker">
+        <summary class="btn sm" id="calendar-view-button" aria-label="Vista del calendario: ${currentLabel}">${icon('cal')}${currentLabel}<span class="calendar-view-arrow" aria-hidden="true">${icon('chev')}</span></summary>
+        <div class="menu calendar-view-menu" role="group" aria-label="Vistas del calendario">${CALENDAR_VIEWS.map(([value, label]) => `<button type="button" aria-pressed="${mode === value}" data-act="calendar-view" data-view="${value}">${label}${mode === value ? icon('check') : ''}</button>`).join('')}</div>
+      </details>
+      ${periods.length > 1 ? `<div class="calendar-arrows" role="group" aria-label="Navegar entre periodos">${periodArrow(periods[currentPeriod - 1], dates, 'previous')}${periodArrow(periods[currentPeriod + 1], dates, 'next')}</div>` : ''}
+    </div>`;
+  }
+
+  document.addEventListener('click', event => {
+    const picker = document.querySelector('.calendar-view-picker[open]');
+    if (picker && !picker.contains(event.target)) picker.open = false;
+  }, true);
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const picker = event.target.closest?.('.calendar-view-picker[open]');
+    if (!picker) return;
+    picker.open = false;
+    picker.querySelector('summary').focus();
+    event.stopPropagation();
+  });
 
   const recipients = (s, actorId) => { const st = H().byId(DB.stores, s.store), ids = new Set();
     s.assignments.forEach(a => { const collab = a.kind === 'group' ? H().byId(DB.groups, a.group)?.collab : a.kind === 'collab' ? a.collab : H().byId(DB.volunteers, a.vol)?.collab;
@@ -26,10 +79,10 @@ window.Shifts = (() => {
   function view(S) {
     const camps = DB.campaigns.filter(c => c.status !== 'Finalizada'), c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
-    const tab = S.f.tab === 'tiendas' ? 'tiendas' : 'calendario';
+    const tab = ['tiendas', 'turnos'].includes(S.f.tab) ? S.f.tab : 'calendario';
     const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
       H().exportBtn('shifts'));
-    const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['turnos', 'Listado de turnos'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
     return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
   }
 
@@ -60,7 +113,7 @@ window.Shifts = (() => {
   /* Panel derecho de la vista dividida: candidatos compatibles con el turno seleccionado; se arrastran al turno o se asignan con un clic */
   function sidePanel(S, c, sh) {
     const s = sh.find(x => x.id === S.f.sel);
-    if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno del calendario para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
+    if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
     const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
     const q = (S.f.pq || '').toLowerCase(), free = s.capacity - H().filled(s);
     const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && g.code.toLowerCase().includes(q));
@@ -79,11 +132,27 @@ window.Shifts = (() => {
   document.addEventListener('drop', e => { const t = e.target.closest?.('.cal-shift'); if (!t) return; e.preventDefault();
     const d = JSON.parse(e.dataTransfer.getData('text/plain') || '{}'); const tmp = Object.assign(document.createElement('div'), { hidden: true }); tmp.dataset.act = 'do-assign'; tmp.dataset.id = t.dataset.id; tmp.dataset.kind = d.kind; tmp.dataset.ref = d.ref; document.body.append(tmp); tmp.click(); tmp.remove(); });
 
+  function shiftList(days, shifts, state, store, campaign, canEdit, hoursOf) {
+    return `<div class="shift-list">${days.map(date => {
+      const dayShifts = shifts.filter(shift => shift.date === date).sort((first, second) => first.start.localeCompare(second.start));
+      return `<section class="shift-list-day"><div class="shift-list-heading"><h3>${fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>${canEdit && hoursOf(date) ? btn('Nuevo turno', { size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${store.id}" data-date="${date}" data-c="${campaign.id}"` }) : ''}</div>
+        ${dayShifts.length ? dayShifts.map(shift => {
+          const coverage = over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift);
+          const tone = over(shift) > 0 ? 'warn' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[coverage];
+          const assignments = shift.assignments.map(assignment => esc(H().asgText(assignment)) + (assignment.kind !== 'vol' ? ` (${H().asgPeople(assignment)})` : '')).join(', ') || 'Sin asignar';
+          return `<button type="button" class="shift-list-row ${state.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${state.f.sel === shift.id}"><span><b>${shift.start}–${shift.end}</b><span class="small muted shift-list-assignments">${assignments}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(coverage, tone)}</span></button>`;
+        }).join('') : `<div class="small muted shift-list-empty">${hoursOf(date) ? 'Sin turnos' : 'Tienda cerrada'}</div>`}</section>`;
+    }).join('')}</div>`;
+  }
+
   function calendar(S, c, stores) {
     if (!stores.length) return `<div class="card">${empty('Sin tiendas', 'No hay tiendas con turnos en tu ámbito para esta campaña.')}</div>`;
     const st = stores.find(x => String(x.id) === String(S.f.store)) || stores[0];
-    const dates = campaignDates(c), weeks = [...new Set(dates.map(d => weekOf(d)[0]))].sort();
-    const week = weeks.includes(S.f.week) ? S.f.week : weeks[0], days = weekOf(week);
+    const dates = campaignDates(c);
+    if (!dates.length) return `<div class="card">${empty('Sin fechas de voluntariado', 'La campaña todavía no tiene días de voluntariado.')}</div>`;
+    const mode = S.f.tab === 'turnos' ? 'list' : S.f.calendarView || 'week';
+    const periods = calendarPeriods(dates, mode);
+    const days = periods.find(period => period.includes(S.f.calendarDate)) || periods[0];
     const sh = DB.shifts.filter(s => s.campaign === c.id && s.store === st.id), canEdit = H().can(S, 'shifts.assign') && c.status !== 'Finalizada';
     /* Tramos de apertura de una fecha: las excepciones sustituyen al horario semanal. Sin tramos = cerrada. */
     const hoursOf = date => { const exc = DB.scheduleExceptions.filter(e => e.store === st.id && e.date === date); if (exc.length) return exc.some(e => e.closed) ? null : exc;
@@ -102,13 +171,12 @@ window.Shifts = (() => {
     const lastEdit = sh.filter(s => s.editedBy).at(-1);
     return `<div class="card" style="margin-bottom:12px"><div class="toolbar" style="border:0">
         <select class="input" style="width:260px" data-filter="store">${stores.map(x => `<option value="${x.id}" ${x.id === st.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-        ${weeks.length > 1 ? `<div class="seg">${weeks.map(w => `<button class="${w === week ? 'active' : ''}" data-act="filter" data-k="week" data-v="${w}">Semana del ${fmtDate(w, { day: 'numeric', month: 'short' })}</button>`).join('')}</div>` : ''}
         <span class="small muted">${esc(H().storeSub(st))} · ${H().R.zone(st.zone)} · ${st.checkout_shelfs} ${st.checkout_shelfs === 2 ? 'líneas' : 'línea'} de caja${H().can(S, 'history.last') && DB.history[st.id] ? ` · anterior: ${H().R.collab(DB.history[st.id])}` : ''}</span>
         <span class="spacer"></span>${someoneElse ? `<span class="presence small" title="Simulación de presencia en tiempo real"><span class="dot" style="background:var(--ok)"></span>${esc(someoneElse.name)} también está en esta tienda</span>` : ''}</div>
         ${lastEdit ? `<div class="small faint" style="padding:0 16px 12px">Último cambio: ${H().R.user(lastEdit.editedBy)}, ${esc(lastEdit.editedAt)}. Los cambios de otros usuarios aparecen al momento.</div>` : ''}</div>
-      <div class="split"><div style="min-width:0"><div class="card cal"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d, { day: 'numeric' })}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
-        <div class="cal-body" data-can="${canEdit ? 1 : 0}" data-store="${st.id}" data-c="${c.id}" style="height:${(HOUR_TO - HOUR_FROM) * HOUR_PX}px"><div class="cal-hours">${Array.from({ length: HOUR_TO - HOUR_FROM }, (_, i) => `<div style="height:${HOUR_PX}px">${String(HOUR_FROM + i).padStart(2, '0')}:00</div>`).join('')}</div>${days.map(col).join('')}</div></div>
-      <div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div></div>${sidePanel(S, c, sh)}</div>`;
+      <div class="split"><div style="min-width:0"><div class="card calendar-card">${mode === 'list' ? shiftList(days, sh, S, st, c, canEdit, hoursOf) : `${calendarToolbar(mode, periods, days, dates)}<div class="cal" style="--calendar-days:${days.length}"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d)}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
+        <div class="cal-body" data-can="${canEdit ? 1 : 0}" data-store="${st.id}" data-c="${c.id}" style="height:${(HOUR_TO - HOUR_FROM) * HOUR_PX}px"><div class="cal-hours">${Array.from({ length: HOUR_TO - HOUR_FROM }, (_, i) => `<div style="height:${HOUR_PX}px">${String(HOUR_FROM + i).padStart(2, '0')}:00</div>`).join('')}</div>${days.map(col).join('')}</div></div>`}</div>
+      ${mode === 'list' ? '' : `<div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div>`}</div>${sidePanel(S, c, sh.filter(shift => days.includes(shift.date)))}</div>`;
   }
 
   /* ---------- Modales ---------- */
@@ -142,6 +210,14 @@ window.Shifts = (() => {
   /* ---------- Acciones ---------- */
   const actions = (S, render) => ({
     'cal-store': d => { S.f.store = d.id; S.f.tab = 'calendario'; render(); },
+    'calendar-view': data => { S.f.calendarView = data.view; render(); document.getElementById('calendar-view-button').focus(); },
+    'calendar-step': data => {
+      S.f.calendarDate = data.date;
+      render();
+      const button = document.getElementById(`calendar-${data.direction}`);
+      const nextFocus = button?.disabled ? document.querySelector('.calendar-arrows button:not(:disabled)') : button;
+      (nextFocus || document.getElementById('calendar-view-button')).focus();
+    },
     'shift-open': d => { S.f.sel = Number(d.id); render(); },
     'shift-detail': d => shiftModal(S, d.id),
     'shift-new': d => newShiftModal(d),

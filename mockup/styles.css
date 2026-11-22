@@ -247,7 +247,28 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 
 /* Calendario semanal de turnos */
 .cal { overflow-x: auto; }
-.cal-head, .cal-body { display: grid; grid-template-columns: 56px repeat(7, minmax(110px, 1fr)); min-width: 840px; }
+.calendar-card { overflow: visible; }
+.calendar-toolbar { gap: 8px; padding: 8px 12px; }
+.calendar-view-picker { position: relative; }
+.calendar-view-picker summary { list-style: none; }
+.calendar-view-picker summary::-webkit-details-marker { display: none; }
+.calendar-view-arrow { display: inline-flex; transform: rotate(90deg); }
+.calendar-view-picker[open] .calendar-view-arrow { transform: rotate(-90deg); }
+.calendar-view-menu { left: 0; right: auto; min-width: 180px; }
+.calendar-view-menu button { width: 100%; justify-content: space-between; }
+.calendar-view-menu button[aria-pressed="true"] { background: var(--muted-bg); font-weight: 600; }
+.calendar-arrows { display: inline-flex; gap: 4px; }
+.calendar-arrows button:disabled { opacity: .45; cursor: default; }
+.shift-list-day + .shift-list-day { border-top: 1px solid var(--border); }
+.shift-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.shift-list-heading h3 { margin: 0; text-transform: capitalize; }
+.shift-list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 16px; border: 0; border-top: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.shift-list-row:hover, .shift-list-row.selected { background: var(--muted-bg); }
+.shift-list-row.selected { box-shadow: inset 3px 0 var(--brand); }
+.shift-list-assignments { display: block; margin-top: 4px; }
+.shift-list-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.shift-list-empty { padding: 0 16px 14px; }
+.cal-head, .cal-body { display: grid; grid-template-columns: 56px repeat(var(--calendar-days), minmax(120px, 1fr)); min-width: calc(56px + var(--calendar-days) * 120px); }
 .cal-head { border-bottom: 1px solid var(--border); }
 .cal-day { padding: 10px; display: flex; align-items: center; justify-content: space-between; border-left: 1px solid var(--border); font-size: 13px; }
 .cal-day.off { color: var(--text-3); background: var(--surface-2); }
