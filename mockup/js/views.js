@@ -39,7 +39,7 @@ window.Views = (() => {
   const fieldText = (k, v) => k === 'locality' ? esc(loc(v)?.name || '—') : k === 'exception' ? (v ? `${fmtDate(v.date)}: ${v.closed ? 'cerrada' : `${v.open}–${v.close}`}` : '—') : k === 'schedule' ? (v ? `${v.open}–${v.close}` : '—') : esc(v ?? '—');
   const can = (S, p) => DB.rolePerms[S.user.role].includes(p);
   const activeCampaigns = () => DB.campaigns.filter(c => c.status === 'Activa');
-  const activeCampaign = () => activeCampaigns().find(c => c.id === CS?.campaign) || activeCampaigns()[0] || DB.campaigns.find(c => c.status === 'Planificada') || DB.campaigns[0];
+  const activeCampaign = () => CS?.campaignSelectionRequired ? null : DB.campaigns.find(c => c.id === CS?.campaign && c.status !== 'Finalizada') || activeCampaigns()[0] || DB.campaigns.find(c => c.status === 'Planificada') || DB.campaigns[0];
   const zonesOf = (uid, cid = activeCampaign().id) => DB.zoneAssignments.filter(z => z.user === uid && z.campaign === cid).map(z => z.zone);
   const coordsOfZone = (zid, cid = activeCampaign().id) => DB.zoneAssignments.filter(z => z.zone === zid && z.campaign === cid).map(z => z.user);
   const contactsOf = cid => DB.contacts.filter(k => k.collab === cid);
@@ -192,6 +192,16 @@ window.Views = (() => {
           <h2>${esc(c.name)}</h2><div class="small muted" style="margin:4px 0 16px">${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start)} – ${fmtDate(c.end, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
           ${c.status === 'Finalizada' ? '<div class="small muted">Referencia de cobertura para la siguiente campaña.</div>' : `<div class="row small"><span class="muted">Cobertura</span><span class="spacer"></span><b>${st.pct}%</b></div>${progress(st.pct)}<div class="row small faint" style="margin-top:10px;gap:14px"><span data-act="go" data-to="campanas/${c.id}/tiendas" style="cursor:pointer;text-decoration:underline">${icon('store')} ${Object.values(c.participation).filter(v => v === true).length} tiendas</span><span>${icon('building')} ${DB.collabParticipation.filter(p => p.campaign === c.id).length}</span><span>${icon('map')} ${new Set(DB.zoneAssignments.filter(z => z.campaign === c.id).map(z => z.zone)).size} zonas</span></div>`}
         </div>`; }).join('')}</div>`;
+  }
+
+  function seleccionarCampana() {
+    const campaigns = DB.campaigns.filter(c => c.status !== 'Finalizada');
+    return `${pageHead('Seleccionar campaña', 'Elige qué campaña quieres consultar desde los controles de la barra lateral.')}
+      <div class="grid g-3">${campaigns.map(c => `<div class="card card-pad campaign-pick-card">
+        <div class="row" style="margin-bottom:14px">${iconBox('flag')}<span class="spacer"></span>${badge(c.status)}</div>
+        <h2>${esc(c.name)}</h2><div class="small muted" style="margin:4px 0 18px">${esc(ctype(c.type)?.name)} · ${esc(c.code)} · ${fmtDate(c.start)} – ${fmtDate(c.end, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+        ${btn('Usar esta campaña', { kind: 'primary', icon: 'check', act: 'select-campaign', data: `data-id="${c.id}"` })}
+      </div>`).join('') || `<div class="card">${empty('No hay campañas disponibles', 'No hay campañas activas o planificadas para seleccionar.')}</div>`}</div>`;
   }
 
   function campana(S, id, tab = 'resumen') {
@@ -599,6 +609,6 @@ window.Views = (() => {
         </form><div class="row" style="margin-top:16px;justify-content:flex-end">${btn('Guardar cambios', { kind: 'primary', act: 'save-settings' })}</div></div></div>`;
   }
 
-  return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
+  return { bind: S => { CS = S; }, historico, inicio, campanas, seleccionarCampana, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
     helpers: { catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();

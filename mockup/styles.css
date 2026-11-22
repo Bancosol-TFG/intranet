@@ -40,6 +40,8 @@ h3 { font-size: 14px; margin: 0; }
 .nav-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; padding: 14px 10px 6px; }
 .nav { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text-2); font-weight: 500; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; }
 .nav:hover { background: var(--muted-bg); color: var(--text); }
+.nav:disabled { color: var(--text-3); cursor: not-allowed; opacity: .5; }
+.nav:disabled:hover { background: none; color: var(--text-3); }
 .nav.active { background: var(--brand-50); color: var(--brand-600); }
 .nav .count { margin-left: auto; font-size: 11px; background: var(--muted-bg); padding: 1px 7px; border-radius: 99px; color: var(--text-2); }
 .side-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; }
@@ -277,7 +279,15 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 /* Panel tipo Notion: lateral por defecto, ampliable a pantalla completa */
 .drawer.full { width: 100vw; }
 .drawer .row { gap: 4px; }
-.nav-campaign { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px 8px; font-size: 13px; }
+.nav-campaign { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 4px 10px 8px; }
+.nav-campaign-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nav-campaign-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+.nav-campaign-title { font-size: 14px; line-height: 1.35; }
+.nav-campaign-change { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--brand); font: inherit; font-size: 12px; cursor: pointer; }
+.nav-campaign-change:hover { text-decoration: underline; }
+.nav-campaign-select { font-size: 12px; }
+.campaign-pick-card { display: flex; flex-direction: column; align-items: flex-start; }
+.campaign-pick-card > .btn { margin-top: auto; }
 
 /* Turnos: vista dividida calendario + panel de asignación */
 .split { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
