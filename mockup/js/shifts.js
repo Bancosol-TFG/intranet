@@ -132,14 +132,32 @@ window.Shifts = (() => {
     const d = JSON.parse(e.dataTransfer.getData('text/plain') || '{}'); const tmp = Object.assign(document.createElement('div'), { hidden: true }); tmp.dataset.act = 'do-assign'; tmp.dataset.id = t.dataset.id; tmp.dataset.kind = d.kind; tmp.dataset.ref = d.ref; document.body.append(tmp); tmp.click(); tmp.remove(); });
 
   function shiftList(days, shifts, state, store, campaign, canEdit, hoursOf) {
-    return `<div class="shift-list">${days.map(date => {
-      const dayShifts = shifts.filter(shift => shift.date === date).sort((first, second) => first.start.localeCompare(second.start));
+    const groups = H().scope.groups(state);
+    const volunteers = DB.volunteers.filter(volunteer => H().scope.volunteers(state).some(item => item.id === volunteer.id) || groups.some(group => group.members.includes(volunteer.id)));
+    const selectedGroup = groups.find(group => String(group.id) === state.f.listGroup);
+    const selectedVolunteer = volunteers.find(volunteer => String(volunteer.id) === state.f.listVolunteer);
+    const filtered = Boolean(state.f.listGroup || state.f.listVolunteer);
+    const matches = shift => shift.assignments.some(assignment => {
+      if (state.f.listGroup && (!selectedGroup || assignment.kind !== 'group' || assignment.group !== selectedGroup.id)) return false;
+      if (!state.f.listVolunteer) return true;
+      if (!selectedVolunteer) return false;
+      if (assignment.kind === 'vol') return assignment.vol === selectedVolunteer.id;
+      if (assignment.kind !== 'group') return false;
+      const members = assignment.members || (assignment.people ? [] : H().byId(DB.groups, assignment.group)?.members || []);
+      return members.includes(selectedVolunteer.id);
+    });
+    const visibleShifts = filtered ? shifts.filter(matches) : shifts;
+    const filters = `<div class="toolbar shift-list-filters"><label>Grupo <select class="input" data-filter="listGroup"><option value="">Todos los grupos</option>${groups.map(group => `<option value="${group.id}" ${selectedGroup?.id === group.id ? 'selected' : ''}>${esc(group.code)}</option>`).join('')}</select></label><label>Persona <select class="input" data-filter="listVolunteer"><option value="">Todas las personas</option>${volunteers.map(volunteer => `<option value="${volunteer.id}" ${selectedVolunteer?.id === volunteer.id ? 'selected' : ''}>${esc(H().vName(volunteer))}</option>`).join('')}</select></label></div>`;
+    if (filtered && !visibleShifts.length) return `${filters}<div class="shift-list-empty small muted">No hay turnos que coincidan con los filtros en esta tienda.</div>`;
+    return `${filters}<div class="shift-list">${days.map(date => {
+      const dayShifts = visibleShifts.filter(shift => shift.date === date).sort((first, second) => first.start.localeCompare(second.start));
+      if (filtered && !dayShifts.length) return '';
       return `<section class="shift-list-day"><div class="shift-list-heading"><h3>${fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>${canEdit && hoursOf(date) ? btn('Nuevo turno', { size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${store.id}" data-date="${date}" data-c="${campaign.id}"` }) : ''}</div>
         ${dayShifts.length ? dayShifts.map(shift => {
           const coverage = over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift);
           const tone = over(shift) > 0 ? 'shift-over' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[coverage];
           const assignments = shift.assignments.map(assignment => esc(H().asgText(assignment)) + (assignment.kind !== 'vol' ? ` (${H().asgPeople(assignment)})` : '')).join(', ') || 'Sin asignar';
-          return `<button type="button" class="shift-list-row ${state.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${state.f.sel === shift.id}"><span><b>${shift.start}–${shift.end}</b><span class="small muted shift-list-assignments">${assignments}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(coverage, tone)}</span></button>`;
+          return `<button type="button" class="shift-list-row ${state.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${state.f.sel === shift.id}"><span><span class="shift-list-time">${shift.start}–${shift.end}</span><span class="small muted shift-list-assignments">${assignments}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(coverage, tone)}</span></button>`;
         }).join('') : `<div class="small muted shift-list-empty">${hoursOf(date) ? 'Sin turnos' : 'Tienda cerrada'}</div>`}</section>`;
     }).join('')}</div>`;
   }
