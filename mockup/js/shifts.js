@@ -134,20 +134,21 @@ window.Shifts = (() => {
   function shiftList(days, shifts, state, store, campaign, canEdit, hoursOf) {
     const groups = H().scope.groups(state);
     const volunteers = DB.volunteers.filter(volunteer => H().scope.volunteers(state).some(item => item.id === volunteer.id) || groups.some(group => group.members.includes(volunteer.id)));
-    const selectedGroup = groups.find(group => String(group.id) === state.f.listGroup);
-    const selectedVolunteer = volunteers.find(volunteer => String(volunteer.id) === state.f.listVolunteer);
-    const filtered = Boolean(state.f.listGroup || state.f.listVolunteer);
+    const groupQuery = (state.f.listGroup || '').trim().toLocaleLowerCase('es');
+    const volunteerQuery = (state.f.listVolunteer || '').trim().toLocaleLowerCase('es');
+    const matchingGroups = new Set(groups.filter(group => group.code.toLocaleLowerCase('es').includes(groupQuery)).map(group => group.id));
+    const matchingVolunteers = new Set(volunteers.filter(volunteer => H().vName(volunteer).toLocaleLowerCase('es').includes(volunteerQuery)).map(volunteer => volunteer.id));
+    const filtered = Boolean(groupQuery || volunteerQuery);
     const matches = shift => shift.assignments.some(assignment => {
-      if (state.f.listGroup && (!selectedGroup || assignment.kind !== 'group' || assignment.group !== selectedGroup.id)) return false;
-      if (!state.f.listVolunteer) return true;
-      if (!selectedVolunteer) return false;
-      if (assignment.kind === 'vol') return assignment.vol === selectedVolunteer.id;
+      if (groupQuery && (assignment.kind !== 'group' || !matchingGroups.has(assignment.group))) return false;
+      if (!volunteerQuery) return true;
+      if (assignment.kind === 'vol') return matchingVolunteers.has(assignment.vol);
       if (assignment.kind !== 'group') return false;
       const members = assignment.members || (assignment.people ? [] : H().byId(DB.groups, assignment.group)?.members || []);
-      return members.includes(selectedVolunteer.id);
+      return members.some(member => matchingVolunteers.has(member));
     });
     const visibleShifts = filtered ? shifts.filter(matches) : shifts;
-    const filters = `<div class="toolbar shift-list-filters"><label>Grupo <select class="input" data-filter="listGroup"><option value="">Todos los grupos</option>${groups.map(group => `<option value="${group.id}" ${selectedGroup?.id === group.id ? 'selected' : ''}>${esc(group.code)}</option>`).join('')}</select></label><label>Persona <select class="input" data-filter="listVolunteer"><option value="">Todas las personas</option>${volunteers.map(volunteer => `<option value="${volunteer.id}" ${selectedVolunteer?.id === volunteer.id ? 'selected' : ''}>${esc(H().vName(volunteer))}</option>`).join('')}</select></label></div>`;
+    const filters = `<div class="toolbar shift-list-filters"><label>Grupo <input class="input" type="search" list="shift-filter-groups" data-filter="listGroup" value="${esc(state.f.listGroup || '')}" placeholder="Buscar grupo…" autocomplete="off"></label><datalist id="shift-filter-groups">${groups.map(group => `<option value="${esc(group.code)}"></option>`).join('')}</datalist><label>Persona <input class="input" type="search" list="shift-filter-volunteers" data-filter="listVolunteer" value="${esc(state.f.listVolunteer || '')}" placeholder="Buscar persona…" autocomplete="off"></label><datalist id="shift-filter-volunteers">${volunteers.map(volunteer => `<option value="${esc(H().vName(volunteer))}"></option>`).join('')}</datalist></div>`;
     if (filtered && !visibleShifts.length) return `${filters}<div class="shift-list-empty small muted">No hay turnos que coincidan con los filtros en esta tienda.</div>`;
     return `${filters}<div class="shift-list">${days.map(date => {
       const dayShifts = visibleShifts.filter(shift => shift.date === date).sort((first, second) => first.start.localeCompare(second.start));

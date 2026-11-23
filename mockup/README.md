@@ -10,4 +10,4 @@ Si hay varios periodos con voluntariado en la vista de semana o de tres días, u
 
 En la pestaña **Listado de turnos**, consulta las fechas de recogida de la tienda seleccionada en orden, con sus turnos, asignaciones y estado de cobertura. Selecciona un turno para utilizar el panel de asignación.
 
-En el listado puedes filtrar los turnos de la tienda seleccionada por grupo o persona. Los filtros combinados muestran turnos en los que la persona está asignada al grupo elegido. Cuando la entidad aún no ha elegido qué miembros asistirán, no se muestran asignaciones individuales pendientes como confirmadas.
+En el listado puedes escribir en los filtros de grupo y persona para buscar los turnos de la tienda seleccionada. Puedes elegir una sugerencia o escribir parte del nombre. Los filtros combinados muestran turnos en los que la persona está asignada al grupo indicado. Cuando la entidad aún no ha elegido qué miembros asistirán, no se muestran asignaciones individuales pendientes como confirmadas.
