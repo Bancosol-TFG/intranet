@@ -288,11 +288,24 @@ select.inline { height: 30px; font-size: 13px; width: auto; min-width: 150px; }
 .cal-grip.top { top: 0; } .cal-grip.bottom { bottom: 0; }
 .cal-draft { border-style: dashed; opacity: .75; pointer-events: none; z-index: 2; }
 .cal-shift::before { content: ''; position: absolute; left: 7px; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--brand)); }
-.cal-shift.low { --dot: var(--danger); } .cal-shift.part { --dot: var(--warn); } .cal-shift.full { --dot: var(--ok); }
-.cal-shift.over { --dot: var(--warn); background: var(--warn-bg); }
-.cal-asg { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-shift.low { --dot: #dc2626; background: #fff1f2; border-color: #fda4af; }
+.cal-shift.part { --dot: #f59e0b; background: #fff7e6; border-color: #fdba74; }
+.cal-shift.full { --dot: var(--ok); background: #e6f6ed; border-color: #86d6aa; }
+.shift-list-status .badge.warn { color: #92400e; background: #ffedd5; }
+[data-theme="dark"] .cal-shift.low { --dot: #fb7185; background: #3b1820; border-color: #9f3249; }
+[data-theme="dark"] .cal-shift.part { --dot: #fbbf24; background: #3b2913; border-color: #a9601a; }
+[data-theme="dark"] .cal-shift.full { --dot: #4ade80; background: #123426; border-color: #248653; }
+[data-theme="dark"] .shift-list-status .badge.warn { color: #fdba74; background: #3b2913; }
+.cal-shift.over { --dot: #7c3aed; background: #ede9fe; }
+.shift-list-status .badge.shift-over { color: #6d28d9; background: #ede9fe; }
+[data-theme="dark"] .cal-shift.over { --dot: #c4b5fd; background: #2a1d42; }
+[data-theme="dark"] .shift-list-status .badge.shift-over { color: #c4b5fd; background: #2a1d42; }
+.cal-asg { color: var(--text-2); padding-top: 2px; }
+.cal-asg-item { height: 18px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .legend { width: 9px; height: 9px; border-radius: 50%; background: var(--dot, var(--brand)); display: inline-block; margin-right: 4px; }
-.legend.low { --dot: var(--danger); } .legend.part { --dot: var(--warn); } .legend.full { --dot: var(--ok); } .legend.over { --dot: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); } .legend.open { --dot: var(--brand-100); border-radius: 3px; width: 12px; }
+.legend.low { --dot: #dc2626; } .legend.part { --dot: #f59e0b; } .legend.full { --dot: var(--ok); } .legend.over { --dot: #7c3aed; } .legend.open { --dot: var(--brand-100); border-radius: 3px; width: 12px; }
+[data-theme="dark"] .legend.low { --dot: #fb7185; } [data-theme="dark"] .legend.part { --dot: #fbbf24; }
+[data-theme="dark"] .legend.over { --dot: #c4b5fd; }
 .presence { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--ok-bg, var(--surface-2)); }
 
 /* Panel tipo Notion: lateral por defecto, ampliable a pantalla completa */

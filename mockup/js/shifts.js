@@ -80,8 +80,7 @@ window.Shifts = (() => {
     const camps = DB.campaigns.filter(c => c.status !== 'Finalizada'), c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
     const tab = ['tiendas', 'turnos'].includes(S.f.tab) ? S.f.tab : 'calendario';
-    const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
-      H().exportBtn('shifts'));
+    const head = pageHead('Turnos', '', H().exportBtn('shifts'));
     const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['turnos', 'Listado de turnos'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
     return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
   }
@@ -116,15 +115,15 @@ window.Shifts = (() => {
     if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
     const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
     const q = (S.f.pq || '').toLowerCase(), free = s.capacity - H().filled(s);
-    const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && g.code.toLowerCase().includes(q));
+    const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && (g.code.toLowerCase().includes(q) || (H().byId(DB.collabs, g.collab)?.name || '').toLowerCase().includes(q)));
     const vols = H().scope.volunteers(S).filter(v => !v.blocked && !busy(a => a.kind === 'vol' && a.vol === v.id) && H().vName(v).toLowerCase().includes(q));
     const byCollab = {}; groups.forEach(g => (byCollab[g.collab] ||= []).push(g));
     const item = (kind, ref, title, sub) => `<div class="pick" draggable="true" data-drag-kind="${kind}" data-drag-ref="${ref}" data-act="do-assign" data-id="${s.id}" data-kind="${kind}" data-ref="${ref}"><div style="flex:1"><b class="small">${esc(title)}</b><div class="small muted">${sub}</div></div>${icon('plus')}</div>`;
-    return `<aside class="card card-pad side-pick"><div class="row"><h3 style="margin:0">${esc(s.date)} · ${s.start}–${s.end}</h3><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
+    return `<aside class="card card-pad side-pick"><div class="row"><div><div class="small muted">Turno seleccionado</div><h3 style="margin:0">${fmtDate(s.date, { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${s.start}–${s.end}</h3></div><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
       <p class="small muted">${free > 0 ? `Faltan ${free} personas` : 'Turno completo'} · solo aparecen los libres en esta franja. Arrastra al turno o pulsa para asignar.</p>
-      <input class="input" placeholder="Filtrar por nombre…" data-filter="pq" value="${esc(S.f.pq || '')}">
-      ${Object.entries(byCollab).map(([cid, gs]) => `<details open><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} grupos</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
-      <details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, H().vName(v), H().anonV(v) ? H().R.collab(v.collab) : esc(v.phone))).join('')}</details></aside>`;
+      <input class="input" aria-label="Buscar por nombre, grupo o entidad" placeholder="Buscar por nombre, grupo o entidad…" data-filter="pq" value="${esc(S.f.pq || '')}">
+      ${Object.entries(byCollab).map(([cid, gs]) => `<details ${q ? 'open' : ''}><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} ${gs.length === 1 ? 'grupo' : 'grupos'}</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
+      ${vols.length ? `<details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, H().vName(v), H().anonV(v) ? H().R.collab(v.collab) : esc(v.phone))).join('')}</details>` : ''}${!groups.length && !vols.length ? '<p class="small muted">No hay resultados disponibles para esta búsqueda.</p>' : ''}</aside>`;
   }
   /* Arrastrar candidatos del panel a un turno del calendario */
   document.addEventListener('dragstart', e => { const el = e.target.closest?.('[data-drag-kind]'); if (el) e.dataTransfer.setData('text/plain', JSON.stringify({ kind: el.dataset.dragKind, ref: el.dataset.dragRef })); });
@@ -138,7 +137,7 @@ window.Shifts = (() => {
       return `<section class="shift-list-day"><div class="shift-list-heading"><h3>${fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>${canEdit && hoursOf(date) ? btn('Nuevo turno', { size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${store.id}" data-date="${date}" data-c="${campaign.id}"` }) : ''}</div>
         ${dayShifts.length ? dayShifts.map(shift => {
           const coverage = over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift);
-          const tone = over(shift) > 0 ? 'warn' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[coverage];
+          const tone = over(shift) > 0 ? 'shift-over' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[coverage];
           const assignments = shift.assignments.map(assignment => esc(H().asgText(assignment)) + (assignment.kind !== 'vol' ? ` (${H().asgPeople(assignment)})` : '')).join(', ') || 'Sin asignar';
           return `<button type="button" class="shift-list-row ${state.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${state.f.sel === shift.id}"><span><b>${shift.start}–${shift.end}</b><span class="small muted shift-list-assignments">${assignments}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(coverage, tone)}</span></button>`;
         }).join('') : `<div class="small muted shift-list-empty">${hoursOf(date) ? 'Sin turnos' : 'Tienda cerrada'}</div>`}</section>`;
@@ -159,10 +158,16 @@ window.Shifts = (() => {
       const wd = (new Date(date + 'T12:00').getDay() + 6) % 7 + 1, t = DB.schedules.filter(h => h.store === st.id && h.week_day === wd); return t.length ? t : null; };
     const top = t => (toMinutes(t) - HOUR_FROM * 60) / 60 * HOUR_PX;
     const block = s => { const o = over(s), tone = o > 0 ? 'over' : ({ 'Sin cubrir': 'low', Parcial: 'part', Cubierto: 'full' })[H().coverage(s)];
-      return `<div class="cal-shift ${tone} ${S.f.sel === s.id ? 'selected' : ''}" style="top:${top(s.start)}px;height:${Math.max(28, top(s.end) - top(s.start))}px" data-act="shift-open" data-id="${s.id}">
+      const height = Math.max(28, top(s.end) - top(s.start));
+      const rows = Math.max(0, Math.floor((height - 36) / 18));
+      const visible = rows;
+      const remaining = s.assignments.length - visible;
+      const names = s.assignments.slice(0, visible).map(a => `<div class="cal-asg-item">${esc(H().asgText(a))}${a.kind !== 'vol' ? ` (${H().asgPeople(a)})` : ''}${a.kind === 'group' && a.people && !a.members ? ' · falta elegir' : ''}</div>`).join('');
+      const status = o > 0 ? 'Supera la capacidad' : H().coverage(s);
+      return `<div class="cal-shift ${tone} ${S.f.sel === s.id ? 'selected' : ''}" style="top:${top(s.start)}px;height:${height}px" data-act="shift-open" data-id="${s.id}" title="${status}${remaining ? ` · ${remaining} asignaciones más; abre el turno para verlas` : ''}">
         ${canEdit ? '<i class="cal-grip top" data-grip="top"></i><i class="cal-grip bottom" data-grip="bottom"></i>' : ''}
         <div class="row small"><b>${s.start}–${s.end}</b><span class="spacer"></span>${H().filled(s)}/${s.capacity}${o > 0 ? ' ' + icon('alert') : ''}</div>
-        <div class="small cal-asg">${s.assignments.map(a => esc(H().asgText(a)) + (a.kind !== 'vol' ? ` (${H().asgPeople(a)})` : '') + (a.kind === 'group' && a.people && !a.members ? ' · falta elegir' : '')).join(', ') || 'Sin asignar'}</div></div>`; };
+        <div class="small cal-asg">${names}${!s.assignments.length && rows ? '<div class="cal-asg-item">Sin asignar</div>' : ''}</div></div>`; };
     const col = date => { const on = dates.includes(date), hrs = on && hoursOf(date);
       return `<div class="cal-col ${on ? '' : 'off'}" data-date="${date}">${on && hrs ? hrs.map(h => `<div class="cal-open" style="top:${top(h.open)}px;height:${top(h.close) - top(h.open)}px"></div>`).join('') : ''}
         ${on && !hrs ? '<div class="cal-note small">Tienda cerrada</div>' : ''}${!on ? '<div class="cal-note small">Sin voluntariado</div>' : ''}
