@@ -126,6 +126,8 @@ textarea.input { height: 90px; padding: 8px 10px; resize: vertical; }
 .list-item:last-child { border-bottom: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex: none; }
 .dl { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; } .dl dt { color: var(--text-3); } .dl dd { margin: 0; font-weight: 500; }
+.volunteer-detail { align-items: start; }
+.volunteer-details { margin: 18px 0 0; gap: 16px 20px; }
 
 /* Campaign hero */
 .hero { background: var(--brand); color: #fff; border-radius: var(--radius); padding: 24px; position: relative; overflow: hidden; }
