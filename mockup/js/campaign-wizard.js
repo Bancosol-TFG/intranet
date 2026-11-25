@@ -5,30 +5,45 @@ window.CampaignWizard = (() => {
   const H = () => Views.helpers;
   const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación (opcional)', 'Resumen'];
   const STATE_LABEL = { participa: 'Participa', pending: 'Pendiente', no: 'No participa' };
-  const QUESTIONS = ['¿Cómo se llama la campaña y cuándo es?', '¿Qué días se recoge en las tiendas?', '¿Qué entidades colaboran?', '¿Qué tiendas participan?', '¿Quién coordina cada zona?', 'Revisa los datos antes de crear la campaña'];
+  const QUESTIONS = ['¿Partes de una campaña anterior?', '¿Qué días se recoge en las tiendas?', '¿Qué entidades colaboran?', '¿Qué tiendas participan?', '¿Quién coordina cada zona?', 'Revisa los datos antes de crear la campaña'];
+  const COPY_PARTS = [['collabs', 'Colaboradores'], ['stores', 'Tiendas'], ['zones', 'Coordinación por zona']];
   const isIn = e => e.state !== 'no';
-  const fresh = () => ({ step: 1, data: { name: '', type: 1, code: '', start: '', end: '', copyFrom: '', copy: ['zones', 'collabs', 'stores'] }, days: [], zones: {}, collabs: [], stores: [], importing: false });
-  let W = fresh();
+  const fresh = () => ({ step: 1, data: { name: '', type: '', code: '', start: '', end: '', copyFrom: '', copy: COPY_PARTS.map(([kind]) => kind) }, suggested: {}, days: [], zones: {}, collabs: [], stores: [], importing: false });
+  let W = null;
 
   const datesBetween = (start, end) => { const out = []; if (!start || !end) return out; for (let d = new Date(start + 'T12:00'); d <= new Date(end + 'T12:00'); d.setDate(d.getDate() + 1)) out.push(d.toISOString().slice(0, 10)); return out; };
   const weekendDays = dates => dates.filter(d => [5, 6].includes(new Date(d + 'T12:00').getDay()));
   const fmt = d => new Date(d + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   const source = () => H().byId(DB.campaigns, Number(W.data.copyFrom));
   const copies = kind => source() && W.data.copy.includes(kind);
+  const byNewest = campaigns => [...campaigns].sort((a, b) => b.start.localeCompare(a.start));
+  const latestCampaign = () => byNewest(DB.campaigns.filter(c => c.status !== 'Planificada'))[0];
+  const nextYear = text => String(text || '').replace(/\d{4}/, year => Number(year) + 1);
+  const sameWeekdayNextYear = date => { const day = new Date(date + 'T12:00'); day.setDate(day.getDate() + 364); return day.toISOString().slice(0, 10); };
+  const suggestionFrom = src => src ? { name: nextYear(src.name), type: src.type, code: nextYear(src.code), start: sameWeekdayNextYear(src.start), end: sameWeekdayNextYear(src.end) } : { name: '', type: W.data.type, code: '', start: '', end: '' };
+  const suggest = () => { const next = suggestionFrom(source());
+    Object.entries(next).forEach(([key, value]) => { if (!W.data[key] || String(W.data[key]) === String(W.suggested[key] ?? '')) W.data[key] = value; });
+    W.suggested = next; };
+  const begin = () => { W = fresh(); W.data.copyFrom = String(latestCampaign()?.id ?? ''); suggest(); applyDefaults(); };
   const field = (label, html, full = '') => `<div class="field ${full}"><label>${label}</label>${html}</div>`;
   const check = (name, value, checked, label, sub = '') => `<label class="list-item" style="cursor:pointer"><input type="checkbox" class="check" name="${name}" value="${value}" ${checked ? 'checked' : ''}><div style="flex:1"><b class="small">${label}</b>${sub ? `<div class="small muted">${sub}</div>` : ''}</div></label>`;
   const hint = text => `<p class="small muted" style="margin-top:0">${text}</p>`;
   const form = () => document.getElementById('cw-form');
   const search = placeholder => `<input class="input" data-cw-filter placeholder="${placeholder}" style="margin-bottom:12px">`;
 
-  const stepData = () => { const d = W.data;
-    return `<div class="form-grid">${field('Nombre', `<input class="input" name="name" required value="${esc(d.name)}" placeholder="Ej. Gran Recogida 2027">`, 'full')}
+  const copyChoice = (mode, title, detail, body = '') => { const selected = (mode === 'copy') === Boolean(W.data.copyFrom);
+    return `<div class="cw-choice ${selected ? 'sel' : ''}"><label><input type="radio" class="check" name="copyMode" value="${mode}" ${selected ? 'checked' : ''}><span><b>${title}</b><span class="small muted">${detail}</span></span></label>${selected ? body : ''}</div>`; };
+
+  const stepData = () => { const d = W.data, src = source();
+    const copyBody = `<div class="cw-choice-body"><select class="input" name="copyFrom" aria-label="Campaña de la que copiar">${byNewest(DB.campaigns).map(c => `<option value="${c.id}" ${String(c.id) === String(d.copyFrom) ? 'selected' : ''}>${esc(c.name)} (${esc(c.code)})</option>`).join('')}</select>
+      <div class="row wrap" style="gap:16px"><span class="muted">Se copian:</span>${COPY_PARTS.map(([kind, label]) => `<label class="row" style="cursor:pointer"><input type="checkbox" class="check" name="copy" value="${kind}" ${d.copy.includes(kind) ? 'checked' : ''}>${label}</label>`).join('')}</div></div>`;
+    return `<div class="stack" style="gap:10px">${copyChoice('copy', 'Sí, copiar de una campaña anterior', 'Se proponen el nombre y las fechas del año siguiente.', copyBody)}${copyChoice('scratch', 'No, empezar desde cero', 'Rellenas todos los datos a mano.')}</div>
+      <div class="cw-section"><h3>Datos de la nueva campaña</h3>${src ? `<p class="small muted" style="margin:4px 0 0">Propuestos a partir de ${esc(src.code)}. Cámbialos si hace falta.</p>` : ''}</div>
+      <div class="form-grid">${field('Nombre', `<input class="input" name="name" required value="${esc(d.name)}" placeholder="Ej. Gran Recogida 2027">`, 'full')}
       ${field('Tipo de campaña', `<select class="input" name="type">${DB.campaignTypes.map(t => `<option value="${t.id}" ${t.id === Number(d.type) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>`)}
       ${field('Código', `<input class="input" name="code" value="${esc(d.code)}" placeholder="GR2027">`)}
       ${field('Fecha de inicio', `<input class="input" type="date" name="start" required value="${d.start}">`)}
-      ${field('Fecha de fin', `<input class="input" type="date" name="end" required value="${d.end}">`)}
-      ${field('Copiar de una campaña anterior (opcional)', `<select class="input" name="copyFrom"><option value="">No copiar: empezar desde cero</option>${DB.campaigns.map(c => `<option value="${c.id}" ${String(c.id) === String(d.copyFrom) ? 'selected' : ''}>${esc(c.name)} (${esc(c.code)})</option>`).join('')}</select>`, 'full')}
-      ${d.copyFrom ? `<div class="field full"><label>Qué copiar</label>${check('copy', 'zones', d.copy.includes('zones'), 'Coordinación por zona')}${check('copy', 'collabs', d.copy.includes('collabs'), 'Colaboradores participantes')}${check('copy', 'stores', d.copy.includes('stores'), 'Tiendas participantes')}</div>` : ''}</div>`; };
+      ${field('Fecha de fin', `<input class="input" type="date" name="end" required value="${d.end}">`)}</div>`; };
 
   const stepDays = () => `${hint('Marcados por defecto los viernes y sábados de la semana. Las excepciones por cadena se añaden después en la ficha.')}
     <div class="cw-scroll">${datesBetween(W.data.start, W.data.end).map(d => check('day', d, W.days.includes(d), fmt(d))).join('')}</div>`;
@@ -90,19 +105,21 @@ window.CampaignWizard = (() => {
   const fitLists = () => { const list = document.querySelector('.cw-scroll'); if (!list) return; list.style.maxHeight = 'none';
     const overflow = document.documentElement.scrollHeight - window.innerHeight; if (overflow > 0) list.style.maxHeight = `${Math.max(160, list.clientHeight - overflow - 4)}px`; };
   window.addEventListener('resize', fitLists);
-  const view = () => { if (W.importing) return Import.view(); requestAnimationFrame(fitLists); const body = [stepData, stepDays, stepCollabs, stepStores, stepZones, stepSummary][W.step - 1]();
+  const view = () => { if (!W) begin(); if (W.importing) return Import.view(); requestAnimationFrame(fitLists); const body = [stepData, stepDays, stepCollabs, stepStores, stepZones, stepSummary][W.step - 1]();
     const assigned = Object.values(W.zones).some(l => l.length);
     return `<div class="row" style="margin-bottom:16px">${btn('Campañas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'cw-cancel' })}</div>
       ${UI.pageHead('Nueva campaña')}
       <div class="stepper">${STEPS.map((s, i) => `<div class="step ${W.step === i + 1 ? 'active' : W.step > i + 1 ? 'done' : ''}"><span>${W.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>
       <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack" onsubmit="return false"><div><div class="small muted">Paso ${W.step} de ${STEPS.length}</div><h2 style="margin:2px 0 0">${QUESTIONS[W.step - 1]}</h2></div>${body}</form></div>
-      <div class="row" style="margin-top:16px">${W.step > 1 ? btn('Anterior', { icon: 'back', act: 'cw-back' }) : btn('Rellenar con datos de ejemplo', { kind: 'ghost', act: 'cw-demo' })}<span class="spacer"></span>
+      <div class="row" style="margin-top:16px">${W.step > 1 ? btn('Anterior', { icon: 'back', act: 'cw-back' }) : ''}<span class="spacer"></span>
         ${W.step === 5 && !assigned ? btn('Saltar', { kind: 'ghost', act: 'cw-next' }) : ''}${W.step < STEPS.length ? btn(`Siguiente: ${STEPS[W.step].replace(' (opcional)', '')}`, { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
 
   const readStep = () => { const f = form(); if (!f) return; const fd = new FormData(f);
     if (W.step === 1) { const prevCopy = `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`;
-      Object.assign(W.data, { name: fd.get('name'), type: Number(fd.get('type')), code: fd.get('code'), start: fd.get('start'), end: fd.get('end'), copyFrom: fd.get('copyFrom') });
-      if (fd.get('copyFrom')) W.data.copy = f.querySelector('[name=copy]') ? fd.getAll('copy') : W.data.copy;
+      const copying = fd.get('copyMode') === 'copy', copyFrom = copying ? fd.get('copyFrom') || String(latestCampaign()?.id ?? '') : '', sourceChanged = copyFrom !== W.data.copyFrom;
+      Object.assign(W.data, { name: fd.get('name'), type: Number(fd.get('type')), code: fd.get('code'), start: fd.get('start'), end: fd.get('end'), copyFrom });
+      if (copying && f.querySelector('[name=copy]')) W.data.copy = fd.getAll('copy');
+      if (sourceChanged) suggest();
       if (prevCopy !== `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`) applyDefaults(); }
     if (W.step === 2) W.days = fd.getAll('day');
     if (W.step === 3) W.collabs = fd.getAll('collab').map(Number);
@@ -146,11 +163,10 @@ window.CampaignWizard = (() => {
   document.addEventListener('input', e => { if (e.target.matches('[data-cw-filter]')) filterZones();
     if (e.target.matches('[data-cw-pick-filter]')) { const q = e.target.value.toLowerCase().trim(); document.querySelectorAll('#cw-pick > *').forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; }); } if (e.target.matches('[data-cw-store-search]')) suggestStores(e.target); });
   document.addEventListener('change', e => { if (!e.target.closest('#cw-form')) return;
-    readStep(); if (W.step === 1 && ['copyFrom', 'copy'].includes(e.target.name)) renderRef(); if (W.step === 4 && e.target.name.startsWith('store')) renderRef(); });
+    readStep(); if (W.step === 1 && ['copyMode', 'copyFrom', 'copy'].includes(e.target.name)) renderRef(); if (W.step === 4 && e.target.name.startsWith('store')) renderRef(); });
 
   const actions = (render, go, toast) => { renderRef = render; toastRef = toast; return {
-    'cw-demo': () => { Object.assign(W.data, { name: 'Gran Recogida 2027', type: 1, code: 'GR2027', start: '2027-11-15', end: '2027-11-21', copyFrom: '1', copy: ['zones', 'collabs', 'stores'] }); applyDefaults(); render(); },
-    'cw-cancel': () => { W = fresh(); go('campanas'); },
+    'cw-cancel': () => { W = null; go('campanas'); },
     'cw-back': () => { readStep(); W.step--; render(); },
     'cw-goto': d => { W.step = Number(d.step); render(); },
     'cw-next': () => { if (!form().reportValidity()) return; readStep();
@@ -168,8 +184,8 @@ window.CampaignWizard = (() => {
     'cw-zone-pick': d => zonePicker(Number(d.u)),
     'cw-zone-save': d => { const user = Number(d.u), picked = new Set([...document.querySelectorAll('#cw-pick input:checked')].map(el => Number(el.value)));
       DB.zones.forEach(z => setZone(z.id, user, picked.has(z.id))); UI.close(); render(); toast(`${esc(H().byId(DB.users, user).name)}: ${picked.size === 1 ? '1 zona' : `${picked.size} zonas`}`); },
-    'cw-finish': () => { const id = create(), name = W.data.name; W = fresh(); go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
+    'cw-finish': () => { const id = create(), name = W.data.name; W = null; go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
   }; };
 
-  return { view, actions, reset: () => { W = fresh(); } };
+  return { view, actions, reset: () => { W = null; } };
 })();
