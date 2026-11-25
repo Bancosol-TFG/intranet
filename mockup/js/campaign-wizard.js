@@ -54,22 +54,23 @@ window.CampaignWizard = (() => {
   const storeName = e => e.store ? H().byId(DB.stores, e.store).name : `${H().chain(e.chain).name} ${e.rec.name || e.rec.address}`;
   const storeMeta = e => { const st = e.store && H().byId(DB.stores, e.store), locality = st ? st.locality : e.locality;
     return `${esc(H().chain(st ? st.chain : e.chain)?.name || '')} · ${locality ? esc(H().loc(locality).name) : `${esc(e.rec.city)} ${badge('Localidad por revisar', 'warn')}`}`; };
-  const originBadge = { copy: badge('De la campaña anterior', 'plain'), csv: badge('Del listado subido', 'info'), manual: badge('Añadida a mano', 'plain') };
+  const storeSearchText = e => { const st = e.store && H().byId(DB.stores, e.store), locality = st ? st.locality : e.locality;
+    return [storeName(e), H().chain(st ? st.chain : e.chain)?.name, locality ? H().loc(locality)?.name : e.rec.city].join(' ').toLowerCase(); };
+  const ORIGIN_BADGE = { csv: badge('Del listado subido', 'info'), manual: badge('Añadida a mano', 'plain') };
   const stateChoice = (name, value) => `<div class="seg cw-seg">${Object.entries(STATE_LABEL).map(([v, l]) => `<label class="${v}"><input type="radio" name="${name}" value="${v}" ${value === v ? 'checked' : ''} hidden>${l}</label>`).join('')}</div>`;
 
-  const stepStores = () => { const src = source(), chosen = new Set(W.stores.filter(e => e.store).map(e => e.store));
-    const available = DB.stores.filter(s => !s.archived && !chosen.has(s.id)), count = st => W.stores.filter(e => !st || e.state === st).length;
-    const filter = W.storeFilter || '', shown = W.stores.map((e, i) => [e, i]).filter(([e]) => !filter || e.state === filter);
+  const stepStores = () => { const src = source(), count = st => W.stores.filter(e => !st || e.state === st).length;
+    const filter = W.storeFilter || '', query = (W.storeQuery || '').trim().toLowerCase(), shown = W.stores.map((e, i) => [e, i]).filter(([e]) => !filter || e.state === filter);
     const chip = (v, label) => `<button type="button" class="btn ${filter === v ? 'primary' : ''}" data-act="cw-store-filter" data-v="${v}">${label} (${count(v)})</button>`;
-    return `${hint(copies('stores') ? `Ya están las tiendas que participaron en ${esc(src.code)}. Indica en cada una si participa en esta campaña.` : 'Sube el listado que te ha enviado cada cadena o añade las tiendas una a una.')}
-      <div class="row wrap" style="gap:12px">${btn('Subir listado de tiendas (Excel)', { kind: 'primary', icon: 'upload', act: 'cw-import' })}<span class="spacer"></span>
-        <div style="position:relative;width:340px"><input class="input" data-cw-store-search autocomplete="off" placeholder="Añadir tienda: escribe su nombre…" style="width:100%">
-          <div class="cw-suggest" hidden></div></div></div>
+    const row = (e, i) => { const text = storeSearchText(e);
+      return `<div class="list-item" data-name="${esc(text)}" ${query && !text.includes(query) ? 'style="display:none"' : ''}><div style="flex:1"><b class="small">${esc(storeName(e))}</b> ${ORIGIN_BADGE[e.origin] || ''}<div class="small muted">${storeMeta(e)}</div></div>${stateChoice(`store-state-${i}`, e.state)}</div>`; };
+    return `<div class="row" style="gap:16px"><p class="small muted" style="margin:0;flex:1">${copies('stores') ? `Ya están las tiendas que participaron en ${esc(src.code)}. Indica en cada una si participa en esta campaña.` : 'Sube el listado que te ha enviado cada cadena o añade las tiendas una a una.'}</p>
+        ${btn('Subir listado de tiendas (Excel)', { kind: 'primary', icon: 'upload', act: 'cw-import' })}</div>
+      <div class="stack" style="gap:10px"><div style="position:relative"><input class="input" data-cw-store-search autocomplete="off" value="${esc(W.storeQuery || '')}" placeholder="Buscar o añadir tienda…" style="width:100%"><div class="cw-suggest" hidden></div></div>
       ${W.stores.length ? `<div class="row wrap" style="gap:8px">${chip('', 'Todas')}${chip('participa', 'Participan')}${chip('pending', 'Pendientes')}${chip('no', 'No participan')}<span class="spacer"></span>
           <span class="small muted">Marcar ${filter ? 'las mostradas' : 'todas'} como:</span>${Object.entries(STATE_LABEL).map(([v, l]) => btn(l, { size: 'sm', act: 'cw-store-all', data: `data-v="${v}"` })).join('')}</div>
-        ${search('Buscar por tienda, cadena o localidad…')}<div class="cw-scroll">${shown.map(([e, i]) => `<div class="list-item">
-          <div style="flex:1"><b class="small">${esc(storeName(e))}</b> ${originBadge[e.origin]}<div class="small muted">${storeMeta(e)}</div></div>${stateChoice(`store-state-${i}`, e.state)}</div>`).join('') || '<div class="card-pad small muted">No hay tiendas con este estado.</div>'}</div>`
-        : `<div class="card card-pad small muted" style="text-align:center">Todavía no hay tiendas en esta campaña.</div>`}`; };
+        <div class="cw-scroll">${shown.map(([e, i]) => row(e, i)).join('') || '<div class="card-pad small muted">No hay tiendas con este estado.</div>'}</div>`
+        : `<div class="card card-pad small muted" style="text-align:center">Todavía no hay tiendas en esta campaña.</div>`}</div>`; };
 
   const coordinators = () => DB.users.filter(u => u.role === 'coord');
   const zonesOf = userId => DB.zones.filter(z => (W.zones[z.id] || []).includes(userId));
@@ -134,10 +135,11 @@ window.CampaignWizard = (() => {
     W.stores = W.stores.filter(e => e.origin !== 'copy');
     if (copies('stores')) Object.entries(src.participation).filter(([, v]) => v === true).forEach(([id]) => { if (!W.stores.some(e => e.store === Number(id))) W.stores.push({ store: Number(id), state: 'participa', origin: 'copy' }); }); };
 
-  const addImported = records => { let added = 0;
+  const addImported = records => { const added = [];
     records.forEach(r => { const known = r.existing ? W.stores.find(e => e.store === r.existing) : W.stores.find(e => !e.store && e.chain === r.chain && e.rec.code === r.rec.code);
-      if (!known) { W.stores.push(r.existing ? { store: r.existing, state: r.state, origin: 'csv' } : { chain: r.chain, rec: r.rec, locality: r.locality, state: r.state, origin: 'csv' }); added++; } });
-    return { total: records.length, added }; };
+      if (!known) added.push(r.existing ? { store: r.existing, state: r.state, origin: 'csv' } : { chain: r.chain, rec: r.rec, locality: r.locality, state: r.state, origin: 'csv' }); });
+    W.stores.unshift(...added);
+    return { total: records.length, added: added.length }; };
 
   const createStore = e => { const id = Math.max(...DB.stores.map(s => s.id)) + 1, ch = H().chain(e.chain);
     DB.stores.push({ id, chain: e.chain, code: e.rec.code, name: storeName(e), address: e.rec.address, locality: e.locality, zone: H().byId(DB.localities, e.locality)?.zone ?? null, checkout_shelfs: 1 });
@@ -156,12 +158,17 @@ window.CampaignWizard = (() => {
     document.querySelectorAll('.cw-scroll > *').forEach(row => { row.style.display = (!q || (row.dataset.name ?? row.textContent.toLowerCase()).includes(q))  ? '' : 'none'; }); };
 
   let renderRef = null, toastRef = null;
-  const suggestStores = input => { const box = input.nextElementSibling, q = input.value.trim().toLowerCase(), chosen = new Set(W.stores.map(e => e.store));
-    const hits = q ? DB.stores.filter(st => !st.archived && !chosen.has(st.id) && `${st.name} ${H().loc(st.locality)?.name || ''}`.toLowerCase().includes(q)).slice(0, 8) : [];
-    box.hidden = !q; box.innerHTML = hits.length ? hits.map(st => `<button type="button" data-act="cw-add-store" data-id="${st.id}">${icon('plus')}<span><b>${esc(st.name)}</b><span class="muted"> · ${esc(H().loc(st.locality)?.name || '')}</span></span></button>`).join('') : '<div class="small muted" style="padding:10px 12px">No hay tiendas con ese nombre fuera de la campaña.</div>'; };
+  const suggestStores = (input, q, listHasMatches) => { const box = input.nextElementSibling, chosen = new Set(W.stores.map(e => e.store));
+    const hits = q ? DB.stores.filter(st => !st.archived && !chosen.has(st.id) && `${st.name} ${H().chain(st.chain)?.name || ''} ${H().loc(st.locality)?.name || ''}`.toLowerCase().includes(q)).slice(0, 6) : [];
+    box.hidden = !q || (!hits.length && listHasMatches);
+    box.innerHTML = hits.length ? `<div class="cw-suggest-title">No están en la campaña. Pulsa para añadirla:</div>${hits.map(st => `<button type="button" data-act="cw-add-store" data-id="${st.id}">${icon('plus')}<span><b>${esc(st.name)}</b><span class="muted"> · ${esc(H().loc(st.locality)?.name || '')}</span></span></button>`).join('')}`
+      : `<div class="small muted" style="padding:10px 12px">Ninguna tienda coincide con «${esc(input.value.trim())}».</div>`; };
+  const searchStores = input => { W.storeQuery = input.value; const q = input.value.trim().toLowerCase(), rows = [...document.querySelectorAll('.cw-scroll > [data-name]')];
+    rows.forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; });
+    suggestStores(input, q, rows.some(row => row.style.display !== 'none')); };
   document.addEventListener('click', e => { if (!e.target.closest('.cw-suggest, [data-cw-store-search]')) document.querySelectorAll('.cw-suggest').forEach(box => { box.hidden = true; }); });
   document.addEventListener('input', e => { if (e.target.matches('[data-cw-filter]')) filterZones();
-    if (e.target.matches('[data-cw-pick-filter]')) { const q = e.target.value.toLowerCase().trim(); document.querySelectorAll('#cw-pick > *').forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; }); } if (e.target.matches('[data-cw-store-search]')) suggestStores(e.target); });
+    if (e.target.matches('[data-cw-pick-filter]')) { const q = e.target.value.toLowerCase().trim(); document.querySelectorAll('#cw-pick > *').forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; }); } if (e.target.matches('[data-cw-store-search]')) searchStores(e.target); });
   document.addEventListener('change', e => { if (!e.target.closest('#cw-form')) return;
     readStep(); if (W.step === 1 && ['copyMode', 'copyFrom', 'copy'].includes(e.target.name)) renderRef(); if (W.step === 4 && e.target.name.startsWith('store')) renderRef(); });
 
@@ -174,10 +181,10 @@ window.CampaignWizard = (() => {
       if (W.step === 2 && !W.days.length) return toast('Marca al menos un día presencial');
       W.step++; render(); },
     'cw-import': () => { readStep(); W.importing = true;
-      Import.startForWizard(result => { W.importing = false; if (result) { const r = addImported(result.records); toast(`${r.total} tiendas en el listado: ${r.added} nuevas añadidas como ${STATE_LABEL[result.records[0]?.state || 'pending'].toLowerCase()}${r.total - r.added ? `, ${r.total - r.added} ya estaban y no se han cambiado` : ''}`); } render(); window.scrollTo?.(0, 0); });
+      Import.startForWizard(result => { W.importing = false; if (result) { W.storeFilter = ''; W.storeQuery = ''; const r = addImported(result.records); toast(`${r.total} tiendas en el listado: ${r.added} nuevas añadidas como ${STATE_LABEL[result.records[0]?.state || 'pending'].toLowerCase()}${r.total - r.added ? `, ${r.total - r.added} ya estaban y no se han cambiado` : ''}`); } render(); window.scrollTo?.(0, 0); });
       render(); window.scrollTo?.(0, 0); },
     'cw-add-store': d => { readStep(); const st = H().byId(DB.stores, d.id);
-      W.stores.unshift({ store: st.id, state: 'pending', origin: 'manual' }); W.storeFilter = ''; render(); toast(`<b>${esc(st.name)}</b> añadida como pendiente`); },
+      W.stores.unshift({ store: st.id, state: 'pending', origin: 'manual' }); W.storeFilter = ''; W.storeQuery = ''; render(); toast(`<b>${esc(st.name)}</b> añadida como pendiente`); },
     'cw-store-filter': d => { readStep(); W.storeFilter = d.v; render(); },
     'cw-store-all': d => { readStep(); W.stores.filter(e => !W.storeFilter || e.state === W.storeFilter).forEach(e => { e.state = d.v; }); render(); },
     'cw-zone-del': d => { setZone(Number(d.z), Number(d.u), false); render(); },
