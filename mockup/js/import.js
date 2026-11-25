@@ -1,7 +1,7 @@
 /* Asistente de importación de tiendas: cada cadena manda un Excel distinto.
    1) Origen  2) Estructura (hoja y fila de cabeceras)  3) Mapeo de columnas  4) Revisión y confirmación */
 window.Import = (() => {
-  const { esc, icon, badge, btn, kpi } = UI;
+  const { esc, icon, badge, btn } = UI;
   const H = () => Views.helpers;
   const FIELDS = [
     ['code', 'Código de tienda', 'Único dentro de la cadena'], ['name', 'Nombre del centro', 'Puede servir de código si no hay'],
@@ -85,7 +85,7 @@ window.Import = (() => {
   const fitBody = () => { const body = document.querySelector('.imp-body'); if (!body) return;
     const fill = body.querySelector('.imp-fill'), target = fill || body;
     target.style.height = ''; target.style.maxHeight = ''; body.style.overflow = '';
-    const overflow = document.documentElement.scrollHeight - window.innerHeight;
+    const overflow = fill ? body.parentElement.getBoundingClientRect().bottom + 28 - window.innerHeight : document.documentElement.scrollHeight - window.innerHeight;
     if (fill) fill.style.height = `${Math.max(240, fill.offsetHeight - overflow - 4)}px`;
     else if (overflow > 0) { body.style.maxHeight = `${Math.max(240, body.clientHeight - overflow - 4)}px`; body.style.overflow = 'auto'; }
     const areas = fill ? [...body.querySelectorAll('.imp-scroll')] : [body];
@@ -147,13 +147,15 @@ window.Import = (() => {
     const inFile = new Set(rs.filter(r => r.existing).map(r => r.existing.id));
     const missing = DB.stores.filter(s => s.chain === I.chain && !inFile.has(s.id));
     const count = st => rs.filter(r => r.status === st).length, unknown = unknownCities(rs.filter(r => r.status !== 'Error'));
+    const unchanged = rs.filter(r => r.status === 'Actualiza' && !r.changes.length), shownRows = I.showUnchanged ? rs : rs.filter(r => !unchanged.includes(r));
+    const summaryParts = [[count('Nueva'), 'tiendas nuevas', 'info'], [count('Actualiza'), `ya existen${rs.filter(r => r.changes.length).length ? ` (${rs.filter(r => r.changes.length).length} con datos distintos)` : ''}`, 'ok'], [count('Error'), 'con errores, no se importan', 'danger'], [missing.length, `de ${esc(chainObj().name)} no vienen en el listado`, 'plain']].filter(([value], index) => value || index < 2);
     const templateNotice = I.usedTemplate ? `<div class="card card-pad row" style="margin-bottom:16px;background:var(--ok-bg);border-color:transparent">${icon('check')}<span style="flex:1">Se ha usado la plantilla guardada de <b>${esc(chainObj().name)}</b>: las columnas ya están asociadas.</span>${btn('Cambiar columnas', { size: 'sm', act: 'imp-step', data: 'data-v="3"' })}</div>` : '';
-    return `${templateNotice}<div class="grid g-4" style="margin-bottom:16px">${kpi('Tiendas nuevas', count('Nueva'), 'plus', 'se darán de alta')}${kpi('Ya existentes', count('Actualiza'), 'check', `${rs.filter(r => r.changes.length).length} con datos distintos`)}${kpi('Con errores', count('Error'), 'alert', 'no se importan')}${kpi('No vienen en el listado', missing.length, 'store', `del catálogo de ${esc(chainObj().name)}`)}</div>
+    return `${templateNotice}<div class="card card-pad row wrap" style="margin-bottom:16px;gap:8px 20px">${summaryParts.map(([value, label, tone]) => `<span class="row" style="gap:6px">${badge(String(value), tone)}<span>${label}</span></span>`).join('')}</div>
       <div class="grid g-main imp-fill" style="grid-template-rows:minmax(0, 1fr)"><div class="card" style="${FILL_PANEL}"><div class="card-head"><h2>Filas del fichero</h2><span class="small muted">Desmarca las que no quieras importar</span></div>
         <div class="table-wrap imp-scroll" style="${FILL_SCROLL}"><table><thead><tr><th></th><th>Código</th><th>Tienda</th><th>Municipio</th><th>Resultado</th></tr></thead><tbody>
-        ${rs.map(r => `<tr><td><input type="checkbox" class="check" data-imp="skip" data-n="${r.n}" ${r.status === 'Error' ? 'disabled' : I.skip[r.n] ? '' : 'checked'}></td><td><code>${esc(r.rec.code)}</code></td><td><b class="small">${esc(r.rec.name || r.rec.address)}</b><div class="small faint">${esc(r.rec.address)}</div></td><td class="small">${esc(r.rec.city)}${r.rec.city && !knownLocality(r.rec.city) ? ' ' + badge('Por revisar', 'warn') : ''}</td>
+        ${shownRows.map(r => `<tr><td><input type="checkbox" class="check" data-imp="skip" data-n="${r.n}" ${r.status === 'Error' ? 'disabled' : I.skip[r.n] ? '' : 'checked'}></td><td><code>${esc(r.rec.code)}</code></td><td><b class="small">${esc(r.rec.name || r.rec.address)}</b><div class="small faint">${esc(r.rec.address)}</div></td><td class="small">${esc(r.rec.city)}${r.rec.city && !knownLocality(r.rec.city) ? ' ' + badge('Por revisar', 'warn') : ''}</td>
           <td>${r.status === 'Error' ? badge(r.errors.join(', '), 'danger') : r.status === 'Nueva' ? badge('Nueva', 'info') : r.changes.length ? badge(`${r.changes.length} cambios`, 'warn') : badge('Sin cambios', 'ok')}
-            ${r.status !== 'Error' && r.changes.length ? `<div class="stack" style="gap:4px;margin-top:6px">${r.changes.map(x => `<label class="row small"><input type="checkbox" class="check" data-imp="diff" data-key="${r.n}:${x.k}" ${I.rejected[`${r.n}:${x.k}`] ? '' : 'checked'}><span>${x.label}: <s class="faint">${showValue(x.k, x.before)}</s> → <b>${showValue(x.k, x.after)}</b></span></label>`).join('')}</div>` : ''}</td></tr>`).join('')}</tbody></table></div></div>
+            ${r.status !== 'Error' && r.changes.length ? `<div class="stack" style="gap:4px;margin-top:6px">${r.changes.map(x => `<label class="row small"><input type="checkbox" class="check" data-imp="diff" data-key="${r.n}:${x.k}" ${I.rejected[`${r.n}:${x.k}`] ? '' : 'checked'}><span>${x.label}: <s class="faint">${showValue(x.k, x.before)}</s> → <b>${showValue(x.k, x.after)}</b></span></label>`).join('')}</div>` : ''}</td></tr>`).join('')}${unchanged.length ? `<tr><td colspan="5" style="text-align:center">${btn(I.showUnchanged ? `Ocultar las ${unchanged.length} sin cambios` : `Ver también las ${unchanged.length} sin cambios (se importan igualmente)`, { size: 'sm', kind: 'ghost', act: 'imp-toggle-unchanged' })}</td></tr>` : ''}</tbody></table></div></div>
       <div style="display:grid;grid-template-rows:repeat(${unknown.length ? 2 : 1}, minmax(0, 1fr));gap:16px;min-height:0">${unknown.length ? `<div class="card" style="${FILL_PANEL}"><div class="card-head"><div><h2>Localidades por revisar</h2><div class="small muted">No coinciden con el catálogo. Elige la localidad correcta o créala; la forma escrita se recordará para la próxima vez.</div></div></div>
         <div class="imp-scroll" style="${FILL_SCROLL}">${unknown.map(rec => { const sug = suggestLocality(rec.city, rec.cp), v = String(locChoice(rec)); return `<div class="list-item"><div style="flex:1"><b class="small">«${esc(rec.city)}»</b><div class="small muted">${sug ? `Sugerencia: ${esc(sug.name)}` : 'Sin coincidencias'}</div></div>
           <select class="input inline" data-imp="loc" data-city="${esc(normName(rec.city))}"><option value="new" ${v === 'new' ? 'selected' : ''}>Crear «${esc(rec.city)}»</option>${DB.localities.map(l => `<option value="${l.id}" ${v === String(l.id) ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>`; }).join('')}</div></div>` : ''}
@@ -224,6 +226,7 @@ window.Import = (() => {
     'imp-next': () => { I.step = 3; render(); },
     'imp-review': () => { I.step = 4; render(); },
     'imp-status': d => { I.status = d.v; render(); },
+    'imp-toggle-unchanged': () => { I.showUnchanged = !I.showUnchanged; render(); },
     'imp-confirm': () => { if (I.status) confirmImport(render, go); },
   });
 
