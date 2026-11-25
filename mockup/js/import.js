@@ -42,7 +42,9 @@ window.Import = (() => {
     const tpl = DB.importTemplates[I.chain];
     I.headerRow = tpl ? tpl.headerRow : rows().findIndex(r => r.filter(c => String(c).trim()).length >= 3);
     if (I.headerRow < 0) I.headerRow = 0;
-    autoMap(tpl); I.step = 2;
+    autoMap(tpl);
+    I.usedTemplate = Boolean(tpl) && Object.values(tpl.map).every(column => headers().includes(column)) && I.map.address !== '' && I.map.city !== '';
+    I.step = I.usedTemplate ? 4 : 2;
   }
   function autoMap(tpl) {
     const hs = headers(), used = new Set(); I.map = {};
@@ -127,7 +129,8 @@ window.Import = (() => {
     const inFile = new Set(rs.filter(r => r.existing).map(r => r.existing.id));
     const missing = DB.stores.filter(s => s.chain === I.chain && !inFile.has(s.id));
     const count = st => rs.filter(r => r.status === st).length, unknown = unknownCities(rs.filter(r => r.status !== 'Error'));
-    return `<div class="grid g-4" style="margin-bottom:16px">${kpi('Tiendas nuevas', count('Nueva'), 'plus', 'se darán de alta')}${kpi('Ya existentes', count('Actualiza'), 'check', `${rs.filter(r => r.changes.length).length} con datos distintos`)}${kpi('Con errores', count('Error'), 'alert', 'no se importan')}${kpi('No vienen en el listado', missing.length, 'store', `del catálogo de ${esc(chainObj().name)}`)}</div>
+    const templateNotice = I.usedTemplate ? `<div class="card card-pad row" style="margin-bottom:16px;background:var(--ok-bg);border-color:transparent">${icon('check')}<span style="flex:1">Se ha usado la plantilla guardada de <b>${esc(chainObj().name)}</b>: las columnas ya están asociadas.</span>${btn('Cambiar columnas', { size: 'sm', act: 'imp-step', data: 'data-v="3"' })}</div>` : '';
+    return `${templateNotice}<div class="grid g-4" style="margin-bottom:16px">${kpi('Tiendas nuevas', count('Nueva'), 'plus', 'se darán de alta')}${kpi('Ya existentes', count('Actualiza'), 'check', `${rs.filter(r => r.changes.length).length} con datos distintos`)}${kpi('Con errores', count('Error'), 'alert', 'no se importan')}${kpi('No vienen en el listado', missing.length, 'store', `del catálogo de ${esc(chainObj().name)}`)}</div>
       <div class="grid g-main"><div class="card"><div class="card-head"><h2>Filas del fichero</h2><span class="small muted">Desmarca las que no quieras importar</span></div>
         <div class="table-wrap" style="max-height:460px;overflow:auto"><table><thead><tr><th></th><th>Código</th><th>Tienda</th><th>Municipio</th><th>Resultado</th></tr></thead><tbody>
         ${rs.map(r => `<tr><td><input type="checkbox" class="check" data-imp="skip" data-n="${r.n}" ${r.status === 'Error' ? 'disabled' : I.skip[r.n] ? '' : 'checked'}></td><td><code>${esc(r.rec.code)}</code></td><td><b class="small">${esc(r.rec.name || r.rec.address)}</b><div class="small faint">${esc(r.rec.address)}</div></td><td class="small">${esc(r.rec.city)}${r.rec.city && !knownLocality(r.rec.city) ? ' ' + badge('Por revisar', 'warn') : ''}</td>
