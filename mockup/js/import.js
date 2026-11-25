@@ -80,8 +80,9 @@ window.Import = (() => {
   function view() {
     const steps = ['Origen', 'Estructura', 'Columnas', 'Revisión'];
     const head = `<div class="stepper">${steps.map((s, i) => `<div class="step ${I.step === i + 1 ? 'active' : I.step > i + 1 ? 'done' : ''}"><span>${I.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>`;
-    return `<div class="row" style="margin-bottom:16px">${btn('Tiendas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'go', data: 'data-to="tiendas"' })}</div>
-      ${UI.pageHead('Importar listado de tiendas', 'Cada cadena envía su propio formato. Indica qué columna corresponde a cada dato y guarda la plantilla para la próxima vez.')}
+    const back = I.wizard ? btn('Volver al asistente', { kind: 'ghost', size: 'sm', icon: 'back', act: 'imp-wiz-cancel' }) : btn('Tiendas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'go', data: 'data-to="tiendas"' });
+    return `<div class="row" style="margin-bottom:16px">${back}</div>
+      ${UI.pageHead(I.wizard ? 'Importar tiendas a la nueva campaña' : 'Importar listado de tiendas', 'Cada cadena envía su propio formato. Indica qué columna corresponde a cada dato y guarda la plantilla para la próxima vez.')}
       ${head}<div class="fade-in">${[step1, step2, step3, step4][I.step - 1]()}</div>`;
   }
   const foot = (back, next, nextLabel = 'Continuar', ok = true) => `<div class="row" style="margin-top:20px">${back ? btn('Atrás', { icon: 'back', act: 'imp-step', data: `data-v="${I.step - 1}"` }) : ''}<span class="spacer"></span>${next ? `<button class="btn primary" data-act="${next}" ${ok ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>${nextLabel}${icon('chev')}</button>` : ''}</div>`;
@@ -95,9 +96,9 @@ window.Import = (() => {
       <div class="card card-pad"><h2 style="margin-bottom:14px">2. Sube el fichero recibido</h2>
         <label class="dropzone ${I.chain ? '' : 'off'}">${icon('upload')}<b>Arrastra o elige un Excel o CSV</b><span class="small muted">.xlsx, .xls o .csv · los PDF se dan de alta a mano</span><input type="file" accept=".xlsx,.xls,.csv,.pdf" data-imp="file" hidden></label>
         <div class="row wrap small" style="margin-top:12px"><span class="muted">¿Sin fichero a mano? Prueba con los ejemplos de Bancosol:</span>${btn('Mercadona GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="1"' })}${btn('Dia Málaga GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="2"' })}</div></div>
-    </div><div class="stack"><div class="card card-pad"><h2 style="margin-bottom:12px">Campaña ${esc(H().activeCampaign().name)}</h2><div class="field"><label>Las tiendas importadas quedan como</label><select class="input" data-imp="status"><option value="pending" ${I.status === 'pending' ? 'selected' : ''}>Pendiente de confirmar</option><option value="participa" ${I.status === 'participa' ? 'selected' : ''}>Participa (se generan sus turnos)</option></select></div>
+    </div><div class="stack"><div class="card card-pad"><h2 style="margin-bottom:12px">${I.wizard ? 'Nueva campaña' : `Campaña ${esc(H().activeCampaign().name)}`}</h2><div class="field"><label>Las tiendas importadas quedan como</label><select class="input" data-imp="status"><option value="pending" ${I.status === 'pending' ? 'selected' : ''}>Pendiente de confirmar</option><option value="participa" ${I.status === 'participa' ? 'selected' : ''}>Participa (se generan sus turnos)</option></select></div>
       <p class="small muted">Elige de forma explícita: no hay estado por defecto. Las nuevas toman la zona de su localidad.</p></div>
-      <div class="card card-pad"><h2 style="margin-bottom:8px">¿La cadena envía un PDF?</h2><p class="small muted">Por ahora los PDF no se leen: da de alta las tiendas a mano y confirma su participación. Si alguna cadena los envía de forma habitual, se valorará convertirlos a Excel.</p>${btn('Alta manual de tienda', { icon: 'plus', act: 'new', data: 'data-entity="stores"' })}</div>${historyCard()}</div></div>`;
+      <div class="card card-pad"><h2 style="margin-bottom:8px">¿La cadena envía un PDF?</h2><p class="small muted">Por ahora los PDF no se leen: da de alta las tiendas a mano y confirma su participación. Si alguna cadena los envía de forma habitual, se valorará convertirlos a Excel.</p>${I.wizard ? '' : btn('Alta manual de tienda', { icon: 'plus', act: 'new', data: 'data-entity="stores"' })}</div>${I.wizard ? '' : historyCard()}</div></div>`;
   }
 
   function step2() {
@@ -136,10 +137,10 @@ window.Import = (() => {
       <div class="stack">${unknown.length ? `<div class="card"><div class="card-head"><div><h2>Localidades por revisar</h2><div class="small muted">No coinciden con el catálogo. Elige la localidad correcta o créala; la forma escrita se recordará para la próxima vez.</div></div></div>
         ${unknown.map(rec => { const sug = suggestLocality(rec.city, rec.cp), v = String(locChoice(rec)); return `<div class="list-item"><div style="flex:1"><b class="small">«${esc(rec.city)}»</b><div class="small muted">${sug ? `Sugerencia: ${esc(sug.name)}` : 'Sin coincidencias'}</div></div>
           <select class="input inline" data-imp="loc" data-city="${esc(normName(rec.city))}"><option value="new" ${v === 'new' ? 'selected' : ''}>Crear «${esc(rec.city)}»</option>${DB.localities.map(l => `<option value="${l.id}" ${v === String(l.id) ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>`; }).join('')}</div>` : ''}
-        <div class="card"><div class="card-head"><div><h2>No vienen en el listado</h2><div class="small muted">Están en el catálogo pero la cadena no las incluye</div></div></div>
+        ${I.wizard ? `<div class="card card-pad small muted">Al confirmar, las tiendas seleccionadas se añaden a la lista del asistente como <b>${I.status === 'participa' ? 'Participa' : 'Pendiente de confirmar'}</b>. Se guardan al crear la campaña.</div>` : `<div class="card"><div class="card-head"><div><h2>No vienen en el listado</h2><div class="small muted">Están en el catálogo pero la cadena no las incluye</div></div></div>
         ${missing.length ? missing.map(s => `<div class="list-item"><span class="dot" style="background:var(--text-3)"></span><div style="flex:1"><b class="small">${esc(s.name)}</b><div class="small muted">${esc(s.code || 'Sin código')} · ${esc(H().loc(s.locality)?.name)}</div></div></div>`).join('') + `<label class="row small" style="padding:12px 20px"><input type="checkbox" class="check" data-imp="markMissing" ${I.markMissing ? 'checked' : ''}>Marcarlas como «No participa» en ${esc(c.code)}</label>` : '<div class="card-pad small muted">Todas las tiendas del catálogo vienen en el fichero.</div>'}</div>
-      <div class="card card-pad small muted">Al confirmar, las tiendas seleccionadas quedan como <b>Participa</b> en ${esc(c.name)} y se generan sus turnos de mañana y tarde para los días de campaña.</div></div></div>
-      ${foot(true, 'imp-confirm', `Importar ${rs.filter(r => r.status !== 'Error' && !I.skip[r.n]).length} tiendas`)}`;
+      <div class="card card-pad small muted">Al confirmar, las tiendas seleccionadas quedan como <b>Participa</b> en ${esc(c.name)} y se generan sus turnos de mañana y tarde para los días de campaña.</div>`}</div></div>
+      ${foot(true, I.wizard ? 'imp-wiz-done' : 'imp-confirm', `${I.wizard ? 'Añadir' : 'Importar'} ${rs.filter(r => r.status !== 'Error' && !I.skip[r.n]).length} tiendas`)}`;
   }
 
   /* ---------- Acciones ---------- */
@@ -201,6 +202,11 @@ window.Import = (() => {
     'imp-next': () => { I.step = 3; render(); },
     'imp-review': () => { I.step = 4; render(); },
     'imp-confirm': () => confirmImport(render, go),
+    'imp-wiz-cancel': () => { const done = I.wizard; I = fresh(); done(null); },
+    'imp-wiz-done': () => { const done = I.wizard, chain = I.chain, status = I.status;
+      const picked = records().filter(r => r.status !== 'Error' && !I.skip[r.n]).map(r => { const choice = locChoice(r.rec);
+        return { existing: r.existing?.id ?? null, rec: r.rec, chain, state: status, locality: knownLocality(r.rec.city)?.id ?? (choice === 'new' ? null : Number(choice)) }; });
+      const file = I.file; I = fresh(); done({ file, records: picked }); },
   });
 
   function onChange(el, render) {
@@ -229,5 +235,6 @@ window.Import = (() => {
     else I[k] = el.checked;
     render();
   }
-  return { view, actions, onChange, reset: () => { I = fresh(); } };
+  const startForWizard = onDone => { I = { ...fresh(), wizard: onDone }; };
+  return { view, actions, onChange, startForWizard, reset: () => { I = fresh(); } };
 })();

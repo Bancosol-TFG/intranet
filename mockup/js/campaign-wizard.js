@@ -1,96 +1,198 @@
 /* Asistente de creación de campañas:
-   1) Datos y copia  2) Días  3) Colaboradores  4) Tiendas  5) Coordinación (opcional)  6) Resumen */
+   1) Datos y copia  2) Días  3) Colaboradores  4) Tiendas  5) Coordinación  6) Resumen */
 window.CampaignWizard = (() => {
-  const { esc, icon, btn } = UI;
+  const { esc, icon, btn, badge } = UI;
   const H = () => Views.helpers;
-  const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación (opcional)', 'Resumen'];
-  const fresh = () => ({ step: 1, data: { name: '', type: 1, code: '', start: '', end: '', copyFrom: '', copy: ['zones', 'collabs', 'stores'] }, days: [], zones: {}, collabs: [], storesMode: 'pending' });
-  let W = fresh();
+  const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación', 'Resumen'];
+  const STATE_LABEL = { participa: 'Participa', pending: 'Pendiente', no: 'No participa' };
+  const QUESTIONS = ['¿Partes de una campaña anterior?', '¿Qué días se recoge en las tiendas?', '¿Qué entidades colaboran?', '¿Qué tiendas participan?', '¿Quién coordina cada zona?', 'Revisa los datos antes de crear la campaña'];
+  const COPY_PARTS = [['collabs', 'Colaboradores'], ['stores', 'Tiendas'], ['zones', 'Coordinación por zona']];
+  const isIn = e => e.state !== 'no';
+  const fresh = () => ({ step: 1, data: { name: '', type: '', code: '', start: '', end: '', copyFrom: '', copy: COPY_PARTS.map(([kind]) => kind) }, suggested: {}, days: [], zones: {}, collabs: [], stores: [], importing: false });
+  let W = null;
 
-  const datesBetween = (start, end) => { const out = []; for (let d = new Date(start + 'T12:00'); d <= new Date(end + 'T12:00'); d.setDate(d.getDate() + 1)) out.push(d.toISOString().slice(0, 10)); return out; };
+  const datesBetween = (start, end) => { const out = []; if (!start || !end) return out; for (let d = new Date(start + 'T12:00'); d <= new Date(end + 'T12:00'); d.setDate(d.getDate() + 1)) out.push(d.toISOString().slice(0, 10)); return out; };
   const weekendDays = dates => dates.filter(d => [5, 6].includes(new Date(d + 'T12:00').getDay()));
   const fmt = d => new Date(d + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   const source = () => H().byId(DB.campaigns, Number(W.data.copyFrom));
   const copies = kind => source() && W.data.copy.includes(kind);
+  const byNewest = campaigns => [...campaigns].sort((a, b) => b.start.localeCompare(a.start));
+  const latestCampaign = () => byNewest(DB.campaigns.filter(c => c.status !== 'Planificada'))[0];
+  const nextYear = text => String(text || '').replace(/\d{4}/, year => Number(year) + 1);
+  const sameWeekdayNextYear = date => { const day = new Date(date + 'T12:00'); day.setDate(day.getDate() + 364); return day.toISOString().slice(0, 10); };
+  const suggestionFrom = src => src ? { name: nextYear(src.name), type: src.type, code: nextYear(src.code), start: sameWeekdayNextYear(src.start), end: sameWeekdayNextYear(src.end) } : { name: '', type: W.data.type, code: '', start: '', end: '' };
+  const suggest = () => { const next = suggestionFrom(source());
+    Object.entries(next).forEach(([key, value]) => { if (!W.data[key] || String(W.data[key]) === String(W.suggested[key] ?? '')) W.data[key] = value; });
+    W.suggested = next; };
+  const begin = () => { W = fresh(); W.data.copyFrom = String(latestCampaign()?.id ?? ''); suggest(); applyDefaults(); };
   const field = (label, html, full = '') => `<div class="field ${full}"><label>${label}</label>${html}</div>`;
   const check = (name, value, checked, label, sub = '') => `<label class="list-item" style="cursor:pointer"><input type="checkbox" class="check" name="${name}" value="${value}" ${checked ? 'checked' : ''}><div style="flex:1"><b class="small">${label}</b>${sub ? `<div class="small muted">${sub}</div>` : ''}</div></label>`;
+  const hint = text => `<p class="small muted" style="margin-top:0">${text}</p>`;
+  const form = () => document.getElementById('cw-form');
+  const search = placeholder => `<input class="input" data-cw-filter placeholder="${placeholder}" style="margin-bottom:12px">`;
 
-  const stepData = () => { const d = W.data, prev = DB.campaigns.filter(c => c.id);
-    return `<div class="form-grid">${field('Nombre', `<input class="input" name="name" required value="${esc(d.name)}" placeholder="Ej. Gran Recogida 2027">`, 'full')}
+  const copyChoice = (mode, title, detail, body = '') => { const selected = (mode === 'copy') === Boolean(W.data.copyFrom);
+    return `<div class="cw-choice ${selected ? 'sel' : ''}"><label><input type="radio" class="check" name="copyMode" value="${mode}" ${selected ? 'checked' : ''}><span><b>${title}</b><span class="small muted">${detail}</span></span></label>${selected ? body : ''}</div>`; };
+
+  const stepData = () => { const d = W.data, src = source();
+    const copyBody = `<div class="cw-choice-body"><select class="input" name="copyFrom" aria-label="Campaña de la que copiar">${byNewest(DB.campaigns).map(c => `<option value="${c.id}" ${String(c.id) === String(d.copyFrom) ? 'selected' : ''}>${esc(c.name)} (${esc(c.code)})</option>`).join('')}</select>
+      <div class="row wrap" style="gap:16px"><span class="muted">Se copian:</span>${COPY_PARTS.map(([kind, label]) => `<label class="row" style="cursor:pointer"><input type="checkbox" class="check" name="copy" value="${kind}" ${d.copy.includes(kind) ? 'checked' : ''}>${label}</label>`).join('')}</div></div>`;
+    return `<div class="stack" style="gap:10px">${copyChoice('copy', 'Sí, copiar de una campaña anterior', 'Se proponen el nombre y las fechas del año siguiente.', copyBody)}${copyChoice('scratch', 'No, empezar desde cero', 'Rellenas todos los datos a mano.')}</div>
+      <div class="cw-section"><h3>Datos de la nueva campaña</h3>${src ? `<p class="small muted" style="margin:4px 0 0">Propuestos a partir de ${esc(src.code)}. Cámbialos si hace falta.</p>` : ''}</div>
+      <div class="form-grid">${field('Nombre', `<input class="input" name="name" required value="${esc(d.name)}" placeholder="Ej. Gran Recogida 2027">`, 'full')}
       ${field('Tipo de campaña', `<select class="input" name="type">${DB.campaignTypes.map(t => `<option value="${t.id}" ${t.id === Number(d.type) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>`)}
       ${field('Código', `<input class="input" name="code" value="${esc(d.code)}" placeholder="GR2027">`)}
       ${field('Fecha de inicio', `<input class="input" type="date" name="start" required value="${d.start}">`)}
-      ${field('Fecha de fin', `<input class="input" type="date" name="end" required value="${d.end}">`)}
-      ${field('Copiar de una campaña anterior (opcional)', `<select class="input" name="copyFrom"><option value="">No copiar: empezar desde cero</option>${prev.map(c => `<option value="${c.id}" ${String(c.id) === String(d.copyFrom) ? 'selected' : ''}>${esc(c.name)} (${esc(c.code)})</option>`).join('')}</select>`, 'full')}
-      <div class="field full"><label>Qué copiar</label>${check('copy', 'zones', d.copy.includes('zones'), 'Coordinación por zona')}${check('copy', 'collabs', d.copy.includes('collabs'), 'Colaboradores participantes')}${check('copy', 'stores', d.copy.includes('stores'), 'Tiendas participantes')}</div></div>`; };
+      ${field('Fecha de fin', `<input class="input" type="date" name="end" required value="${d.end}">`)}</div>`; };
 
-  const stepDays = () => `<p class="small muted" style="margin-top:0">Marcados por defecto los viernes y sábados de la semana. Las excepciones por cadena se añaden después en la ficha.</p>
-    ${datesBetween(W.data.start, W.data.end).map(d => check('day', d, W.days.includes(d), fmt(d))).join('')}`;
+  const stepDays = () => `${hint('Marcados por defecto los viernes y sábados de la semana. Las excepciones por cadena se añaden después en la ficha.')}
+    <div class="cw-scroll">${datesBetween(W.data.start, W.data.end).map(d => check('day', d, W.days.includes(d), fmt(d))).join('')}</div>`;
 
-  const stepZones = () => { const coords = DB.users.filter(u => u.role === 'coord');
-    return `<p class="small muted" style="margin-top:0">${copies('zones') ? `Vista previa copiada de ${esc(source().code)}: revísala antes de crear. ` : 'Paso opcional: puedes saltarlo y asignar la coordinación después, por lotes o por zona. '}</p>
-      <div class="table-wrap"><table><thead><tr><th>Zona</th>${coords.map(u => `<th>${esc(u.name)}</th>`).join('')}</tr></thead><tbody>
-      ${DB.zones.map(z => `<tr><td><b>${esc(z.name)}</b> <span class="small faint">${esc(z.code)}</span></td>${coords.map(u => `<td><input type="checkbox" class="check" name="zone-${z.id}" value="${u.id}" ${(W.zones[z.id] || []).includes(u.id) ? 'checked' : ''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>`; };
+  const stepCollabs = () => `${hint(`${copies('collabs') ? `Marcados los que participaron en ${esc(source().code)}. ` : ''}Solo aparecen colaboradores validados. Entran como «Pendiente»: coordinación confirma si participan o no.`)}
+    ${search('Buscar colaborador…')}<div class="cw-scroll">${DB.collabs.filter(c => c.status === 'Validado').map(c => check('collab', c.id, W.collabs.includes(c.id), esc(c.name), esc(c.type))).join('')}</div>`;
 
-  const stepCollabs = () => `<p class="small muted" style="margin-top:0">${copies('collabs') ? `Copiado de ${esc(source().code)}. ` : ''}Solo aparecen colaboradores validados. Entran como «Pendiente»: coordinación confirma si participan o no.</p>
-    ${DB.collabs.filter(c => c.status === 'Validado').map(c => check('collab', c.id, W.collabs.includes(c.id), esc(c.name), esc(c.type))).join('')}`;
+  const storeName = e => e.store ? H().byId(DB.stores, e.store).name : `${H().chain(e.chain).name} ${e.rec.name || e.rec.address}`;
+  const storeMeta = e => { const st = e.store && H().byId(DB.stores, e.store), locality = st ? st.locality : e.locality;
+    return `${esc(H().chain(st ? st.chain : e.chain)?.name || '')} · ${locality ? esc(H().loc(locality).name) : `${esc(e.rec.city)} ${badge('Localidad por revisar', 'warn')}`}`; };
+  const storeSearchText = e => { const st = e.store && H().byId(DB.stores, e.store), locality = st ? st.locality : e.locality;
+    return [storeName(e), H().chain(st ? st.chain : e.chain)?.name, locality ? H().loc(locality)?.name : e.rec.city].join(' ').toLowerCase(); };
+  const ORIGIN_BADGE = { csv: badge('Del listado subido', 'info'), manual: badge('Añadida a mano', 'plain') };
+  const stateChoice = (name, value) => `<div class="seg cw-seg">${Object.entries(STATE_LABEL).map(([v, l]) => `<label class="${v}"><input type="radio" name="${name}" value="${v}" ${value === v ? 'checked' : ''} hidden>${l}</label>`).join('')}</div>`;
 
-  const stepStores = () => { const src = source(), confirmed = src ? Object.values(src.participation).filter(v => v === true).length : 0;
-    const radio = (v, label, sub) => `<label class="list-item" style="cursor:pointer"><input type="radio" name="storesMode" value="${v}" ${W.storesMode === v ? 'checked' : ''}><div style="flex:1"><b class="small">${label}</b><div class="small muted">${sub}</div></div></label>`;
-    return `${radio('pending', `Todas las tiendas activas (${DB.stores.filter(s => !s.archived).length})`, 'Participan las de cadenas con listado importado; el resto queda pendiente.')}
-      ${src && W.data.copy.includes('stores') ? radio('copy', `Copiar participación de ${esc(src.code)}`, `${confirmed} tiendas participaron en esa campaña y entran como «Participa».`) : ''}
+  const stepStores = () => { const src = source(), count = st => W.stores.filter(e => !st || e.state === st).length;
+    const filter = W.storeFilter || '', query = (W.storeQuery || '').trim().toLowerCase(), shown = W.stores.map((e, i) => [e, i]).filter(([e]) => !filter || e.state === filter);
+    const chip = (v, label) => `<button type="button" class="btn ${filter === v ? 'primary' : ''}" data-act="cw-store-filter" data-v="${v}">${label} (${count(v)})</button>`;
+    const row = (e, i) => { const text = storeSearchText(e);
+      return `<div class="list-item" data-name="${esc(text)}" ${query && !text.includes(query) ? 'style="display:none"' : ''}><div style="flex:1"><b class="small">${esc(storeName(e))}</b> ${ORIGIN_BADGE[e.origin] || ''}<div class="small muted">${storeMeta(e)}</div></div>${stateChoice(`store-state-${i}`, e.state)}</div>`; };
+    return `<div class="row" style="gap:16px"><p class="small muted" style="margin:0;flex:1">${copies('stores') ? `Ya están las tiendas que participaron en ${esc(src.code)}. Indica en cada una si participa en esta campaña.` : 'Sube el listado que te ha enviado cada cadena o añade las tiendas una a una.'}</p>
+        ${btn('Subir listado de tiendas (Excel)', { kind: 'primary', icon: 'upload', act: 'cw-import' })}</div>
+      <div class="stack" style="gap:10px"><div style="position:relative"><input class="input" data-cw-store-search autocomplete="off" value="${esc(W.storeQuery || '')}" placeholder="Buscar o añadir tienda…" style="width:100%"><div class="cw-suggest" hidden></div></div>
+      ${W.stores.length ? `<div class="row wrap" style="gap:8px">${chip('', 'Todas')}${chip('participa', 'Participan')}${chip('pending', 'Pendientes')}${chip('no', 'No participan')}<span class="spacer"></span>
+          <span class="small muted">Marcar ${filter ? 'las mostradas' : 'todas'} como:</span>${Object.entries(STATE_LABEL).map(([v, l]) => btn(l, { size: 'sm', act: 'cw-store-all', data: `data-v="${v}"` })).join('')}</div>
+        <div class="cw-scroll">${shown.map(([e, i]) => row(e, i)).join('') || '<div class="card-pad small muted">No hay tiendas con este estado.</div>'}</div>`
+        : `<div class="card card-pad small muted" style="text-align:center">Todavía no hay tiendas en esta campaña.</div>`}</div>`; };
+
+  const coordinators = () => DB.users.filter(u => u.role === 'coord');
+  const zonesOf = userId => DB.zones.filter(z => (W.zones[z.id] || []).includes(userId));
+  const stepZones = () => { const free = DB.zones.filter(z => !(W.zones[z.id] || []).length);
+    const intro = copies('zones') ? `Copiada la coordinación de ${esc(source().code)}: normalmente solo cambia una o dos personas.` : 'Puedes saltar este paso y asignar la coordinación más tarde desde la ficha de la campaña.';
+    const freeBox = free.length ? `<div class="card card-pad" style="background:var(--warn-bg);border-color:transparent"><div class="row wrap" style="gap:8px">${icon('alert')}<b class="small">${free.length === 1 ? 'Una zona no tiene' : `${free.length} zonas no tienen`} coordinador:</b>${free.map(z => `<span class="chip" style="padding-right:10px;background:var(--surface)">${esc(z.name)}</span>`).join('')}</div></div>`
+      : `<div class="card card-pad small" style="background:var(--ok-bg);border-color:transparent;color:var(--ok)">${icon('check')} Todas las zonas tienen coordinador.</div>`;
+    const card = u => { const zones = zonesOf(u.id);
+      return `<div class="list-item" data-name="${esc([u.name, ...zones.map(z => z.name)].join(' ').toLowerCase())}">${UI.avatar(u.name)}
+        <div style="flex:1"><b>${esc(u.name)}</b> <span class="small muted">· ${zones.length === 1 ? '1 zona' : `${zones.length} zonas`}</span>
+          <div class="row wrap" style="gap:6px;margin-top:6px">${zones.length ? zones.map(z => `<span class="chip">${esc(z.name)}<button type="button" title="Quitar ${esc(z.name)}" data-act="cw-zone-del" data-z="${z.id}" data-u="${u.id}">${icon('x')}</button></span>`).join('') : '<span class="small muted">Sin zonas en esta campaña</span>'}</div></div>
+        ${btn('Añadir o quitar zonas', { icon: 'plus', act: 'cw-zone-pick', data: `data-u="${u.id}"` })}</div>`; };
+    return `${hint(`${intro} Una zona puede tener varios coordinadores.`)}${freeBox}
+      ${search('Buscar coordinador o zona…')}<div class="cw-scroll">${coordinators().map(card).join('')}</div>`; };
+
+  const zonePicker = userId => { const user = H().byId(DB.users, userId), others = z => (W.zones[z.id] || []).filter(id => id !== userId).map(id => H().byId(DB.users, id).name);
+    UI.modal(`Zonas de ${user.name}`, `<input class="input" data-cw-pick-filter placeholder="Buscar zona…" style="margin-bottom:12px"><div class="cw-scroll" style="max-height:50vh" id="cw-pick">
+      ${DB.zones.map(z => `<label class="list-item" style="cursor:pointer" data-name="${esc(z.name.toLowerCase())}"><input type="checkbox" class="check" value="${z.id}" ${(W.zones[z.id] || []).includes(userId) ? 'checked' : ''}>
+        <div style="flex:1"><b class="small">${esc(z.name)}</b><div class="small muted">${others(z).length ? `También la coordina ${esc(others(z).join(', '))}` : (W.zones[z.id] || []).length ? '' : 'Sin coordinador'}</div></div></label>`).join('')}</div>`,
+      `${btn('Cancelar', { act: 'close' })}${btn('Guardar', { kind: 'primary', icon: 'check', act: 'cw-zone-save', data: `data-u="${userId}"` })}`); };
+
+  const stepSummary = () => { const free = DB.zones.filter(z => !(W.zones[z.id] || []).length), on = W.stores.filter(isIn);
+    const participa = on.filter(e => e.state === 'participa').length, pending = on.length - participa, created = on.filter(e => !e.store).length;
+    const warn = t => `<div class="list-item">${icon('alert')}<span class="small">${t}</span></div>`, long = { day: 'numeric', month: 'long', year: 'numeric' };
+    const edit = step => `<td style="text-align:right">${btn('Cambiar', { kind: 'ghost', size: 'sm', act: 'cw-goto', data: `data-step="${step}"` })}</td>`;
+    return `<div class="table-wrap"><table><tbody>
+      <tr><td>Nombre</td><td><b>${esc(W.data.name)}</b> ${esc(W.data.code)}</td>${edit(1)}</tr><tr><td>Fechas</td><td>Del ${UI.fmtDate(W.data.start, long)} al ${UI.fmtDate(W.data.end, long)} · ${W.days.length} días con voluntarios en tienda</td>${edit(2)}</tr>
+      <tr><td>Colaboradores</td><td>${W.collabs.length} (entran como «Pendiente»)</td>${edit(3)}</tr><tr><td>Tiendas</td><td>${participa} participan${pending ? ` · ${pending} pendientes` : ""}${created ? ` · ${created} nuevas del listado subido` : ''}</td>${edit(4)}</tr>
+      <tr><td>Coordinación</td><td>${DB.zones.length - free.length} de ${DB.zones.length} zonas con coordinador</td>${edit(5)}</tr></tbody></table></div>
+      <div class="stack" style="margin-top:12px">${free.length ? warn(`${free.length} zonas sin coordinador: ${free.map(z => esc(z.name)).join(', ')}`) : ''}${pending ? warn(`${pending} tiendas quedan pendientes de confirmar participación`) : ''}${on.length ? '' : warn('La campaña se crea sin tiendas')}</div>
       <div class="card card-pad small muted" style="margin-top:16px;background:var(--info-bg);border-color:transparent">${icon('alert')} La campaña se crea como <b>Planificada</b>. Se activa desde su ficha.</div>`; };
 
-  const stepSummary = () => { const free = DB.zones.filter(z => !(W.zones[z.id] || []).length), src = source();
-    const stores = W.storesMode === 'copy' && src ? Object.values(src.participation).filter(v => v === true).length : 0, pending = DB.stores.filter(s => !s.archived).length - stores;
-    const warn = t => `<div class="list-item">${icon('alert')}<span class="small">${t}</span></div>`;
-    return `<div class="table-wrap"><table><tbody>
-      <tr><td>Nombre</td><td><b>${esc(W.data.name)}</b> ${esc(W.data.code)}</td></tr><tr><td>Fechas</td><td>${esc(W.data.start)} → ${esc(W.data.end)} · ${W.days.length} días presenciales</td></tr>
-      <tr><td>Colaboradores</td><td>${W.collabs.length} (entran como «Pendiente»)</td></tr><tr><td>Tiendas</td><td>${stores} participan · ${pending} pendientes</td></tr>
-      <tr><td>Coordinación</td><td>${DB.zones.length - free.length} de ${DB.zones.length} zonas asignadas</td></tr></tbody></table></div>
-      <div class="stack" style="margin-top:12px">${free.length ? warn(`${free.length} zonas sin coordinador: ${free.map(z => esc(z.name)).join(', ')}`) : ''}${pending ? warn(`${pending} tiendas quedan pendientes de confirmar participación`) : ''}</div>`; };
-
-  const view = () => { const body = [stepData, stepDays, stepCollabs, stepStores, stepZones, stepSummary][W.step - 1]();
+  const fitLists = () => { const list = document.querySelector('.cw-scroll'); if (!list) return; list.style.maxHeight = 'none';
+    const overflow = document.documentElement.scrollHeight - window.innerHeight; if (overflow > 0) list.style.maxHeight = `${Math.max(160, list.clientHeight - overflow - 4)}px`; };
+  window.addEventListener('resize', fitLists);
+  const view = () => { if (!W) begin(); if (W.importing) return Import.view(); requestAnimationFrame(fitLists); const body = [stepData, stepDays, stepCollabs, stepStores, stepZones, stepSummary][W.step - 1]();
+    const assigned = Object.values(W.zones).some(l => l.length);
     return `<div class="row" style="margin-bottom:16px">${btn('Campañas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'cw-cancel' })}</div>
-      ${UI.pageHead('Nueva campaña', 'Asistente por pasos. Puedes copiar la configuración de una campaña anterior.')}
+      ${UI.pageHead('Nueva campaña')}
       <div class="stepper">${STEPS.map((s, i) => `<div class="step ${W.step === i + 1 ? 'active' : W.step > i + 1 ? 'done' : ''}"><span>${W.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>
-      <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack">${body}</form></div>
+      <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack" onsubmit="return false"><h2>${QUESTIONS[W.step - 1]}</h2>${body}</form></div>
       <div class="row" style="margin-top:16px">${W.step > 1 ? btn('Anterior', { icon: 'back', act: 'cw-back' }) : ''}<span class="spacer"></span>
-        ${W.step === 5 ? btn('Saltar', { kind: 'ghost', act: 'cw-skip' }) : ''}${W.step < STEPS.length ? btn('Siguiente', { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
+        ${W.step === 5 && !assigned ? btn('Saltar', { kind: 'ghost', act: 'cw-next' }) : ''}${W.step < STEPS.length ? btn(`Siguiente: ${STEPS[W.step]}`, { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
 
-  const readStep = form => { const fd = new FormData(form);
+  const readStep = () => { const f = form(); if (!f) return; const fd = new FormData(f);
     if (W.step === 1) { const prevCopy = `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`;
-      Object.assign(W.data, { name: fd.get('name'), type: Number(fd.get('type')), code: fd.get('code'), start: fd.get('start'), end: fd.get('end'), copyFrom: fd.get('copyFrom'), copy: fd.getAll('copy') });
+      const copying = fd.get('copyMode') === 'copy', copyFrom = copying ? fd.get('copyFrom') || String(latestCampaign()?.id ?? '') : '', sourceChanged = copyFrom !== W.data.copyFrom;
+      Object.assign(W.data, { name: fd.get('name'), type: Number(fd.get('type')), code: fd.get('code'), start: fd.get('start'), end: fd.get('end'), copyFrom });
+      if (copying && f.querySelector('[name=copy]')) W.data.copy = fd.getAll('copy');
+      if (sourceChanged) suggest();
       if (prevCopy !== `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`) applyDefaults(); }
     if (W.step === 2) W.days = fd.getAll('day');
-    if (W.step === 5) W.zones = Object.fromEntries(DB.zones.map(z => [z.id, fd.getAll(`zone-${z.id}`).map(Number)]));
     if (W.step === 3) W.collabs = fd.getAll('collab').map(Number);
-    if (W.step === 4) W.storesMode = fd.get('storesMode') || 'pending'; };
+    if (W.step === 4) {
+      W.stores.forEach((e, i) => { e.state = fd.get(`store-state-${i}`) || e.state; });
+    } };
 
   const applyDefaults = () => { const src = source();
     W.days = weekendDays(datesBetween(W.data.start, W.data.end));
     W.zones = {}; if (copies('zones')) DB.zoneAssignments.filter(z => z.campaign === src.id).forEach(z => (W.zones[z.zone] ||= []).push(z.user));
     W.collabs = copies('collabs') ? DB.collabParticipation.filter(p => p.campaign === src.id).map(p => p.collab) : [];
-    W.storesMode = copies('stores') ? 'copy' : 'pending'; };
+    W.stores = W.stores.filter(e => e.origin !== 'copy');
+    if (copies('stores')) Object.entries(src.participation).filter(([, v]) => v === true).forEach(([id]) => { if (!W.stores.some(e => e.store === Number(id))) W.stores.push({ store: Number(id), state: 'participa', origin: 'copy' }); }); };
 
-  const create = () => { const id = Math.max(0, ...DB.campaigns.map(c => c.id)) + 1, src = source();
-    const participation = W.storesMode === 'copy' && src ? Object.fromEntries(Object.entries(src.participation).filter(([, v]) => v === true)) : {};
+  const addImported = records => { const added = [];
+    records.forEach(r => { const known = r.existing ? W.stores.find(e => e.store === r.existing) : W.stores.find(e => !e.store && e.chain === r.chain && e.rec.code === r.rec.code);
+      if (!known) added.push(r.existing ? { store: r.existing, state: r.state, origin: 'csv' } : { chain: r.chain, rec: r.rec, locality: r.locality, state: r.state, origin: 'csv' }); });
+    W.stores.unshift(...added);
+    return { total: records.length, added: added.length }; };
+
+  const createStore = e => { const id = Math.max(...DB.stores.map(s => s.id)) + 1, ch = H().chain(e.chain);
+    DB.stores.push({ id, chain: e.chain, code: e.rec.code, name: storeName(e), address: e.rec.address, locality: e.locality, zone: H().byId(DB.localities, e.locality)?.zone ?? null, checkout_shelfs: 1 });
+    [1, 2, 3, 4, 5, 6].forEach(d => DB.schedules.push({ store: id, week_day: d, open: ch.open, close: ch.close })); return id; };
+
+  const create = () => { const id = Math.max(0, ...DB.campaigns.map(c => c.id)) + 1, src = source(), participation = {};
+    W.stores.filter(isIn).forEach(e => { const storeId = e.store || createStore(e); if (e.state === 'participa') participation[storeId] = true; });
     DB.campaigns.push({ id, type: W.data.type, code: W.data.code, name: W.data.name, start: W.data.start, end: W.data.end, days: [...W.days].sort(), exceptions: [], status: 'Planificada', participation, reasons: {}, sources: [] });
     Object.entries(W.zones).forEach(([zone, users]) => users.forEach(user => DB.zoneAssignments.push({ campaign: id, zone: Number(zone), user })));
     let pid = Math.max(0, ...DB.collabParticipation.map(p => p.id));
     W.collabs.forEach(collab => { const prev = src && DB.collabParticipation.find(p => p.collab === collab && p.campaign === src.id); DB.collabParticipation.push({ id: ++pid, collab, campaign: id, coords: [...(prev?.coords || [])], stores: [...(prev?.stores || [])], status: 'Pendiente' }); });
     return id; };
 
-  const actions = (render, go, toast) => ({
-    'cw-cancel': () => { W = fresh(); go('campanas'); },
-    'cw-back': () => { readStep(document.getElementById('cw-form')); W.step--; render(); },
-    'cw-next': () => { const f = document.getElementById('cw-form'); if (!f.reportValidity()) return; readStep(f);
+  const setZone = (zone, user, on) => { const list = W.zones[zone] ||= []; if (on && !list.includes(user)) list.push(user); if (!on && list.includes(user)) list.splice(list.indexOf(user), 1); };
+  const filterZones = () => { const q = (document.querySelector('[data-cw-filter]')?.value || '').toLowerCase().trim(), onlyFree = document.querySelector('[data-cw-free]')?.checked;
+    document.querySelectorAll('.cw-scroll > *').forEach(row => { row.style.display = (!q || (row.dataset.name ?? row.textContent.toLowerCase()).includes(q))  ? '' : 'none'; }); };
+
+  let renderRef = null, toastRef = null;
+  const suggestStores = (input, q, listHasMatches) => { const box = input.nextElementSibling, chosen = new Set(W.stores.map(e => e.store));
+    const hits = q ? DB.stores.filter(st => !st.archived && !chosen.has(st.id) && `${st.name} ${H().chain(st.chain)?.name || ''} ${H().loc(st.locality)?.name || ''}`.toLowerCase().includes(q)).slice(0, 6) : [];
+    box.hidden = !q || (!hits.length && listHasMatches);
+    box.innerHTML = hits.length ? `<div class="cw-suggest-title">No están en la campaña. Pulsa para añadirla:</div>${hits.map(st => `<button type="button" data-act="cw-add-store" data-id="${st.id}">${icon('plus')}<span><b>${esc(st.name)}</b><span class="muted"> · ${esc(H().loc(st.locality)?.name || '')}</span></span></button>`).join('')}`
+      : `<div class="small muted" style="padding:10px 12px">Ninguna tienda coincide con «${esc(input.value.trim())}».</div>`; };
+  const searchStores = input => { W.storeQuery = input.value; const q = input.value.trim().toLowerCase(), rows = [...document.querySelectorAll('.cw-scroll > [data-name]')];
+    rows.forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; });
+    suggestStores(input, q, rows.some(row => row.style.display !== 'none')); };
+  document.addEventListener('click', e => { if (!e.target.closest('.cw-suggest, [data-cw-store-search]')) document.querySelectorAll('.cw-suggest').forEach(box => { box.hidden = true; }); });
+  document.addEventListener('input', e => { if (e.target.matches('[data-cw-filter]')) filterZones();
+    if (e.target.matches('[data-cw-pick-filter]')) { const q = e.target.value.toLowerCase().trim(); document.querySelectorAll('#cw-pick > *').forEach(row => { row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none'; }); } if (e.target.matches('[data-cw-store-search]')) searchStores(e.target); });
+  document.addEventListener('change', e => { if (!e.target.closest('#cw-form')) return;
+    readStep(); if (W.step === 1 && ['copyMode', 'copyFrom', 'copy'].includes(e.target.name)) renderRef(); if (W.step === 4 && e.target.name.startsWith('store')) renderRef(); });
+
+  const actions = (render, go, toast) => { renderRef = render; toastRef = toast; return {
+    'cw-cancel': () => { W = null; go('campanas'); },
+    'cw-back': () => { readStep(); W.step--; render(); },
+    'cw-goto': d => { W.step = Number(d.step); render(); },
+    'cw-next': () => { if (!form().reportValidity()) return; readStep();
       if (W.step === 1 && W.data.end < W.data.start) return toast('La fecha de fin no puede ser anterior a la de inicio');
       if (W.step === 2 && !W.days.length) return toast('Marca al menos un día presencial');
       W.step++; render(); },
-    'cw-skip': () => { W.zones = {}; W.step++; render(); },
-    'cw-finish': () => { const id = create(), name = W.data.name; W = fresh(); go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
-  });
+    'cw-import': () => { readStep(); W.importing = true;
+      Import.startForWizard(result => { W.importing = false; if (result) { W.storeFilter = ''; W.storeQuery = ''; const r = addImported(result.records); toast(`${r.total} tiendas en el listado: ${r.added} nuevas añadidas como ${STATE_LABEL[result.records[0]?.state || 'pending'].toLowerCase()}${r.total - r.added ? `, ${r.total - r.added} ya estaban y no se han cambiado` : ''}`); } render(); window.scrollTo?.(0, 0); });
+      render(); window.scrollTo?.(0, 0); },
+    'cw-add-store': d => { readStep(); const st = H().byId(DB.stores, d.id);
+      W.stores.unshift({ store: st.id, state: 'pending', origin: 'manual' }); W.storeFilter = ''; W.storeQuery = ''; render(); toast(`<b>${esc(st.name)}</b> añadida como pendiente`); },
+    'cw-store-filter': d => { readStep(); W.storeFilter = d.v; render(); },
+    'cw-store-all': d => { readStep(); W.stores.filter(e => !W.storeFilter || e.state === W.storeFilter).forEach(e => { e.state = d.v; }); render(); },
+    'cw-zone-del': d => { setZone(Number(d.z), Number(d.u), false); render(); },
+    'cw-zone-pick': d => zonePicker(Number(d.u)),
+    'cw-zone-save': d => { const user = Number(d.u), picked = new Set([...document.querySelectorAll('#cw-pick input:checked')].map(el => Number(el.value)));
+      DB.zones.forEach(z => setZone(z.id, user, picked.has(z.id))); UI.close(); render(); toast(`${esc(H().byId(DB.users, user).name)}: ${picked.size === 1 ? '1 zona' : `${picked.size} zonas`}`); },
+    'cw-finish': () => { const id = create(), name = W.data.name; W = null; go(`campanas/${id}`); toast(`Campaña <b>${esc(name)}</b> creada como Planificada`); },
+  }; };
 
-  return { view, actions, reset: () => { W = fresh(); } };
+  return { view, actions, reset: () => { W = null; } };
 })();
