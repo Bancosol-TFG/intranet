@@ -1,9 +1,9 @@
 /* Asistente de creación de campañas:
-   1) Datos y copia  2) Días  3) Colaboradores  4) Tiendas  5) Coordinación (opcional)  6) Resumen */
+   1) Datos y copia  2) Días  3) Colaboradores  4) Tiendas  5) Coordinación  6) Resumen */
 window.CampaignWizard = (() => {
   const { esc, icon, btn, badge } = UI;
   const H = () => Views.helpers;
-  const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación (opcional)', 'Resumen'];
+  const STEPS = ['Datos', 'Días', 'Colaboradores', 'Tiendas', 'Coordinación', 'Resumen'];
   const STATE_LABEL = { participa: 'Participa', pending: 'Pendiente', no: 'No participa' };
   const QUESTIONS = ['¿Partes de una campaña anterior?', '¿Qué días se recoge en las tiendas?', '¿Qué entidades colaboran?', '¿Qué tiendas participan?', '¿Quién coordina cada zona?', 'Revisa los datos antes de crear la campaña'];
   const COPY_PARTS = [['collabs', 'Colaboradores'], ['stores', 'Tiendas'], ['zones', 'Coordinación por zona']];
@@ -110,9 +110,9 @@ window.CampaignWizard = (() => {
     return `<div class="row" style="margin-bottom:16px">${btn('Campañas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'cw-cancel' })}</div>
       ${UI.pageHead('Nueva campaña')}
       <div class="stepper">${STEPS.map((s, i) => `<div class="step ${W.step === i + 1 ? 'active' : W.step > i + 1 ? 'done' : ''}"><span>${W.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>
-      <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack" onsubmit="return false"><div><div class="small muted">Paso ${W.step} de ${STEPS.length}</div><h2 style="margin:2px 0 0">${QUESTIONS[W.step - 1]}</h2></div>${body}</form></div>
+      <div class="card card-pad" style="margin-top:16px"><form id="cw-form" class="stack" onsubmit="return false"><h2>${QUESTIONS[W.step - 1]}</h2>${body}</form></div>
       <div class="row" style="margin-top:16px">${W.step > 1 ? btn('Anterior', { icon: 'back', act: 'cw-back' }) : ''}<span class="spacer"></span>
-        ${W.step === 5 && !assigned ? btn('Saltar', { kind: 'ghost', act: 'cw-next' }) : ''}${W.step < STEPS.length ? btn(`Siguiente: ${STEPS[W.step].replace(' (opcional)', '')}`, { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
+        ${W.step === 5 && !assigned ? btn('Saltar', { kind: 'ghost', act: 'cw-next' }) : ''}${W.step < STEPS.length ? btn(`Siguiente: ${STEPS[W.step]}`, { kind: 'primary', act: 'cw-next' }) : btn('Crear campaña', { kind: 'primary', icon: 'check', act: 'cw-finish' })}</div>`; };
 
   const readStep = () => { const f = form(); if (!f) return; const fd = new FormData(f);
     if (W.step === 1) { const prevCopy = `${W.data.copyFrom}|${W.data.start}|${W.data.end}|${W.data.copy}`;
