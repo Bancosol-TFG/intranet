@@ -65,14 +65,14 @@ window.Shifts = (() => {
 
   const recipients = (s, actorId) => { const st = H().byId(DB.stores, s.store), ids = new Set();
     s.assignments.forEach(a => { const collab = a.kind === 'group' ? H().byId(DB.groups, a.group)?.collab : a.kind === 'collab' ? a.collab : H().byId(DB.volunteers, a.vol)?.collab;
-      if (a.kind === 'group') DB.users.filter(u => u.group === a.group).forEach(u => ids.add(u.id));
+      if (a.kind === 'group') DB.users.filter(u => H().leadsGroup(u, H().byId(DB.groups, a.group))).forEach(u => ids.add(u.id));
       DB.users.filter(u => u.role === 'rcol' && u.collab === collab).forEach(u => ids.add(u.id)); });
     DB.zoneAssignments.filter(z => z.zone === st.zone && z.campaign === s.campaign).forEach(z => ids.add(z.user));
     ids.delete(actorId); return [...ids]; };
   const notify = (S, s, text, reason, extra = []) => { const to = new Set([...recipients(s, S.user.id), ...extra.filter(id => id !== S.user.id)]);
     to.forEach(id => DB.notifications.unshift({ id: DB.notifications.length + 1, to: id, from: S.user.id, text, reason, shift: s.id, store: s.store, when: 'Ahora', read: false }));
     Object.assign(s, { editedBy: S.user.id, editedAt: 'ahora' }); DB.audit.push({ entity: 'shifts', id: s.id, who: S.user.id, when: '2026-11-12 ' + new Date().toTimeString().slice(0, 5), text: text + (reason ? ` · Motivo: ${reason}` : '') }); return to.size; };
-  const leadersOf = a => a.kind === 'group' ? DB.users.filter(u => u.group === a.group).map(u => u.id) : [];
+  const leadersOf = a => a.kind === 'group' ? DB.users.filter(u => H().leadsGroup(u, H().byId(DB.groups, a.group))).map(u => u.id) : [];
   const shiftLabel = s => `${H().byId(DB.stores, s.store).name} · ${fmtDate(s.date, { weekday: 'short', day: 'numeric' })} ${s.start}–${s.end}`;
 
   /* ---------- Vista ---------- */
@@ -82,12 +82,20 @@ window.Shifts = (() => {
     const tab = ['tiendas', 'turnos'].includes(S.f.tab) ? S.f.tab : 'calendario';
     const head = pageHead('Turnos', '', H().exportBtn('shifts'));
     const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['turnos', 'Listado de turnos'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
-    return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
+    return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : tab === 'turnos' && S.f.group ? groupShiftList(S, c) : calendar(S, c, stores)}</div>`;
+  }
+
+  function groupShiftList(S, campaign) {
+    const group = H().scope.groups(S).find(item => String(item.id) === String(S.f.group));
+    if (!group) return `<div class="card">${empty('Grupo no disponible', 'No tienes acceso a este grupo.')}</div>`;
+    const shifts = H().scope.shifts(S, campaign.id).filter(shift => shift.assignments.some(assignment => assignment.kind === 'group' && assignment.group === group.id)).sort((first, second) => (first.date + first.start).localeCompare(second.date + second.start));
+    const rows = shifts.map(shift => `<button type="button" class="shift-list-row ${S.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${S.f.sel === shift.id}"><span><b>${fmtDate(shift.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${shift.start}–${shift.end}</b><span class="small muted shift-list-assignments">${esc(H().byId(DB.stores, shift.store)?.name || 'Tienda no disponible')}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift), over(shift) > 0 ? 'shift-over' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[H().coverage(shift)])}</span></button>`).join('');
+    return `<div class="split"><div class="card"><div class="toolbar"><span>Grupo: <b>${esc(group.code)}</b></span><span class="spacer"></span>${btn('Quitar filtro', { size: 'sm', act: 'filter', data: 'data-k="group" data-v=""' })}</div>${rows || empty('Sin turnos asignados', 'Este grupo no tiene turnos en la campaña actual.')}</div>${sidePanel(S, campaign, shifts)}</div>`;
   }
 
   function storeList(S, c, stores) {
     const q = (S.f.q || '').toLowerCase(), zf = S.f.zone || '', cov = S.f.cov || 'Todos', only = S.f.store || '';
-    const rows = stores.map(st => { const sh = DB.shifts.filter(s => s.campaign === c.id && s.store === st.id), stt = H().stats(sh);
+    const rows = stores.map(st => { const sh = H().scope.shifts(S, c.id).filter(s => s.store === st.id), stt = H().stats(sh);
       return { st, sh, stt, overs: sh.filter(s => over(s) > 0).length, reps: DB.reports.filter(r => !r.solved_by && sh.some(s => s.id === r.shift)).length }; })
       .filter(r => (!only || String(r.st.id) === only) && r.st.name.toLowerCase().includes(q) && (!zf || String(r.st.zone) === zf)
         && (cov === 'Todos' || (cov === 'Por cubrir' ? r.stt.uncovered : cov === 'Sobrecupo' ? r.overs : !r.stt.uncovered)));
@@ -166,12 +174,13 @@ window.Shifts = (() => {
   function calendar(S, c, stores) {
     if (!stores.length) return `<div class="card">${empty('Sin tiendas', 'No hay tiendas con turnos en tu ámbito para esta campaña.')}</div>`;
     const st = stores.find(x => String(x.id) === String(S.f.store)) || stores[0];
+    const assigningGroup = H().scope.groups(S).find(group => String(group.id) === S.f.assignGroup);
     const dates = campaignDates(c);
     if (!dates.length) return `<div class="card">${empty('Sin fechas de voluntariado', 'La campaña todavía no tiene días de voluntariado.')}</div>`;
     const mode = S.f.tab === 'turnos' ? 'list' : S.f.calendarView || 'week';
     const periods = calendarPeriods(dates, mode);
     const days = periods.find(period => period.includes(S.f.calendarDate)) || periods[0];
-    const sh = DB.shifts.filter(s => s.campaign === c.id && s.store === st.id), canEdit = H().can(S, 'shifts.assign') && c.status !== 'Finalizada';
+    const sh = H().scope.shifts(S, c.id).filter(s => s.store === st.id), canEdit = H().can(S, 'shifts.assign') && c.status !== 'Finalizada';
     /* Tramos de apertura de una fecha: las excepciones sustituyen al horario semanal. Sin tramos = cerrada. */
     const hoursOf = date => { const exc = DB.scheduleExceptions.filter(e => e.store === st.id && e.date === date); if (exc.length) return exc.some(e => e.closed) ? null : exc;
       const wd = (new Date(date + 'T12:00').getDay() + 6) % 7 + 1, t = DB.schedules.filter(h => h.store === st.id && h.week_day === wd); return t.length ? t : null; };
@@ -193,7 +202,7 @@ window.Shifts = (() => {
         ${sh.filter(s => s.date === date).map(block).join('')}</div>`; };
     const someoneElse = DB.users.find(u => u.id !== S.user.id && ((u.role === 'rcol' && sh.some(s => s.assignments.some(a => (a.kind === 'group' ? H().byId(DB.groups, a.group)?.collab : a.collab) === u.collab))) || (u.role === 'coord' && H().zonesOf(u.id, c.id).includes(st.zone))));
     const lastEdit = sh.filter(s => s.editedBy).at(-1);
-    return `<div class="card" style="margin-bottom:12px"><div class="toolbar" style="border:0">
+    return `${assigningGroup ? `<div class="card card-pad small" style="margin-bottom:12px">Selecciona una tienda y un turno para asignar el grupo <b>${esc(assigningGroup.code)}</b>. El grupo aparecerá en el panel si está disponible.</div>` : ''}<div class="card" style="margin-bottom:12px"><div class="toolbar" style="border:0">
         <select class="input" style="width:260px" data-filter="store">${stores.map(x => `<option value="${x.id}" ${x.id === st.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
         <span class="small muted">${esc(H().storeSub(st))} · ${H().R.zone(st.zone)} · ${st.checkout_shelfs} ${st.checkout_shelfs === 2 ? 'líneas' : 'línea'} de caja${H().can(S, 'history.last') && DB.history[st.id] ? ` · anterior: ${H().R.collab(DB.history[st.id])}` : ''}</span>
         <span class="spacer"></span>${someoneElse ? `<span class="presence small" title="Simulación de presencia en tiempo real"><span class="dot" style="background:var(--ok)"></span>${esc(someoneElse.name)} también está en esta tienda</span>` : ''}</div>

@@ -51,7 +51,7 @@ window.DB = (() => {
     U(2, 'Ana', 'Ruiz', 'ana.ruiz@bancosol.org', '611223344', 'coord', { last: 'Hace 2 h' }),
     U(3, 'Carmen', 'Vega', 'carmen.vega@bancosol.org', '644556677', 'coord', { last: 'Hace 3 días' }),
     U(4, 'Luis', 'Martín', 'luis.martin@uma.es', '622334455', 'rcol', { collab: 2, last: 'Ayer' }),
-    U(5, 'Rocío', 'Peña', 'rocio.pena@uma.es', '655667788', 'rtienda', { collab: 2, group: 2, last: 'Hace 1 semana' }),
+    U(5, 'Rocío', 'Peña', 'rocio.pena@uma.es', '655667788', 'rtienda', { collab: 2, group: 2, volunteer: 11, last: 'Hace 1 semana' }),
     U(6, 'Pablo', 'Gómez', 'pgomez@rincondelavictoria.es', '633445566', 'rcol', { collab: 3 }),
   ];
 
@@ -110,6 +110,7 @@ window.DB = (() => {
     { id: 1, collab: 2, code: 'UMA-01', members: [5, 6], leader: 5 },
     { id: 2, collab: 2, code: 'UMA-02', members: [11, 7, 8], leader: 11 },
     { id: 3, collab: 3, code: 'RIN-01', members: [9, 10], leader: 9 },
+    { id: 9, collab: 2, code: 'UMA-03', members: [11, 12], leader: 11 },
     ...Array.from({ length: 5 }, (_, index) => ({ id: index + 4, collab: index + 7, code: `EJEMPLO-0${index + 1}`, members: [index + 13], leader: index + 13 })),
   ];
 
