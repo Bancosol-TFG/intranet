@@ -42,7 +42,7 @@ window.UI = (() => {
   const badge = (text, t) => `<span class="badge ${t ?? tone[text] ?? ''}">${esc(text)}</span>`;
 
   const btn = (label, { kind = '', icon: ic, act, data = '', size = '', title = '' } = {}) =>
-    `<button class="btn ${kind} ${size} ${label ? '' : 'icon'}" ${act ? `data-act="${act}"` : ''} ${data} ${title ? `title="${esc(title)}"` : ''}>${ic ? icon(ic) : ''}${label ? esc(label) : ''}</button>`;
+    `<button class="btn ${kind} ${size} ${label ? '' : 'icon'}" ${act ? `data-act="${act}"` : ''} ${data} ${title ? `title="${esc(title)}" ${label ? '' : `aria-label="${esc(title)}"`}` : ''}>${ic ? icon(ic) : ''}${label ? esc(label) : ''}</button>`;
 
   const progress = (pct, t = '') => `<div class="progress ${t}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
 
