@@ -1,7 +1,7 @@
 /* Asistente de importación de tiendas: cada cadena manda un Excel distinto.
    1) Origen  2) Estructura (hoja y fila de cabeceras)  3) Mapeo de columnas  4) Revisión y confirmación */
 window.Import = (() => {
-  const { esc, icon, badge, btn, kpi } = UI;
+  const { esc, icon, badge, btn } = UI;
   const H = () => Views.helpers;
   const FIELDS = [
     ['code', 'Código de tienda', 'Único dentro de la cadena'], ['name', 'Nombre del centro', 'Puede servir de código si no hay'],
@@ -9,6 +9,9 @@ window.Import = (() => {
     ['notes', 'Observaciones', 'Se guarda como nota interna'],
   ];
   const GUESS = { code: ['codigo', 'cod', 'tiendas', 'tienda', 'centro', 'id'], name: ['nombre del centro', 'nombre', 'denominacion'], address: ['direccion', 'calle', 'domicilio'], city: ['municipio', 'localidad', 'poblacion'], province: ['provincia'], cp: ['cp', 'codigo postal'], notes: ['observaciones', 'predefinido por la cadena', 'notas'] };
+  const FOOT_MARK = '<!--imp-foot-->';
+  const FILL_PANEL = 'display:flex;flex-direction:column;min-height:0;overflow:hidden';
+  const FILL_SCROLL = 'flex:1;min-height:0;overflow:auto';
   const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
   /* Ejemplos reales (recortados) de los ficheros que envió Bancosol */
@@ -31,7 +34,7 @@ window.Import = (() => {
     ] } },
   };
 
-  const fresh = () => ({ step: 1, campaign: H().activeCampaign().id, chain: '', file: '', sheets: null, sheet: '', headerRow: 0, map: {}, codeFallback: true, saveTpl: true, markMissing: true, status: 'pending', skip: {}, rejected: {}, locChoice: {} });
+  const fresh = () => ({ step: 1, campaign: H().activeCampaign().id, chain: '', file: '', sheets: null, sheet: '', headerRow: 0, map: {}, codeFallback: true, saveTpl: true, markMissing: true, status: 'participa', skip: {}, rejected: {}, locChoice: {} });
   let I = fresh();
   const rows = () => I.sheets?.[I.sheet] || [];
   const headers = () => (rows()[I.headerRow] || []).map((h, i) => String(h || '').trim() || `Columna ${String.fromCharCode(65 + i)}`);
@@ -42,7 +45,9 @@ window.Import = (() => {
     const tpl = DB.importTemplates[I.chain];
     I.headerRow = tpl ? tpl.headerRow : rows().findIndex(r => r.filter(c => String(c).trim()).length >= 3);
     if (I.headerRow < 0) I.headerRow = 0;
-    autoMap(tpl); I.step = 2;
+    autoMap(tpl);
+    I.usedTemplate = Boolean(tpl) && Object.values(tpl.map).every(column => headers().includes(column)) && I.map.address !== '' && I.map.city !== '';
+    I.step = I.usedTemplate ? 4 : 2;
   }
   function autoMap(tpl) {
     const hs = headers(), used = new Set(); I.map = {};
@@ -76,28 +81,43 @@ window.Import = (() => {
     });
   }
 
+  let scrollMemory = { step: 0, tops: [] };
+  const fitBody = () => { const body = document.querySelector('.imp-body'); if (!body) return;
+    const fill = body.querySelector('.imp-fill'), target = fill || body;
+    target.style.height = ''; target.style.maxHeight = ''; body.style.overflow = '';
+    const overflow = fill ? body.parentElement.getBoundingClientRect().bottom + 28 - window.innerHeight : document.documentElement.scrollHeight - window.innerHeight;
+    if (fill) fill.style.height = `${Math.max(240, fill.offsetHeight - overflow - 4)}px`;
+    else if (overflow > 0) { body.style.maxHeight = `${Math.max(240, body.clientHeight - overflow - 4)}px`; body.style.overflow = 'auto'; }
+    const areas = fill ? [...body.querySelectorAll('.imp-scroll')] : [body];
+    areas.forEach((area, index) => { if (scrollMemory.step === I.step) area.scrollTop = scrollMemory.tops[index] || 0;
+      area.onscroll = () => { scrollMemory = { step: I.step, tops: areas.map(item => item.scrollTop) }; }; }); };
+  window.addEventListener('resize', fitBody);
+
   /* ---------- Vista ---------- */
   function view() {
+    const [content, footer = ''] = [step1, step2, step3, step4][I.step - 1]().split(FOOT_MARK);
+    requestAnimationFrame(fitBody);
     const steps = ['Origen', 'Estructura', 'Columnas', 'Revisión'];
     const head = `<div class="stepper">${steps.map((s, i) => `<div class="step ${I.step === i + 1 ? 'active' : I.step > i + 1 ? 'done' : ''}"><span>${I.step > i + 1 ? icon('check') : i + 1}</span>${s}</div>`).join('<i></i>')}</div>`;
     return `<div class="row" style="margin-bottom:16px">${btn('Tiendas', { kind: 'ghost', size: 'sm', icon: 'back', act: 'go', data: 'data-to="tiendas"' })}</div>
       ${UI.pageHead('Importar listado de tiendas', 'Cada cadena envía su propio formato. Indica qué columna corresponde a cada dato y guarda la plantilla para la próxima vez.')}
-      ${head}<div class="fade-in">${[step1, step2, step3, step4][I.step - 1]()}</div>`;
+      ${head}<div class="fade-in"><div class="imp-body">${content}</div>${footer}</div>`;
   }
-  const foot = (back, next, nextLabel = 'Continuar', ok = true) => `<div class="row" style="margin-top:20px">${back ? btn('Atrás', { icon: 'back', act: 'imp-step', data: `data-v="${I.step - 1}"` }) : ''}<span class="spacer"></span>${next ? `<button class="btn primary" data-act="${next}" ${ok ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>${nextLabel}${icon('chev')}</button>` : ''}</div>`;
+  const foot = (back, next, nextLabel = 'Continuar', ok = true) => `${FOOT_MARK}<div class="row" style="margin-top:16px">${back ? btn('Atrás', { icon: 'back', act: 'imp-step', data: `data-v="${I.step - 1}"` }) : ''}<span class="spacer"></span>${next ? `<button class="btn primary" data-act="${next}" ${ok ? '' : 'disabled style="opacity:.5;pointer-events:none"'}>${nextLabel}${icon('chev')}</button>` : ''}</div>`;
+
+  const statusChoice = (value, title, detail) => `<button type="button" class="pick ${I.status === value ? 'sel' : ''}" style="margin:0;flex-direction:column;align-items:flex-start;text-align:left;padding:10px 16px;min-width:200px;background:${I.status === value ? 'var(--brand-50)' : 'var(--surface)'}" data-act="imp-status" data-v="${value}"><b>${I.status === value ? icon('check') + ' ' : ''}${title}</b><span class="small muted">${detail}</span></button>`;
 
   function step1() {
     const camps = DB.campaigns.filter(c => c.status !== 'Finalizada');
-    return `<div class="grid g-main"><div class="stack">
+    return `<div class="stack" style="max-width:820px">
       <div class="card card-pad"><h2 style="margin-bottom:14px">1. ¿De qué cadena es el listado?</h2>
-        <div class="grid g-3">${DB.chains.map(c => `<button class="pick ${I.chain === c.id ? 'sel' : ''}" style="margin:0;flex-direction:column;align-items:flex-start;text-align:left;background:${I.chain === c.id ? 'var(--brand-50)' : 'var(--surface)'};border-color:${I.chain === c.id ? 'var(--brand)' : 'var(--border)'}" data-act="imp-chain" data-v="${c.id}"><b>${esc(c.name)}</b>${DB.importTemplates[c.id] ? badge('Plantilla guardada', 'ok') : ''}</button>`).join('')}</div>
-        ${I.chain ? `<div class="small muted" style="margin-top:12px">${icon('alert')} ${esc(chainObj().note)}</div>` : ''}</div>
+        <div class="row wrap" style="gap:8px">${DB.chains.map(c => `<button class="btn ${I.chain === c.id ? 'primary' : ''}" data-act="imp-chain" data-v="${c.id}">${esc(c.name)}${DB.importTemplates[c.id] ? ` ${icon('check')}` : ''}</button>`).join('')}</div>
+        <div class="small muted" style="margin-top:12px">${I.chain ? `${esc(chainObj().note)}${DB.importTemplates[I.chain] ? ' · Tiene plantilla guardada: irás directo a la revisión.' : ''}` : `${icon('check')} indica que la cadena ya tiene plantilla guardada.`}</div></div>
       <div class="card card-pad"><h2 style="margin-bottom:14px">2. Sube el fichero recibido</h2>
-        <label class="dropzone ${I.chain ? '' : 'off'}">${icon('upload')}<b>Arrastra o elige un Excel o CSV</b><span class="small muted">.xlsx, .xls o .csv · los PDF se dan de alta a mano</span><input type="file" accept=".xlsx,.xls,.csv,.pdf" data-imp="file" hidden></label>
-        <div class="row wrap small" style="margin-top:12px"><span class="muted">¿Sin fichero a mano? Prueba con los ejemplos de Bancosol:</span>${btn('Mercadona GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="1"' })}${btn('Dia Málaga GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="2"' })}</div></div>
-    </div><div class="stack"><div class="card card-pad"><h2 style="margin-bottom:12px">Campaña ${esc(H().activeCampaign().name)}</h2><div class="field"><label>Las tiendas importadas quedan como</label><select class="input" data-imp="status"><option value="pending" ${I.status === 'pending' ? 'selected' : ''}>Pendiente de confirmar</option><option value="participa" ${I.status === 'participa' ? 'selected' : ''}>Participa (se generan sus turnos)</option></select></div>
-      <p class="small muted">Elige de forma explícita: no hay estado por defecto. Las nuevas toman la zona de su localidad.</p></div>
-      <div class="card card-pad"><h2 style="margin-bottom:8px">¿La cadena envía un PDF?</h2><p class="small muted">Por ahora los PDF no se leen: da de alta las tiendas a mano y confirma su participación. Si alguna cadena los envía de forma habitual, se valorará convertirlos a Excel.</p>${btn('Alta manual de tienda', { icon: 'plus', act: 'new', data: 'data-entity="stores"' })}</div>${historyCard()}</div></div>`;
+        <label class="dropzone ${I.chain ? '' : 'off'}">${icon('upload')}<b>Arrastra o elige un Excel o CSV</b><span class="small muted">.xlsx, .xls o .csv</span><input type="file" accept=".xlsx,.xls,.csv,.pdf" data-imp="file" hidden></label>
+        <div class="row wrap small" style="margin-top:12px"><span class="muted">¿Sin fichero a mano? Prueba con los ejemplos de Bancosol:</span>${btn('Mercadona GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="1"' })}${btn('Dia Málaga GR2026', { size: 'sm', icon: 'file', act: 'imp-sample', data: 'data-v="2"' })}</div>
+        <div class="row small" style="margin-top:12px"><span class="muted">¿La cadena te ha enviado un PDF? Los PDF no se leen: da de alta sus tiendas a mano.</span>${btn('Alta manual', { size: 'sm', kind: 'ghost', icon: 'plus', act: 'new', data: 'data-entity="stores"' })}</div></div>
+      ${historyCard()}</div>`;
   }
 
   function step2() {
@@ -127,19 +147,24 @@ window.Import = (() => {
     const inFile = new Set(rs.filter(r => r.existing).map(r => r.existing.id));
     const missing = DB.stores.filter(s => s.chain === I.chain && !inFile.has(s.id));
     const count = st => rs.filter(r => r.status === st).length, unknown = unknownCities(rs.filter(r => r.status !== 'Error'));
-    return `<div class="grid g-4" style="margin-bottom:16px">${kpi('Tiendas nuevas', count('Nueva'), 'plus', 'se darán de alta')}${kpi('Ya existentes', count('Actualiza'), 'check', `${rs.filter(r => r.changes.length).length} con datos distintos`)}${kpi('Con errores', count('Error'), 'alert', 'no se importan')}${kpi('No vienen en el listado', missing.length, 'store', `del catálogo de ${esc(chainObj().name)}`)}</div>
-      <div class="grid g-main"><div class="card"><div class="card-head"><h2>Filas del fichero</h2><span class="small muted">Desmarca las que no quieras importar</span></div>
-        <div class="table-wrap" style="max-height:460px;overflow:auto"><table><thead><tr><th></th><th>Código</th><th>Tienda</th><th>Municipio</th><th>Resultado</th></tr></thead><tbody>
-        ${rs.map(r => `<tr><td><input type="checkbox" class="check" data-imp="skip" data-n="${r.n}" ${r.status === 'Error' ? 'disabled' : I.skip[r.n] ? '' : 'checked'}></td><td><code>${esc(r.rec.code)}</code></td><td><b class="small">${esc(r.rec.name || r.rec.address)}</b><div class="small faint">${esc(r.rec.address)}</div></td><td class="small">${esc(r.rec.city)}${r.rec.city && !knownLocality(r.rec.city) ? ' ' + badge('Por revisar', 'warn') : ''}</td>
+    const unchanged = rs.filter(r => r.status === 'Actualiza' && !r.changes.length), shownRows = I.showUnchanged ? rs : rs.filter(r => !unchanged.includes(r));
+    const summaryParts = [[count('Nueva'), 'tiendas nuevas', 'info'], [count('Actualiza'), `ya existen${rs.filter(r => r.changes.length).length ? ` (${rs.filter(r => r.changes.length).length} con datos distintos)` : ''}`, 'ok'], [count('Error'), 'con errores, no se importan', 'danger'], [missing.length, `de ${esc(chainObj().name)} no vienen en el listado`, 'plain']].filter(([value], index) => value || index < 2);
+    const templateNotice = I.usedTemplate ? `<div class="card card-pad row" style="margin-bottom:16px;background:var(--ok-bg);border-color:transparent">${icon('check')}<span style="flex:1">Se ha usado la plantilla guardada de <b>${esc(chainObj().name)}</b>: las columnas ya están asociadas.</span>${btn('Cambiar columnas', { size: 'sm', act: 'imp-step', data: 'data-v="3"' })}</div>` : '';
+    return `${templateNotice}<div class="card card-pad row wrap" style="margin-bottom:16px;gap:8px 20px">${summaryParts.map(([value, label, tone]) => `<span class="row" style="gap:6px">${badge(String(value), tone)}<span>${label}</span></span>`).join('')}</div>
+      <div class="grid g-main imp-fill" style="grid-template-rows:minmax(0, 1fr)"><div class="card" style="${FILL_PANEL}"><div class="card-head"><h2>Filas del fichero</h2><span class="small muted">Desmarca las que no quieras importar</span></div>
+        <div class="table-wrap imp-scroll" style="${FILL_SCROLL}"><table><thead><tr><th></th><th>Código</th><th>Tienda</th><th>Municipio</th><th>Resultado</th></tr></thead><tbody>
+        ${shownRows.map(r => `<tr><td><input type="checkbox" class="check" data-imp="skip" data-n="${r.n}" ${r.status === 'Error' ? 'disabled' : I.skip[r.n] ? '' : 'checked'}></td><td><code>${esc(r.rec.code)}</code></td><td><b class="small">${esc(r.rec.name || r.rec.address)}</b><div class="small faint">${esc(r.rec.address)}</div></td><td class="small">${esc(r.rec.city)}${r.rec.city && !knownLocality(r.rec.city) ? ' ' + badge('Por revisar', 'warn') : ''}</td>
           <td>${r.status === 'Error' ? badge(r.errors.join(', '), 'danger') : r.status === 'Nueva' ? badge('Nueva', 'info') : r.changes.length ? badge(`${r.changes.length} cambios`, 'warn') : badge('Sin cambios', 'ok')}
-            ${r.status !== 'Error' && r.changes.length ? `<div class="stack" style="gap:4px;margin-top:6px">${r.changes.map(x => `<label class="row small"><input type="checkbox" class="check" data-imp="diff" data-key="${r.n}:${x.k}" ${I.rejected[`${r.n}:${x.k}`] ? '' : 'checked'}><span>${x.label}: <s class="faint">${showValue(x.k, x.before)}</s> → <b>${showValue(x.k, x.after)}</b></span></label>`).join('')}</div>` : ''}</td></tr>`).join('')}</tbody></table></div></div>
-      <div class="stack">${unknown.length ? `<div class="card"><div class="card-head"><div><h2>Localidades por revisar</h2><div class="small muted">No coinciden con el catálogo. Elige la localidad correcta o créala; la forma escrita se recordará para la próxima vez.</div></div></div>
-        ${unknown.map(rec => { const sug = suggestLocality(rec.city, rec.cp), v = String(locChoice(rec)); return `<div class="list-item"><div style="flex:1"><b class="small">«${esc(rec.city)}»</b><div class="small muted">${sug ? `Sugerencia: ${esc(sug.name)}` : 'Sin coincidencias'}</div></div>
-          <select class="input inline" data-imp="loc" data-city="${esc(normName(rec.city))}"><option value="new" ${v === 'new' ? 'selected' : ''}>Crear «${esc(rec.city)}»</option>${DB.localities.map(l => `<option value="${l.id}" ${v === String(l.id) ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>`; }).join('')}</div>` : ''}
-        <div class="card"><div class="card-head"><div><h2>No vienen en el listado</h2><div class="small muted">Están en el catálogo pero la cadena no las incluye</div></div></div>
-        ${missing.length ? missing.map(s => `<div class="list-item"><span class="dot" style="background:var(--text-3)"></span><div style="flex:1"><b class="small">${esc(s.name)}</b><div class="small muted">${esc(s.code || 'Sin código')} · ${esc(H().loc(s.locality)?.name)}</div></div></div>`).join('') + `<label class="row small" style="padding:12px 20px"><input type="checkbox" class="check" data-imp="markMissing" ${I.markMissing ? 'checked' : ''}>Marcarlas como «No participa» en ${esc(c.code)}</label>` : '<div class="card-pad small muted">Todas las tiendas del catálogo vienen en el fichero.</div>'}</div>
-      <div class="card card-pad small muted">Al confirmar, las tiendas seleccionadas quedan como <b>Participa</b> en ${esc(c.name)} y se generan sus turnos de mañana y tarde para los días de campaña.</div></div></div>
-      ${foot(true, 'imp-confirm', `Importar ${rs.filter(r => r.status !== 'Error' && !I.skip[r.n]).length} tiendas`)}`;
+            ${r.status !== 'Error' && r.changes.length ? `<div class="stack" style="gap:4px;margin-top:6px">${r.changes.map(x => `<label class="row small"><input type="checkbox" class="check" data-imp="diff" data-key="${r.n}:${x.k}" ${I.rejected[`${r.n}:${x.k}`] ? '' : 'checked'}><span>${x.label}: <s class="faint">${showValue(x.k, x.before)}</s> → <b>${showValue(x.k, x.after)}</b></span></label>`).join('')}</div>` : ''}</td></tr>`).join('')}${unchanged.length ? `<tr><td colspan="5" style="text-align:center">${btn(I.showUnchanged ? `Ocultar las ${unchanged.length} sin cambios` : `Ver también las ${unchanged.length} sin cambios (se importan igualmente)`, { size: 'sm', kind: 'ghost', act: 'imp-toggle-unchanged' })}</td></tr>` : ''}</tbody></table></div></div>
+      <div style="display:grid;grid-template-rows:repeat(${unknown.length ? 2 : 1}, minmax(0, 1fr));gap:16px;min-height:0">${unknown.length ? `<div class="card" style="${FILL_PANEL}"><div class="card-head"><div><h2>Localidades por revisar</h2><div class="small muted">No coinciden con el catálogo. Elige la localidad correcta o créala; la forma escrita se recordará para la próxima vez.</div></div></div>
+        <div class="imp-scroll" style="${FILL_SCROLL}">${unknown.map(rec => { const sug = suggestLocality(rec.city, rec.cp), v = String(locChoice(rec)); return `<div class="list-item"><div style="flex:1"><b class="small">«${esc(rec.city)}»</b><div class="small muted">${sug ? `Sugerencia: ${esc(sug.name)}` : 'Sin coincidencias'}</div></div>
+          <select class="input inline" data-imp="loc" data-city="${esc(normName(rec.city))}"><option value="new" ${v === 'new' ? 'selected' : ''}>Crear «${esc(rec.city)}»</option>${DB.localities.map(l => `<option value="${l.id}" ${v === String(l.id) ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>`; }).join('')}</div></div>` : ''}
+        <div class="card" style="${FILL_PANEL}"><div class="card-head"><div><h2>No vienen en el listado</h2><div class="small muted">Están en el catálogo pero la cadena no las incluye</div></div></div>
+        <div class="imp-scroll" style="${FILL_SCROLL}">${missing.length ? missing.map(s => `<div class="list-item"><span class="dot" style="background:var(--text-3)"></span><div style="flex:1"><b class="small">${esc(s.name)}</b><div class="small muted">${esc(s.code || 'Sin código')} · ${esc(H().loc(s.locality)?.name)}</div></div></div>`).join('') + `<label class="row small" style="padding:12px 20px"><input type="checkbox" class="check" data-imp="markMissing" ${I.markMissing ? 'checked' : ''}>Marcarlas como «No participa» en ${esc(c.code)}</label>` : '<div class="card-pad small muted">Todas las tiendas del catálogo vienen en el fichero.</div>'}</div></div>
+      </div></div>
+      ${FOOT_MARK}<div class="card card-pad row wrap" style="margin-top:16px;gap:12px"><div style="flex:1;min-width:240px"><b>¿Cómo quedan estas tiendas en ${esc(c.name)}?</b><div class="small muted">${I.status ? 'Puedes cambiarlo antes de importar.' : 'Elige una opción para poder importar.'}</div></div>
+        ${statusChoice('pending', 'Pendientes de confirmar', 'Sin turnos todavía')}${statusChoice('participa', 'Participan', 'Se crean sus turnos')}</div>
+      ${foot(true, 'imp-confirm', `Importar ${rs.filter(r => r.status !== 'Error' && !I.skip[r.n]).length} tiendas`, Boolean(I.status)).replace(FOOT_MARK, '')}`;
   }
 
   /* ---------- Acciones ---------- */
@@ -200,7 +225,9 @@ window.Import = (() => {
     'imp-header': d => { I.headerRow = Number(d.v); autoMap(); render(); },
     'imp-next': () => { I.step = 3; render(); },
     'imp-review': () => { I.step = 4; render(); },
-    'imp-confirm': () => confirmImport(render, go),
+    'imp-status': d => { I.status = d.v; render(); },
+    'imp-toggle-unchanged': () => { I.showUnchanged = !I.showUnchanged; render(); },
+    'imp-confirm': () => { if (I.status) confirmImport(render, go); },
   });
 
   function onChange(el, render) {
@@ -220,8 +247,7 @@ window.Import = (() => {
       };
       rd.readAsArrayBuffer(f); return;
     }
-    if (k === 'status') I.status = el.value;
-    else if (k === 'sheet') { I.sheet = el.value; I.headerRow = 0; autoMap(); }
+    if (k === 'sheet') { I.sheet = el.value; I.headerRow = 0; autoMap(); }
     else if (k === 'map') I.map[el.dataset.k] = el.value === '' ? '' : Number(el.value);
     else if (k === 'skip') I.skip[el.dataset.n] = !el.checked;
     else if (k === 'diff') I.rejected[el.dataset.key] = !el.checked;
