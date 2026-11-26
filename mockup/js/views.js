@@ -565,11 +565,19 @@ window.Views = (() => {
   /* ---------- Usuarios ---------- */
   const userScope = r => r.role === 'coord' ? zonesOf(r.id).map(R.zone).join(', ') || '<span class="faint">Sin zonas en la campaña</span>' : r.group ? 'Grupo ' + R.group(r.group) : r.collab ? R.collab(r.collab) : 'Toda la organización';
   function usuarios(S, tab = 'usuarios') {
+    const permissionEditing = tab === 'roles' && S.permEditing;
     const body = tab === 'roles' ? `
       <div class="grid g-4" style="margin-bottom:20px">${DB.roles.map(r => `<div class="card card-pad"><div class="row" style="margin-bottom:10px"><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b></div><div class="small muted">${esc(r.desc)}</div><div class="small faint" style="margin-top:12px">${DB.users.filter(u => u.role === r.id).length} usuarios</div></div>`).join('')}</div>
-      <div class="card"><div class="card-head"><div><h2>Matriz de permisos</h2><div class="small muted">Solo lectura · Los voluntarios no tienen acceso.</div></div>${btn('Editar permisos', { icon: 'lock', act: 'perm-edit' })}</div>
+      <div class="card"><div class="card-head"><div><h2>Matriz de permisos</h2><div class="small muted">${permissionEditing ? 'Edición directa · Los cambios están marcados en amarillo.' : 'Solo lectura · Los voluntarios no tienen acceso.'}</div></div>${permissionEditing ? `<div class="row">${btn('Cancelar', { act: 'perm-cancel' })}${btn('Guardar cambios', { kind: 'danger solid', icon: 'check', act: 'perm-save' })}</div>` : btn('Editar permisos', { icon: 'lock', act: 'perm-edit' })}</div>
         <div class="table-wrap"><table class="matrix"><thead><tr><th>Permiso</th>${DB.roles.map(r => `<th>${esc(r.name)}</th>`).join('')}</tr></thead><tbody>
-        ${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => `<td>${DB.rolePerms[r.id].includes(k) ? `<span style="color:var(--ok)">${icon('check')}</span>` : '<span class="faint">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>` : `
+        ${DB.permissions.map(([k, l]) => `<tr><td><b>${esc(l)}</b></td>${DB.roles.map(r => {
+          const original = DB.rolePerms[r.id].includes(k);
+          const enabled = permissionEditing ? S.permDraft[r.id].includes(k) : original;
+          const changed = enabled !== original;
+          return `<td class="${changed ? 'permission-changed' : ''}">${permissionEditing && r.id !== 'admin'
+            ? `<input type="checkbox" class="check permission-toggle" aria-label="${esc(l)} para ${esc(r.name)}" data-role="${r.id}" data-perm="${k}" ${enabled ? 'checked' : ''}>`
+            : enabled ? `<span style="color:var(--ok)">${icon('check')}</span>` : '<span class="faint">—</span>'}</td>`;
+        }).join('')}</tr>`).join('')}</tbody></table></div></div>` : `
       <div class="card">${table([
         { label: 'Usuario', render: r => `<div class="cell-main">${avatar(r.name)}<div>${R.user(r.id)}${r.id === S.user.id ? ' <span class="badge brand plain">Tú</span>' : ''}<small>${esc(r.email)}</small></div></div>` },
         { label: 'Rol', render: r => `<span class="row small"><span class="dot" style="background:${role(r.role).color}"></span>${esc(role(r.role).name)}</span>` },
