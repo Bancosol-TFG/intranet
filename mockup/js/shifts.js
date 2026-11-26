@@ -24,7 +24,7 @@ window.Shifts = (() => {
 
   /* ---------- Vista ---------- */
   function view(S) {
-    const camps = DB.campaigns.filter(c => c.status !== 'Finalizada'), c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
+    const c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
     const tab = S.f.tab === 'tiendas' ? 'tiendas' : 'calendario';
     const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
@@ -59,6 +59,7 @@ window.Shifts = (() => {
 
   /* Panel derecho de la vista dividida: candidatos compatibles con el turno seleccionado; se arrastran al turno o se asignan con un clic */
   function sidePanel(S, c, sh) {
+    if (c.status === 'Finalizada') return `<aside class="card card-pad side-pick"><h3>Asignaciones</h3><p class="small muted">Campaña finalizada: consulta los turnos sin modificarlos.</p></aside>`;
     const s = sh.find(x => x.id === S.f.sel);
     if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno del calendario para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
     const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
@@ -113,7 +114,7 @@ window.Shifts = (() => {
 
   /* ---------- Modales ---------- */
   function shiftModal(S, id) {
-    const s = H().byId(DB.shifts, id), st = H().byId(DB.stores, s.store), f = H().filled(s), o = over(s), canEdit = H().can(S, 'shifts.assign');
+    const s = H().byId(DB.shifts, id), st = H().byId(DB.stores, s.store), campaign = H().byId(DB.campaigns, s.campaign), f = H().filled(s), o = over(s), canEdit = H().can(S, 'shifts.assign') && campaign?.status !== 'Finalizada';
     modal(`${esc(st.name)}`, `<div class="small muted" style="margin-top:-8px;margin-bottom:12px">${fmtDate(s.date, { weekday: 'long', day: 'numeric', month: 'long' })} · ${H().R.zone(st.zone)}</div>
       <div class="form-grid"><div class="field"><label>Inicio</label><input class="input" type="time" id="sh-start" value="${s.start}" ${canEdit ? '' : 'disabled'}></div><div class="field"><label>Fin</label><input class="input" type="time" id="sh-end" value="${s.end}" ${canEdit ? '' : 'disabled'}></div>
         <div class="field"><label>Capacidad</label><input class="input" type="number" min="1" id="sh-cap" value="${s.capacity}" ${canEdit ? '' : 'disabled'}></div></div>
@@ -121,12 +122,12 @@ window.Shifts = (() => {
       ${o > 0 ? `<div class="card card-pad small" style="margin-top:10px;background:var(--warn-bg);border-color:transparent">${icon('alert')} Supera la capacidad en <b>${o}</b>. Ajusta cuántas personas van de cada grupo o reparte el resto en otro turno. El responsable del colaborador decide quién va; al líder le llega cuántos van.</div>` : ''}
       <h3 style="margin:16px 0 8px">Asignaciones</h3>
       ${s.assignments.length ? s.assignments.map((a, i) => `<div class="list-item">${H().asgIcon(a)}<div style="flex:1"><b class="small">${esc(H().asgText(a))}</b><div class="small muted">${a.kind === 'group' ? `Grupo de ${H().gsize(H().byId(DB.groups, a.group))} personas${a.people ? (a.members ? ` · elegidos: ${a.members.length}` : ' · <b style="color:var(--warn)">falta elegir quién va</b>') : ''}` : a.kind === 'collab' ? 'Entidad sin grupos' : 'Voluntario'}</div></div>
-        ${a.kind === 'group' && a.people && S.user.role === 'rcol' && H().byId(DB.groups, a.group)?.collab === S.user.collab ? btn(a.members ? 'Cambiar' : 'Elegir', { size: 'sm', act: 'nominate', data: `data-id="${s.id}" data-i="${i}"` }) : ''}${a.kind !== 'vol' ? `<label class="row small">Van <input class="input inline" style="width:64px" type="number" min="1" data-people="${i}" value="${H().asgPeople(a)}" ${canEdit ? '' : 'disabled'}></label>` : ''}
+         ${canEdit && a.kind === 'group' && a.people && S.user.role === 'rcol' && H().byId(DB.groups, a.group)?.collab === S.user.collab ? btn(a.members ? 'Cambiar' : 'Elegir', { size: 'sm', act: 'nominate', data: `data-id="${s.id}" data-i="${i}"` }) : ''}${a.kind !== 'vol' ? `<label class="row small">Van <input class="input inline" style="width:64px" type="number" min="1" data-people="${i}" value="${H().asgPeople(a)}" ${canEdit ? '' : 'disabled'}></label>` : ''}
         ${canEdit ? btn('', { kind: 'ghost danger', size: 'sm', icon: 'x', act: 'shift-unassign', data: `data-id="${s.id}" data-i="${i}"`, title: 'Quitar' }) : ''}</div>`).join('') : '<div class="small muted">Sin asignar.</div>'}
       ${S.user.role === 'admin' ? `<div style="margin-top:16px">${H().auditCard('shifts', s.id)}</div>` : ''}
       ${canEdit ? `<div class="field" style="margin-top:16px"><label>Motivo del cambio (se envía en el aviso)</label><textarea class="input" id="sh-reason" rows="2" placeholder="Ej. la tienda abre media hora antes"></textarea><span class="hint">Avisamos a los líderes de grupo, responsables de colaborador y coordinación afectados.</span></div>` : ''}`,
       (canEdit ? btn('Eliminar turno', { kind: 'ghost danger', act: 'shift-delete', data: `data-id="${s.id}"` }) + btn('Asignar', { icon: 'plus', act: 'assign', data: `data-id="${s.id}"` }) : '')
-      + (H().can(S, 'incidents.manage') ? btn('Incidencia', { icon: 'alert', act: 'incident', data: `data-id="${s.id}"` }) : '')
+       + (H().can(S, 'incidents.manage') && campaign?.status !== 'Finalizada' ? btn('Incidencia', { icon: 'alert', act: 'incident', data: `data-id="${s.id}"` }) : '')
       + (canEdit ? btn('Guardar cambios', { kind: 'primary', icon: 'check', act: 'shift-save', data: `data-id="${s.id}"` }) : btn('Cerrar', { act: 'close' })));
   }
 

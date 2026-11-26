@@ -2,6 +2,7 @@
 (() => {
   const { esc, icon, avatar, btn, badge, drawer, modal, confirm, close, toast, form, readForm } = UI;
   const { R, byId, filled, can, scope, toPurge, asgText, storeSub, gsize, iconBox } = Views.helpers;
+  const READ_ONLY_CAMPAIGN_ACTIONS = new Set(['go', 'go-filter', 'filter', 'open-shift', 'cal-store', 'shift-open', 'shift-detail', 'export']);
   const app = document.getElementById('app');
   const S = { user: null, f: {}, menu: false, theme: (() => { try { return localStorage.getItem('bs-theme') || 'light'; } catch { return 'light'; } })() };
   /* La sesión dura mientras la pestaña esté abierta: recargar no pide login; cerrar la pestaña o salir sí. */
@@ -14,7 +15,7 @@
   /* ---------- Navegación y permisos de ruta ---------- */
   /* Barra lateral: «Campaña actual» trabaja sobre la campaña activa; «Catálogo» es toda la base de datos; «Administración» la configura.
      Las entradas con `to` son accesos directos a una ruta concreta (p. ej. pestañas de la campaña activa). */
-  const AC = () => Views.helpers.activeCampaign().id;
+  const AC = () => Views.helpers.activeCampaign()?.id;
   const NAV = [
     { k: 'inicio', l: 'Inicio', i: 'home', roles: 'admin coord rcol rtienda' },
     { k: 'c-resumen', l: 'Resumen', i: 'flag', roles: 'admin coord', group: 'Campaña actual', to: () => `campanas/${AC()}` },
@@ -33,9 +34,9 @@
     { k: 'configuracion', l: 'Configuración', i: 'cog', roles: 'admin', group: 'Administración' },
     { k: 'flujos', l: 'Flujos de trabajo', i: 'route', roles: 'admin coord rcol rtienda', group: 'Ayuda' },
   ];
-  const DETAIL = { tiendas: 'admin coord', colaboradores: 'admin coord', voluntarios: 'admin coord rcol', tienda: 'admin coord rcol', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda' };
+  const DETAIL = { tiendas: 'admin coord', colaboradores: 'admin coord', voluntarios: 'admin coord rcol', tienda: 'admin coord', zona: 'admin coord', localidad: 'admin coord', cadena: 'admin coord', grupo: 'admin coord rcol rtienda', voluntario: 'admin coord rcol', usuario: 'admin', importar: 'admin', perfil: 'admin coord rcol rtienda', 'seleccionar-campana': 'admin coord rcol rtienda' };
   const allowed = k => (DETAIL[k] || NAV.find(n => n.k === k)?.roles || '').split(' ').includes(S.user.role);
-  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), catalogos: 'Catálogo', tiendas: 'Tiendas', colaboradores: 'Colaboradores', voluntarios: 'Voluntarios', perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios' };
+  const TITLES = { ...Object.fromEntries(NAV.map(n => [n.k, n.l])), catalogos: 'Catálogo', tiendas: 'Tiendas', colaboradores: 'Colaboradores', voluntarios: 'Voluntarios', perfil: 'Mi perfil', importar: 'Importar tiendas', tienda: 'Tiendas', zona: 'Zonas', localidad: 'Localidades', cadena: 'Cadenas', grupo: 'Grupos', voluntario: 'Voluntarios', usuario: 'Usuarios', 'seleccionar-campana': 'Seleccionar campaña' };
   const PARENT = { tienda: 'tiendas', zona: 'catalogos/zonas', localidad: 'catalogos/localidades', cadena: 'catalogos/cadenas', grupo: 'grupos', voluntario: 'voluntarios', usuario: 'usuarios' };
 
   /* ---------- Esquemas de formulario: relaciones siempre como selector de objetos ---------- */
@@ -280,20 +281,29 @@
   }
 
   const isAdminCat = p => S.user?.role === 'admin' && ['tiendas', 'colaboradores', 'voluntarios', 'catalogos'].includes(p) && !(p === 'catalogos' && route().a === 'solicitudes');
+  function disableCampaignMutations(container) {
+    container.querySelectorAll('[data-act]').forEach(el => {
+      if (READ_ONLY_CAMPAIGN_ACTIONS.has(el.dataset.act)) return;
+      if (el.matches('button, input, select, textarea')) el.disabled = true;
+      else { el.classList.add('readonly-control'); el.setAttribute('aria-disabled', 'true'); el.removeAttribute('data-act'); }
+    });
+    container.querySelectorAll('[data-act-change], button:not([data-act]), input:not([data-filter]), select:not([data-filter]), textarea').forEach(el => { el.disabled = true; });
+    container.querySelectorAll('[draggable="true"]').forEach(el => { el.draggable = false; });
+  }
   function render() {
     if (!S.user) return login();
     Shifts.bind(S, render);
     let { page, a, b } = route();
     if (!allowed(page)) page = 'inicio';
     const V = Views;
-    const views = { inicio: () => V.inicio(S), campanas: () => a === 'nueva' ? CampaignWizard.view(S) : a ? V.campana(S, a, b) : V.campanas(S), tiendas: () => V.tiendas(S, a), tienda: () => V.tienda(S, a), zona: () => V.zona(S, a), localidad: () => V.localidad(S, a), cadena: () => V.cadena(S, a),
+    const views = { inicio: () => V.inicio(S), campanas: () => a === 'nueva' ? CampaignWizard.view(S) : a ? V.campana(S, a, b) : V.campanas(S), 'seleccionar-campana': () => V.seleccionarCampana(), tiendas: () => V.tiendas(S, a), tienda: () => V.tienda(S, a), zona: () => V.zona(S, a), localidad: () => V.localidad(S, a), cadena: () => V.cadena(S, a),
       importar: () => Import.view(S), turnos: () => Shifts.view(S), colaboradores: () => a ? V.colaborador(S, a) : V.colaboradores(S), entidad: () => V.colaborador(S, S.user.collab),
       grupos: () => V.grupos(S), grupo: () => V.grupo(S, a), voluntarios: () => V.voluntarios(S), voluntario: () => V.voluntario(S, a), incidencias: () => V.incidencias(S),
       usuarios: () => V.usuarios(S, a), usuario: () => V.usuario(S, a), perfil: () => V.perfil(S), catalogos: () => V.catalogos(S, a), configuracion: () => V.configuracion(S), flujos: () => Flows.view(S), historico: () => V.historico(S) };
     const r = V.helpers.role(S.user.role), mine = NAV.filter(n => n.roles.includes(S.user.role));
     const here = [page, a, b].filter(Boolean).join('/'), exact = NAV.find(n => n.to?.() === here || (n.to && here.startsWith(n.to() + '/') && n.k.startsWith('k-') === false && n.k !== 'c-resumen'));
     const active = isAdminCat(page) ? 'catalogos' : exact ? exact.k : NAV.some(n => n.k === page && !n.to) ? page : page === 'catalogos' ? (NAV.find(n => n.to?.() === here)?.k || 'catalogos') : (PARENT[page] || '').split('/')[0];
-    const navItem = n => { const c = n.count?.(); return `<button title="${n.l}" class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" data-act="go" data-to="${n.to ? n.to() : n.k}">${icon(n.i)}<span class="lbl">${n.l}</span>${c ? `<span class="count">${c}</span>` : ''}</button>`; };
+    const campaignSelected = V.helpers.selectedCampaign(), campaignReadOnly = campaignSelected?.status === 'Finalizada', navItem = n => { const disabled = n.group === 'Campaña actual' && !campaignSelected, c = disabled ? null : n.count?.(), target = disabled ? '' : n.to ? n.to() : n.k; return `<button title="${n.l}" class="nav ${n.group === 'Campaña actual' ? 'sub' : ''} ${active === n.k ? 'active' : ''}" ${disabled ? 'disabled aria-disabled="true"' : `data-act="go" data-to="${target}"`}>${icon(n.i)}<span class="lbl">${n.l}</span>${c ? `<span class="count">${c}</span>` : ''}</button>`; };
     const groups = [...new Set(mine.map(n => n.group || 'General'))];
     const name = { campanas: () => a === 'nueva' ? 'Nueva campaña' : byId(DB.campaigns, a)?.name, colaboradores: () => byId(DB.collabs, a)?.name, tienda: () => byId(DB.stores, a)?.name, zona: () => byId(DB.zones, a)?.name, localidad: () => byId(DB.localities, a)?.name, cadena: () => byId(DB.chains, a)?.name, grupo: () => byId(DB.groups, a)?.code, voluntario: () => byId(DB.volunteers, a)?.name, usuario: () => byId(DB.users, a)?.name }[page];
     const sub = a && name ? name() : '';
@@ -301,7 +311,7 @@
     const focus = document.activeElement?.dataset?.filter, caret = document.activeElement?.selectionStart;
     app.innerHTML = `<div class="layout ${S.collapsed ? 'collapsed' : ''}">
       <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-mark">${icon('heart')}</span><span class="lbl">BANCOSOL</span><button class="btn ghost icon sm side-toggle" data-act="collapse" title="${S.collapsed ? 'Mostrar' : 'Ocultar'} barra lateral">${icon('sidebar')}</button></div>
-        ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? `<div class="nav-campaign"><b>${esc(V.helpers.activeCampaign().name)}</b>${badge(V.helpers.activeCampaign().status)}</div>` : ''}${(items => g === 'Campaña actual' ? `<div class="nav-tree">${items}</div>` : items)(mine.filter(n => (n.group || 'General') === g).map(navItem).join(''))}`).join('')}
+        ${groups.map(g => `${g === 'General' || g === 'Campaña actual' ? '' : `<div class="nav-label">${g}</div>`}${g === 'Campaña actual' ? (() => { const campaign = V.helpers.selectedCampaign(); return `<div class="nav-campaign"><div class="nav-campaign-heading"><div class="nav-campaign-label">Campaña</div>${campaign ? badge(campaign.status) : ''}</div><b class="nav-campaign-title">${campaign ? esc(campaign.name) : 'Sin seleccionar'}</b><button class="nav-campaign-change" data-act="campaign-picker">${campaign ? 'Cambiar campaña' : 'Seleccionar campaña'}</button></div>`; })() : ''}${(items => g === 'Campaña actual' ? `<div class="nav-tree">${items}</div>` : items)(mine.filter(n => (n.group || 'General') === g).map(navItem).join(''))}`).join('')}
         </aside>
       <div class="main"><header class="topbar">
           <button class="btn ghost icon menu-toggle" data-act="side">${icon('menu')}</button>
@@ -314,7 +324,8 @@
             ${S.menu ? `<div class="menu"><div style="padding:8px 10px"><b>${esc(S.user.name)}</b><div class="small muted">${esc(S.user.email)}</div></div><hr>
               <button data-act="go" data-to="perfil">${icon('user')}Mi perfil</button><button data-act="go" data-to="flujos">${icon('route')}Flujos de trabajo</button>
               <button data-act="logout">${icon('users')}Cambiar de rol (demo)</button><hr><button data-act="logout" style="color:var(--danger)">${icon('logout')}Cerrar sesión</button></div>` : ''}</div>
-        </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : ''}${views[page]()}</main></div></div>`;
+        </header><main class="content fade-in">${isAdminCat(page) ? V.helpers.catalogTabs(here) : ''}${campaignReadOnly ? '<div class="card card-pad campaign-readonly-notice">Campaña finalizada · modo de solo lectura. Puedes consultar los datos, pero no modificarlos.</div>' : ''}${views[page]()}</main></div></div>`;
+    if (campaignReadOnly) disableCampaignMutations(app.querySelector('.content'));
     if (focus) { const el = app.querySelector(`[data-filter="${focus}"]`); el?.focus(); if (el?.setSelectionRange && caret != null) el.setSelectionRange(caret, caret); }
     if (S.f.focus) app.querySelector('.shift.focus')?.scrollIntoView?.({ block: 'center' });
   }
@@ -328,6 +339,8 @@
     login: d => { if (byId(DB.users, d.id).status === 'Inactivo') return toast('Esta cuenta está desactivada'); S.user = byId(DB.users, d.id); S.f = {}; Import.reset(); saveSession(S.user.id); location.hash = '#/inicio'; render(); toast(`Sesión iniciada como <b>${esc(S.user.name)}</b>`); },
     logout: () => { S.user = null; S.menu = false; saveSession(null); location.hash = ''; render(); },
     menu: () => { S.menu = !S.menu; render(); },
+    'campaign-picker': () => { const { page, a, b } = route(); if (page !== 'seleccionar-campana') S.campaignReturnTo = [page, a, b].filter(Boolean).join('/') || 'inicio'; if (!S.campaignSelectionRequired) { S.campaign = null; S.f.campaign = null; S.campaignSelectionRequired = true; } go('seleccionar-campana'); },
+    'select-campaign': d => { const campaign = byId(DB.campaigns, Number(d.id)); if (!campaign) return; S.campaign = campaign.id; S.f.campaign = campaign.id; S.campaignSelectionRequired = false; const target = S.campaignReturnTo || 'inicio'; S.campaignReturnTo = null; go(target.replace(/^campanas\/[^/]+/, `campanas/${campaign.id}`)); toast(`Campaña <b>${esc(campaign.name)}</b> seleccionada`); },
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = S.theme; try { localStorage.setItem('bs-theme', S.theme); } catch {} render(); },
     collapse: () => { S.collapsed = !S.collapsed; try { localStorage.setItem('bs-side', S.collapsed ? '1' : ''); } catch {} render(); },
     side: () => document.getElementById('sidebar').classList.toggle('open'),
@@ -536,7 +549,7 @@
     kilos: (d, v) => { const c = byId(DB.campaigns, Number(d.c)); c.kilos ||= {}; c.kilos[d.id] = Math.max(0, Number(v) || 0); },
     'collab-camp-status': (d, v) => { const c = byId(DB.collabs, d.id), p = Views.helpers.collabPart(c); if (!v) { if (p) DB.collabParticipation.splice(DB.collabParticipation.indexOf(p), 1); return; } if (p) p.status = v; else { c.stores = []; Views.helpers.collabPart(c).status = v; } toast(`${esc(c.name)}: ${v}`); },
     'part-status': (d, v) => { byId(DB.collabParticipation, d.id).status = v; },
-    'pick-campaign': (d, v) => { S.campaign = Number(v); S.f.campaign = Number(v); },
+    'pick-campaign': (d, v) => { S.campaign = Number(v); S.f.campaign = Number(v); S.campaignPicker = false; },
     'store-zone': (d, v) => { const s = byId(DB.stores, d.id); s.zone = v ? Number(v) : null; toast(`${esc(s.name)} → ${v ? esc(byId(DB.zones, v).name) : 'sin zona'}`); },
     'assign-zone': (d, v) => { if (!v) return; DB.zoneAssignments.push({ campaign: Number(d.c), zone: Number(d.z), user: Number(v) }); toast(`${esc(byId(DB.users, v).name)} coordina ${esc(byId(DB.zones, d.z).name)}`); },
     'add-collab-part': (d, v) => { if (!v) return; DB.collabParticipation.push({ id: nextId(DB.collabParticipation), collab: Number(v), campaign: Number(d.c) }); toast(`${esc(byId(DB.collabs, v).name)} participa en la campaña`); },
