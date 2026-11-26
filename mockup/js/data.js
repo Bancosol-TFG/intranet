@@ -77,6 +77,11 @@ window.DB = (() => {
     { id: 4, name: 'IES Litoral', type: 'Centro educativo', status: 'Validado', address: 'C/ Pacífico, 10', locality: 1, capacity: 16, coords: [2], localities: [1], ownsVolunteers: false, oneCampaign: true, stores: [] },
     { id: 5, name: 'Cáritas Parroquial', type: 'Entidad social', status: 'Validado', address: 'Varias parroquias', locality: 1, capacity: 30, coords: [2, 3], localities: [1, 3, 5], ownsVolunteers: false, oneCampaign: false, stores: [] },
     { id: 6, name: 'Hermandad del Rocío de Coín', type: 'Asociación', status: 'Pendiente de validar', address: 'C/ Real, 3', locality: 6, capacity: 10, coords: [], localities: [6], ownsVolunteers: false, oneCampaign: false, stores: [] },
+    { id: 7, name: 'Asociación Horizonte (ejemplo)', type: 'Asociación', status: 'Validado', address: 'Calle de ejemplo, 7', locality: 1, capacity: 15, coords: [], localities: [1], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 8, name: 'Centro Educativo Alameda (ejemplo)', type: 'Centro educativo', status: 'Validado', address: 'Calle de ejemplo, 8', locality: 3, capacity: 25, coords: [], localities: [3], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 9, name: 'Fundación Puentes (ejemplo)', type: 'Entidad social', status: 'Validado', address: 'Calle de ejemplo, 9', locality: 5, capacity: 20, coords: [], localities: [5], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 10, name: 'Club Solidario Málaga (ejemplo)', type: 'Asociación', status: 'Validado', address: 'Calle de ejemplo, 10', locality: 1, capacity: 12, coords: [], localities: [1], ownsVolunteers: false, oneCampaign: false, stores: [] },
+    { id: 11, name: 'Empresa Comunidad Activa (ejemplo)', type: 'Empresa', status: 'Validado', address: 'Calle de ejemplo, 11', locality: 3, capacity: 18, coords: [], localities: [3], ownsVolunteers: false, oneCampaign: false, stores: [] },
   ];
   /* contact (collaborator_id, name, email, phone_number). level es propuesta. */
   const contacts = [

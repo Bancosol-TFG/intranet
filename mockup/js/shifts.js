@@ -113,7 +113,7 @@ window.Shifts = (() => {
 
   /* ---------- Modales ---------- */
   function shiftModal(S, id) {
-    const s = H().byId(DB.shifts, id), st = H().byId(DB.stores, s.store), f = H().filled(s), o = over(s), canEdit = H().can(S, 'shifts.assign');
+    const s = H().byId(DB.shifts, id), st = H().byId(DB.stores, s.store), f = H().filled(s), o = over(s), canEdit = H().can(S, 'shifts.assign') && H().byId(DB.campaigns, s.campaign)?.status !== 'Finalizada';
     modal(`${esc(st.name)}`, `<div class="small muted" style="margin-top:-8px;margin-bottom:12px">${fmtDate(s.date, { weekday: 'long', day: 'numeric', month: 'long' })} · ${H().R.zone(st.zone)}</div>
       <div class="form-grid"><div class="field"><label>Inicio</label><input class="input" type="time" id="sh-start" value="${s.start}" ${canEdit ? '' : 'disabled'}></div><div class="field"><label>Fin</label><input class="input" type="time" id="sh-end" value="${s.end}" ${canEdit ? '' : 'disabled'}></div>
         <div class="field"><label>Capacidad</label><input class="input" type="number" min="1" id="sh-cap" value="${s.capacity}" ${canEdit ? '' : 'disabled'}></div></div>
