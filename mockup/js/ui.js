@@ -42,7 +42,7 @@ window.UI = (() => {
   const badge = (text, t) => `<span class="badge ${t ?? tone[text] ?? ''}">${esc(text)}</span>`;
 
   const btn = (label, { kind = '', icon: ic, act, data = '', size = '', title = '' } = {}) =>
-    `<button class="btn ${kind} ${size} ${label ? '' : 'icon'}" ${act ? `data-act="${act}"` : ''} ${data} ${title ? `title="${esc(title)}"` : ''}>${ic ? icon(ic) : ''}${label ? esc(label) : ''}</button>`;
+    `<button class="btn ${kind} ${size} ${label ? '' : 'icon'}" ${act ? `data-act="${act}"` : ''} ${data} ${title ? `title="${esc(title)}" ${label ? '' : `aria-label="${esc(title)}"`}` : ''}>${ic ? icon(ic) : ''}${label ? esc(label) : ''}</button>`;
 
   const progress = (pct, t = '') => `<div class="progress ${t}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
 
@@ -55,7 +55,7 @@ window.UI = (() => {
 
   /* Tabla genérica: columns = [{ label, render(row), width }] */
   const table = (columns, rows, { rowAct, emptyText = 'No hay resultados con estos filtros.' } = {}) => (columns = columns.filter(Boolean), rows.length)
-    ? `<div class="table-wrap"><table><thead><tr>${columns.map(c => `<th style="${c.width ? `width:${c.width}` : ''}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.map(r =>
+    ? `<div class="table-wrap"><table><thead><tr>${columns.map(c => `<th style="${c.width ? `width:${c.width}` : ''}" ${c.headerIcon ? `aria-label="${esc(c.label)}" title="${esc(c.label)}"` : ''}>${c.headerIcon ? icon(c.headerIcon) : esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.map(r =>
       `<tr class="${rowAct ? 'click' : ''}" ${rowAct ? `data-act="${rowAct}" data-id="${r.id}"` : ''}>${columns.map(c => `<td>${c.render(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
     : empty('Sin resultados', emptyText);
 

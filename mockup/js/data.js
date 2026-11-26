@@ -51,7 +51,7 @@ window.DB = (() => {
     U(2, 'Ana', 'Ruiz', 'ana.ruiz@bancosol.org', '611223344', 'coord', { last: 'Hace 2 h' }),
     U(3, 'Carmen', 'Vega', 'carmen.vega@bancosol.org', '644556677', 'coord', { last: 'Hace 3 días' }),
     U(4, 'Luis', 'Martín', 'luis.martin@uma.es', '622334455', 'rcol', { collab: 2, last: 'Ayer' }),
-    U(5, 'Rocío', 'Peña', 'rocio.pena@uma.es', '655667788', 'rtienda', { collab: 2, group: 2, last: 'Hace 1 semana' }),
+    U(5, 'Rocío', 'Peña', 'rocio.pena@uma.es', '655667788', 'rtienda', { collab: 2, group: 2, volunteer: 11, last: 'Hace 1 semana' }),
     U(6, 'Pablo', 'Gómez', 'pgomez@rincondelavictoria.es', '633445566', 'rcol', { collab: 3 }),
   ];
 
@@ -77,6 +77,11 @@ window.DB = (() => {
     { id: 4, name: 'IES Litoral', type: 'Centro educativo', status: 'Validado', address: 'C/ Pacífico, 10', locality: 1, capacity: 16, coords: [2], localities: [1], ownsVolunteers: false, oneCampaign: true, stores: [] },
     { id: 5, name: 'Cáritas Parroquial', type: 'Entidad social', status: 'Validado', address: 'Varias parroquias', locality: 1, capacity: 30, coords: [2, 3], localities: [1, 3, 5], ownsVolunteers: false, oneCampaign: false, stores: [] },
     { id: 6, name: 'Hermandad del Rocío de Coín', type: 'Asociación', status: 'Pendiente de validar', address: 'C/ Real, 3', locality: 6, capacity: 10, coords: [], localities: [6], ownsVolunteers: false, oneCampaign: false, stores: [] },
+    { id: 7, name: 'Asociación Horizonte (ejemplo)', type: 'Asociación', status: 'Validado', address: 'Calle de ejemplo, 7', locality: 1, capacity: 15, coords: [], localities: [1], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 8, name: 'Centro Educativo Alameda (ejemplo)', type: 'Centro educativo', status: 'Validado', address: 'Calle de ejemplo, 8', locality: 3, capacity: 25, coords: [], localities: [3], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 9, name: 'Fundación Puentes (ejemplo)', type: 'Entidad social', status: 'Validado', address: 'Calle de ejemplo, 9', locality: 5, capacity: 20, coords: [], localities: [5], ownsVolunteers: true, oneCampaign: false, stores: [] },
+    { id: 10, name: 'Club Solidario Málaga (ejemplo)', type: 'Asociación', status: 'Validado', address: 'Calle de ejemplo, 10', locality: 1, capacity: 12, coords: [], localities: [1], ownsVolunteers: false, oneCampaign: false, stores: [] },
+    { id: 11, name: 'Empresa Comunidad Activa (ejemplo)', type: 'Empresa', status: 'Validado', address: 'Calle de ejemplo, 11', locality: 3, capacity: 18, coords: [], localities: [3], ownsVolunteers: false, oneCampaign: false, stores: [] },
   ];
   /* contact (collaborator_id, name, email, phone_number). level es propuesta. */
   const contacts = [
@@ -100,6 +105,7 @@ window.DB = (() => {
     V(7, 2, 'Paula Romero', '677100204', 1, []), V(8, 2, 'Sergio Castro', '677100203', 1, ['GR2024']),
     V(9, 3, 'Irene Molina', '677100206', 2, ['GR2025']), V(10, 3, 'Hugo Delgado', '677100207', 2, ['GR2024', 'GR2025']),
     V(11, 2, 'Rocío Peña', '655667788', 1, ['GR2024', 'GR2025']), V(12, 2, 'Nerea Campos', '677100212', 1, []),
+    ...Array.from({ length: 5 }, (_, index) => V(index + 13, index + 7, `Voluntario ejemplo ${index + 1}`, '', 1, [])),
   ];
   /* Anonimización: Bancosol solo ve los datos de sus voluntarios independientes (colaborador 1) y de los que la entidad comparte; del resto solo ve un identificador. */
   volunteers.forEach(v => { v.shared = v.collab === 1 || v.id % 4 === 0; });
@@ -108,6 +114,8 @@ window.DB = (() => {
     { id: 1, collab: 2, code: 'UMA-01', members: [5, 6], leader: 5 },
     { id: 2, collab: 2, code: 'UMA-02', members: [11, 7, 8], leader: 11 },
     { id: 3, collab: 3, code: 'RIN-01', members: [9, 10], leader: 9 },
+    { id: 9, collab: 2, code: 'UMA-03', members: [11, 12], leader: 11 },
+    ...Array.from({ length: 5 }, (_, index) => ({ id: index + 4, collab: index + 7, code: `EJEMPLO-0${index + 1}`, members: [index + 13], leader: index + 13 })),
   ];
 
   /* campaign (campaign_type_id, name, start_date, end_date). code, days, exceptions y status son propuesta.
@@ -126,7 +134,7 @@ window.DB = (() => {
     { campaign: 3, zone: 1, user: 3 }, { campaign: 3, zone: 4, user: 2 },
   ];
   /* collaborator_participation (collaborator_id, campaign_id) */
-  const collabParticipation = [[2, 1], [3, 1], [4, 1], [5, 1], [1, 1], [2, 3], [4, 3], [5, 3], [1, 3]].map(([collab, campaign], i) => { const c = collabs.find(x => x.id === collab); return { id: i + 1, collab, campaign, coords: [...c.coords], stores: campaign === 1 ? [...c.stores] : [], status: campaign === 1 && collab === 4 ? 'Pendiente' : 'Confirmado' }; });
+  const collabParticipation = [[2, 1], [3, 1], [4, 1], [5, 1], [1, 1], [2, 3], [4, 3], [5, 3], [1, 3], ...[7, 8, 9, 10, 11].map(id => [id, 1])].map(([collab, campaign], i) => { const c = collabs.find(x => x.id === collab); return { id: i + 1, collab, campaign, coords: [...c.coords], stores: campaign === 1 ? [...c.stores] : [], status: campaign === 1 && collab === 4 ? 'Pendiente' : 'Confirmado' }; });
   collabs.forEach(c => { c.pendingCoords = c.status === 'Validado' ? [] : [...c.coords]; delete c.coords; delete c.stores; });
   /* Cobertura en la campaña anterior (derivable de shift_assignment de GR2025). */
   const history = { 1: 2, 2: 1, 3: 2, 4: 2, 5: 3, 6: 5, 9: 4, 10: 5, 11: 1 };
