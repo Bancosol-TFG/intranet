@@ -1,6 +1,6 @@
 /* Guía de flujos: ciclo de vida de una campaña y qué hace cada rol, con enlaces a cada pantalla. */
 window.Flows = (() => {
-  const { esc, icon, btn, pageHead } = UI;
+  const { esc, icon, btn } = UI;
   const R = { admin: 'Administración', coord: 'Coordinación', rcol: 'Resp. colaborador', rtienda: 'Resp. grupo' };
   const C = { admin: '#e8590c', coord: '#2563eb', rcol: '#7c3aed', rtienda: '#0f9d58' };
   const PHASES = [
@@ -38,19 +38,13 @@ window.Flows = (() => {
       const open = admin || k === mine;
       return open ? `<button class="${sel === k ? 'active' : ''}" data-act="filter" data-k="flowRole" data-v="${k}">${l}</button>`
         : `<button disabled class="locked" title="Solo puedes ver el flujo de tu rol">${icon('lock')}${l}</button>`; }).join('');
-    return `${pageHead(admin ? 'Flujos de trabajo' : 'Tu flujo de trabajo', admin ? 'Cómo avanza una campaña y qué hace cada rol en cada fase. Pulsa un paso para ir a su pantalla.' : `Qué te toca hacer como <b>${R[mine]}</b> en cada fase de la campaña. Pulsa un paso para ir a su pantalla.`, '', 'Guía')}
-      <div class="row wrap" style="margin-bottom:20px"><div class="seg">${tabs}</div>
+    return `<div class="row wrap" style="margin-bottom:20px"><div class="seg">${tabs}</div>
         <span class="spacer"></span><div class="row wrap small">${Object.entries(R).map(([k, l]) => `<span class="row"><span class="dot" style="background:${C[k]}"></span>${l}</span>`).join('')}</div></div>
       <div class="flow">${PHASES.map((p, i) => { const steps = p.steps.filter(show); return `
         <div class="flow-phase ${steps.length ? '' : 'dim'}"><div class="flow-head"><span class="flow-n">${i + 1}</span>${icon(p.i)}<b>${p.t}</b></div>
           ${steps.map(([r, t, d, to]) => `<button class="flow-step" data-act="go" data-to="${to}"><span class="small" style="color:${C[r]};font-weight:600">${R[r]}</span><b>${esc(t)}</b><span class="small muted">${esc(d)}</span></button>`).join('') || '<div class="small faint" style="padding:8px">Este rol no participa en esta fase</div>'}
         </div>`; }).join('')}</div>
-      ${admin ? '' : `<div class="small muted" style="margin-top:12px">${icon('lock')} Las fases en gris corresponden a otros roles.</div>`}
-      <div class="card card-pad" style="margin-top:20px;${admin ? '' : 'display:none'}"><h2 style="margin-bottom:10px">Reglas que vienen de Bancosol</h2><div class="grid g-2 small muted">
-        <div>• Solo Administración crea colaboradores y los valida.</div><div>• Un colaborador puede tener varios coordinadores.</div>
-        <div>• Jerarquía: decisor → responsable colaborador → responsables de tienda.</div><div>• Los voluntarios entran siempre por un colaborador; Bancosol es colaborador de los independientes y solo tiene los datos de estos.</div><div>• De las entidades, Bancosol solo conoce sus grupos: identificador y número de personas.</div>
-        <div>• Si la entidad no gestiona voluntarios en la app, solo se asocia la entidad a la tienda.</div><div>• Las asignaciones no necesitan confirmación.</div>
-        <div>• Solo Administración ve el histórico de campañas finalizadas; el resto de roles trabaja con las planificadas o activas.</div><div>• Horario: cada tienda hereda el de su cadena y puede tener uno propio y excepciones por fecha. Pendiente de definir con Bancosol: estadísticas.</div></div></div>`;
+      ${admin ? '' : `<div class="small muted" style="margin-top:12px">${icon('lock')} Las fases en gris corresponden a otros roles.</div>`}`;
   }
   return { view };
 })();
