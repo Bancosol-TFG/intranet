@@ -4,38 +4,98 @@ window.Shifts = (() => {
   const H = () => Views.helpers;
   const HOUR_FROM = 8, HOUR_TO = 22, HOUR_PX = 44;
   const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const CALENDAR_VIEWS = [['week', 'Semana'], ['three-days', '3 días'], ['campaign', 'Días de campaña']];
   const toMinutes = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
   const addDays = (date, n) => { const d = new Date(date + 'T12:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const weekOf = date => { const d = new Date(date + 'T12:00'), shift = (d.getDay() + 6) % 7; return Array.from({ length: 7 }, (_, i) => addDays(date, i - shift)); };
-  const campaignDates = c => [...c.days, ...c.exceptions.map(e => e.date)];
+  const campaignDates = campaign => [...new Set([...campaign.days, ...campaign.exceptions.map(exception => exception.date)])].sort();
   const over = s => H().filled(s) - s.capacity;
+
+  function calendarPeriods(dates, mode) {
+    if (mode === 'campaign' || mode === 'list') return [dates];
+    if (mode === 'week') return [...new Map(dates.map(date => {
+      const week = weekOf(date);
+      return [week[0], week];
+    })).values()];
+    const periods = [];
+    for (const date of dates) {
+      if (!periods.at(-1)?.includes(date)) periods.push([date, addDays(date, 1), addDays(date, 2)]);
+    }
+    return periods;
+  }
+
+  function periodLabel(days) {
+    const options = { day: 'numeric', month: 'short' };
+    return `${fmtDate(days[0], options)} – ${fmtDate(days.at(-1), options)}`;
+  }
+
+  function periodArrow(period, dates, direction) {
+    const previous = direction === 'previous';
+    const label = previous ? 'Anterior' : 'Siguiente';
+    const date = period?.find(day => dates.includes(day));
+    const description = period ? `${label}: ${periodLabel(period)}` : label;
+    return `<button type="button" id="calendar-${direction}" class="btn icon sm" aria-label="${description}" title="${description}" ${date ? `data-act="calendar-step" data-date="${date}" data-direction="${direction}"` : 'disabled'}>${icon(previous ? 'back' : 'chev')}</button>`;
+  }
+
+  function calendarToolbar(mode, periods, days, dates) {
+    const currentLabel = CALENDAR_VIEWS.find(([value]) => value === mode)[1];
+    const currentPeriod = periods.indexOf(days);
+    return `<div class="toolbar calendar-toolbar">
+      <details class="calendar-view-picker">
+        <summary class="btn sm" id="calendar-view-button" aria-label="Vista del calendario: ${currentLabel}">${icon('cal')}${currentLabel}<span class="calendar-view-arrow" aria-hidden="true">${icon('chev')}</span></summary>
+        <div class="menu calendar-view-menu" role="group" aria-label="Vistas del calendario">${CALENDAR_VIEWS.map(([value, label]) => `<button type="button" aria-pressed="${mode === value}" data-act="calendar-view" data-view="${value}">${label}${mode === value ? icon('check') : ''}</button>`).join('')}</div>
+      </details>
+      ${periods.length > 1 ? `<div class="calendar-arrows" role="group" aria-label="Navegar entre periodos">${periodArrow(periods[currentPeriod - 1], dates, 'previous')}${periodArrow(periods[currentPeriod + 1], dates, 'next')}</div>` : ''}
+    </div>`;
+  }
+
+  document.addEventListener('click', event => {
+    const picker = document.querySelector('.calendar-view-picker[open]');
+    if (picker && !picker.contains(event.target)) picker.open = false;
+  }, true);
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const picker = event.target.closest?.('.calendar-view-picker[open]');
+    if (!picker) return;
+    picker.open = false;
+    picker.querySelector('summary').focus();
+    event.stopPropagation();
+  });
 
   const recipients = (s, actorId) => { const st = H().byId(DB.stores, s.store), ids = new Set();
     s.assignments.forEach(a => { const collab = a.kind === 'group' ? H().byId(DB.groups, a.group)?.collab : a.kind === 'collab' ? a.collab : H().byId(DB.volunteers, a.vol)?.collab;
-      if (a.kind === 'group') DB.users.filter(u => u.group === a.group).forEach(u => ids.add(u.id));
+      if (a.kind === 'group') DB.users.filter(u => H().leadsGroup(u, H().byId(DB.groups, a.group))).forEach(u => ids.add(u.id));
       DB.users.filter(u => u.role === 'rcol' && u.collab === collab).forEach(u => ids.add(u.id)); });
     DB.zoneAssignments.filter(z => z.zone === st.zone && z.campaign === s.campaign).forEach(z => ids.add(z.user));
     ids.delete(actorId); return [...ids]; };
   const notify = (S, s, text, reason, extra = []) => { const to = new Set([...recipients(s, S.user.id), ...extra.filter(id => id !== S.user.id)]);
     to.forEach(id => DB.notifications.unshift({ id: DB.notifications.length + 1, to: id, from: S.user.id, text, reason, shift: s.id, store: s.store, when: 'Ahora', read: false }));
     Object.assign(s, { editedBy: S.user.id, editedAt: 'ahora' }); DB.audit.push({ entity: 'shifts', id: s.id, who: S.user.id, when: '2026-11-12 ' + new Date().toTimeString().slice(0, 5), text: text + (reason ? ` · Motivo: ${reason}` : '') }); return to.size; };
-  const leadersOf = a => a.kind === 'group' ? DB.users.filter(u => u.group === a.group).map(u => u.id) : [];
+  const leadersOf = a => a.kind === 'group' ? DB.users.filter(u => H().leadsGroup(u, H().byId(DB.groups, a.group))).map(u => u.id) : [];
   const shiftLabel = s => `${H().byId(DB.stores, s.store).name} · ${fmtDate(s.date, { weekday: 'short', day: 'numeric' })} ${s.start}–${s.end}`;
 
   /* ---------- Vista ---------- */
   function view(S) {
     const camps = DB.campaigns.filter(c => c.status !== 'Finalizada'), c = H().byId(DB.campaigns, S.f.campaign) || H().activeCampaign();
     const stores = H().scope.stores(S).filter(st => DB.shifts.some(s => s.campaign === c.id && s.store === st.id));
-    const tab = S.f.tab === 'tiendas' ? 'tiendas' : 'calendario';
-    const head = pageHead('Turnos', `Turnos libres dentro del horario de la tienda; por defecto mañana (apertura–${DB.settings.morningEnd}) y tarde (${DB.settings.afternoonStart}–cierre). 2 personas por turno, 4 con dos líneas de caja.`,
-      H().exportBtn('shifts'));
-    const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
-    return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : calendar(S, c, stores)}</div>`;
+    const tab = ['tiendas', 'turnos'].includes(S.f.tab) ? S.f.tab : 'calendario';
+    const head = pageHead('Turnos', '', H().exportBtn('shifts'));
+    const tabs = `<div class="tabs">${[['calendario', 'Calendario por tienda'], ['turnos', 'Listado de turnos'], ['tiendas', 'Listado de tiendas']].map(([k, l]) => `<button class="tab ${tab === k ? 'active' : ''}" data-act="filter" data-k="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    return head + tabs + `<div class="fade-in">${tab === 'tiendas' ? storeList(S, c, stores) : tab === 'turnos' && S.f.group ? groupShiftList(S, c) : calendar(S, c, stores)}</div>`;
+  }
+
+  function groupShiftList(S, campaign) {
+    const group = H().scope.groups(S).find(item => String(item.id) === String(S.f.group));
+    if (!group) return `<div class="card">${empty('Grupo no disponible', 'No tienes acceso a este grupo.')}</div>`;
+    const shifts = H().scope.shifts(S, campaign.id).filter(shift => shift.assignments.some(assignment => assignment.kind === 'group' && assignment.group === group.id)).sort((first, second) => (first.date + first.start).localeCompare(second.date + second.start));
+    const rows = shifts.map(shift => `<button type="button" class="shift-list-row ${S.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${S.f.sel === shift.id}"><span><b>${fmtDate(shift.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${shift.start}–${shift.end}</b><span class="small muted shift-list-assignments">${esc(H().byId(DB.stores, shift.store)?.name || 'Tienda no disponible')}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift), over(shift) > 0 ? 'shift-over' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[H().coverage(shift)])}</span></button>`).join('');
+    return `<div class="split"><div class="card"><div class="toolbar"><span>Grupo: <b>${esc(group.code)}</b></span><span class="spacer"></span>${btn('Quitar filtro', { size: 'sm', act: 'filter', data: 'data-k="group" data-v=""' })}</div>${rows || empty('Sin turnos asignados', 'Este grupo no tiene turnos en la campaña actual.')}</div>${sidePanel(S, campaign, shifts)}</div>`;
   }
 
   function storeList(S, c, stores) {
     const q = (S.f.q || '').toLowerCase(), zf = S.f.zone || '', cov = S.f.cov || 'Todos', only = S.f.store || '';
-    const rows = stores.map(st => { const sh = DB.shifts.filter(s => s.campaign === c.id && s.store === st.id), stt = H().stats(sh);
+    const rows = stores.map(st => { const sh = H().scope.shifts(S, c.id).filter(s => s.store === st.id), stt = H().stats(sh);
       return { st, sh, stt, overs: sh.filter(s => over(s) > 0).length, reps: DB.reports.filter(r => !r.solved_by && sh.some(s => s.id === r.shift)).length }; })
       .filter(r => (!only || String(r.st.id) === only) && r.st.name.toLowerCase().includes(q) && (!zf || String(r.st.zone) === zf)
         && (cov === 'Todos' || (cov === 'Por cubrir' ? r.stt.uncovered : cov === 'Sobrecupo' ? r.overs : !r.stt.uncovered)));
@@ -60,18 +120,18 @@ window.Shifts = (() => {
   /* Panel derecho de la vista dividida: candidatos compatibles con el turno seleccionado; se arrastran al turno o se asignan con un clic */
   function sidePanel(S, c, sh) {
     const s = sh.find(x => x.id === S.f.sel);
-    if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno del calendario para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
+    if (!s) return `<aside class="card card-pad side-pick"><h3>Asignar</h3><p class="small muted">Selecciona un turno para ver los grupos y voluntarios disponibles en esa franja.</p></aside>`;
     const busy = (pred) => DB.shifts.some(x => x.date === s.date && x.start < s.end && s.start < x.end && x.assignments.some(pred));
     const q = (S.f.pq || '').toLowerCase(), free = s.capacity - H().filled(s);
-    const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && g.code.toLowerCase().includes(q));
+    const groups = H().scope.groups(S).filter(g => !g.archived && !busy(a => a.kind === 'group' && a.group === g.id) && (g.code.toLowerCase().includes(q) || (H().byId(DB.collabs, g.collab)?.name || '').toLowerCase().includes(q)));
     const vols = H().scope.volunteers(S).filter(v => !v.blocked && !busy(a => a.kind === 'vol' && a.vol === v.id) && H().vName(v).toLowerCase().includes(q));
     const byCollab = {}; groups.forEach(g => (byCollab[g.collab] ||= []).push(g));
     const item = (kind, ref, title, sub) => `<div class="pick" draggable="true" data-drag-kind="${kind}" data-drag-ref="${ref}" data-act="do-assign" data-id="${s.id}" data-kind="${kind}" data-ref="${ref}"><div style="flex:1"><b class="small">${esc(title)}</b><div class="small muted">${sub}</div></div>${icon('plus')}</div>`;
-    return `<aside class="card card-pad side-pick"><div class="row"><h3 style="margin:0">${esc(s.date)} · ${s.start}–${s.end}</h3><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
+    return `<aside class="card card-pad side-pick"><div class="row"><div><div class="small muted">Turno seleccionado</div><h3 style="margin:0">${fmtDate(s.date, { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${s.start}–${s.end}</h3></div><span class="spacer"></span>${btn('', { kind: 'ghost', size: 'sm', icon: 'expand', act: 'shift-detail', data: `data-id="${s.id}"`, title: 'Ver detalle' })}</div>
       <p class="small muted">${free > 0 ? `Faltan ${free} personas` : 'Turno completo'} · solo aparecen los libres en esta franja. Arrastra al turno o pulsa para asignar.</p>
-      <input class="input" placeholder="Filtrar por nombre…" data-filter="pq" value="${esc(S.f.pq || '')}">
-      ${Object.entries(byCollab).map(([cid, gs]) => `<details open><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} grupos</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
-      <details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, H().vName(v), H().anonV(v) ? H().R.collab(v.collab) : esc(v.phone))).join('')}</details></aside>`;
+      <input class="input" aria-label="Buscar por nombre, grupo o entidad" placeholder="Buscar por nombre, grupo o entidad…" data-filter="pq" value="${esc(S.f.pq || '')}">
+      ${Object.entries(byCollab).map(([cid, gs]) => `<details ${q ? 'open' : ''}><summary class="small"><b>${esc(H().byId(DB.collabs, Number(cid))?.name)}</b> · ${gs.length} ${gs.length === 1 ? 'grupo' : 'grupos'}</summary>${gs.map(g => item('group', g.id, g.code, `${H().gsize(g)} personas`)).join('')}</details>`).join('')}
+      ${vols.length ? `<details ${q ? 'open' : ''}><summary class="small"><b>Voluntarios sueltos</b> · ${vols.length}</summary>${vols.slice(0, 30).map(v => item('vol', v.id, H().vName(v), H().anonV(v) ? H().R.collab(v.collab) : esc(v.phone))).join('')}</details>` : ''}${!groups.length && !vols.length ? '<p class="small muted">No hay resultados disponibles para esta búsqueda.</p>' : ''}</aside>`;
   }
   /* Arrastrar candidatos del panel a un turno del calendario */
   document.addEventListener('dragstart', e => { const el = e.target.closest?.('[data-drag-kind]'); if (el) e.dataTransfer.setData('text/plain', JSON.stringify({ kind: el.dataset.dragKind, ref: el.dataset.dragRef })); });
@@ -79,36 +139,77 @@ window.Shifts = (() => {
   document.addEventListener('drop', e => { const t = e.target.closest?.('.cal-shift'); if (!t) return; e.preventDefault();
     const d = JSON.parse(e.dataTransfer.getData('text/plain') || '{}'); const tmp = Object.assign(document.createElement('div'), { hidden: true }); tmp.dataset.act = 'do-assign'; tmp.dataset.id = t.dataset.id; tmp.dataset.kind = d.kind; tmp.dataset.ref = d.ref; document.body.append(tmp); tmp.click(); tmp.remove(); });
 
+  function shiftList(days, shifts, state, store, campaign, canEdit, hoursOf) {
+    const groups = H().scope.groups(state);
+    const volunteers = DB.volunteers.filter(volunteer => H().scope.volunteers(state).some(item => item.id === volunteer.id) || groups.some(group => group.members.includes(volunteer.id)));
+    const groupQuery = (state.f.listGroup || '').trim().toLocaleLowerCase('es');
+    const volunteerQuery = (state.f.listVolunteer || '').trim().toLocaleLowerCase('es');
+    const matchingGroups = new Set(groups.filter(group => group.code.toLocaleLowerCase('es').includes(groupQuery)).map(group => group.id));
+    const matchingVolunteers = new Set(volunteers.filter(volunteer => H().vName(volunteer).toLocaleLowerCase('es').includes(volunteerQuery)).map(volunteer => volunteer.id));
+    const filtered = Boolean(groupQuery || volunteerQuery);
+    const matches = shift => shift.assignments.some(assignment => {
+      if (groupQuery && (assignment.kind !== 'group' || !matchingGroups.has(assignment.group))) return false;
+      if (!volunteerQuery) return true;
+      if (assignment.kind === 'vol') return matchingVolunteers.has(assignment.vol);
+      if (assignment.kind !== 'group') return false;
+      const members = assignment.members || (assignment.people ? [] : H().byId(DB.groups, assignment.group)?.members || []);
+      return members.some(member => matchingVolunteers.has(member));
+    });
+    const visibleShifts = filtered ? shifts.filter(matches) : shifts;
+    const filters = `<div class="toolbar shift-list-filters"><label>Grupo <input class="input" type="search" list="shift-filter-groups" data-filter="listGroup" value="${esc(state.f.listGroup || '')}" placeholder="Buscar grupo…" autocomplete="off"></label><datalist id="shift-filter-groups">${groups.map(group => `<option value="${esc(group.code)}"></option>`).join('')}</datalist><label>Persona <input class="input" type="search" list="shift-filter-volunteers" data-filter="listVolunteer" value="${esc(state.f.listVolunteer || '')}" placeholder="Buscar persona…" autocomplete="off"></label><datalist id="shift-filter-volunteers">${volunteers.map(volunteer => `<option value="${esc(H().vName(volunteer))}"></option>`).join('')}</datalist></div>`;
+    if (filtered && !visibleShifts.length) return `${filters}<div class="shift-list-empty small muted">No hay turnos que coincidan con los filtros en esta tienda.</div>`;
+    return `${filters}<div class="shift-list">${days.map(date => {
+      const dayShifts = visibleShifts.filter(shift => shift.date === date).sort((first, second) => first.start.localeCompare(second.start));
+      if (filtered && !dayShifts.length) return '';
+      return `<section class="shift-list-day"><div class="shift-list-heading"><h3>${fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>${canEdit && hoursOf(date) ? btn('Nuevo turno', { size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${store.id}" data-date="${date}" data-c="${campaign.id}"` }) : ''}</div>
+        ${dayShifts.length ? dayShifts.map(shift => {
+          const coverage = over(shift) > 0 ? 'Supera la capacidad' : H().coverage(shift);
+          const tone = over(shift) > 0 ? 'shift-over' : ({ 'Sin cubrir': 'danger', Parcial: 'warn', Cubierto: 'ok' })[coverage];
+          const assignments = shift.assignments.map(assignment => esc(H().asgText(assignment)) + (assignment.kind !== 'vol' ? ` (${H().asgPeople(assignment)})` : '')).join(', ') || 'Sin asignar';
+          return `<button type="button" class="shift-list-row ${state.f.sel === shift.id ? 'selected' : ''}" data-act="shift-open" data-id="${shift.id}" aria-pressed="${state.f.sel === shift.id}"><span><span class="shift-list-time">${shift.start}–${shift.end}</span><span class="small muted shift-list-assignments">${assignments}</span></span><span class="shift-list-status"><span class="small">${H().filled(shift)}/${shift.capacity} personas</span>${badge(coverage, tone)}</span></button>`;
+        }).join('') : `<div class="small muted shift-list-empty">${hoursOf(date) ? 'Sin turnos' : 'Tienda cerrada'}</div>`}</section>`;
+    }).join('')}</div>`;
+  }
+
   function calendar(S, c, stores) {
     if (!stores.length) return `<div class="card">${empty('Sin tiendas', 'No hay tiendas con turnos en tu ámbito para esta campaña.')}</div>`;
     const st = stores.find(x => String(x.id) === String(S.f.store)) || stores[0];
-    const dates = campaignDates(c), weeks = [...new Set(dates.map(d => weekOf(d)[0]))].sort();
-    const week = weeks.includes(S.f.week) ? S.f.week : weeks[0], days = weekOf(week);
-    const sh = DB.shifts.filter(s => s.campaign === c.id && s.store === st.id), canEdit = H().can(S, 'shifts.assign') && c.status !== 'Finalizada';
+    const assigningGroup = H().scope.groups(S).find(group => String(group.id) === S.f.assignGroup);
+    const dates = campaignDates(c);
+    if (!dates.length) return `<div class="card">${empty('Sin fechas de voluntariado', 'La campaña todavía no tiene días de voluntariado.')}</div>`;
+    const mode = S.f.tab === 'turnos' ? 'list' : S.f.calendarView || 'week';
+    const periods = calendarPeriods(dates, mode);
+    const days = periods.find(period => period.includes(S.f.calendarDate)) || periods[0];
+    const sh = H().scope.shifts(S, c.id).filter(s => s.store === st.id), canEdit = H().can(S, 'shifts.assign') && c.status !== 'Finalizada';
     /* Tramos de apertura de una fecha: las excepciones sustituyen al horario semanal. Sin tramos = cerrada. */
     const hoursOf = date => { const exc = DB.scheduleExceptions.filter(e => e.store === st.id && e.date === date); if (exc.length) return exc.some(e => e.closed) ? null : exc;
       const wd = (new Date(date + 'T12:00').getDay() + 6) % 7 + 1, t = DB.schedules.filter(h => h.store === st.id && h.week_day === wd); return t.length ? t : null; };
     const top = t => (toMinutes(t) - HOUR_FROM * 60) / 60 * HOUR_PX;
     const block = s => { const o = over(s), tone = o > 0 ? 'over' : ({ 'Sin cubrir': 'low', Parcial: 'part', Cubierto: 'full' })[H().coverage(s)];
-      return `<div class="cal-shift ${tone} ${S.f.sel === s.id ? 'selected' : ''}" style="top:${top(s.start)}px;height:${Math.max(28, top(s.end) - top(s.start))}px" data-act="shift-open" data-id="${s.id}">
+      const height = Math.max(28, top(s.end) - top(s.start));
+      const rows = Math.max(0, Math.floor((height - 36) / 18));
+      const visible = rows;
+      const remaining = s.assignments.length - visible;
+      const names = s.assignments.slice(0, visible).map(a => `<div class="cal-asg-item">${esc(H().asgText(a))}${a.kind !== 'vol' ? ` (${H().asgPeople(a)})` : ''}${a.kind === 'group' && a.people && !a.members ? ' · falta elegir' : ''}</div>`).join('');
+      const status = o > 0 ? 'Supera la capacidad' : H().coverage(s);
+      return `<div class="cal-shift ${tone} ${S.f.sel === s.id ? 'selected' : ''}" style="top:${top(s.start)}px;height:${height}px" data-act="shift-open" data-id="${s.id}" title="${status}${remaining ? ` · ${remaining} asignaciones más; abre el turno para verlas` : ''}">
         ${canEdit ? '<i class="cal-grip top" data-grip="top"></i><i class="cal-grip bottom" data-grip="bottom"></i>' : ''}
         <div class="row small"><b>${s.start}–${s.end}</b><span class="spacer"></span>${H().filled(s)}/${s.capacity}${o > 0 ? ' ' + icon('alert') : ''}</div>
-        <div class="small cal-asg">${s.assignments.map(a => esc(H().asgText(a)) + (a.kind !== 'vol' ? ` (${H().asgPeople(a)})` : '') + (a.kind === 'group' && a.people && !a.members ? ' · falta elegir' : '')).join(', ') || 'Sin asignar'}</div></div>`; };
+        <div class="small cal-asg">${names}${!s.assignments.length && rows ? '<div class="cal-asg-item">Sin asignar</div>' : ''}</div></div>`; };
     const col = date => { const on = dates.includes(date), hrs = on && hoursOf(date);
       return `<div class="cal-col ${on ? '' : 'off'}" data-date="${date}">${on && hrs ? hrs.map(h => `<div class="cal-open" style="top:${top(h.open)}px;height:${top(h.close) - top(h.open)}px"></div>`).join('') : ''}
         ${on && !hrs ? '<div class="cal-note small">Tienda cerrada</div>' : ''}${!on ? '<div class="cal-note small">Sin voluntariado</div>' : ''}
         ${sh.filter(s => s.date === date).map(block).join('')}</div>`; };
     const someoneElse = DB.users.find(u => u.id !== S.user.id && ((u.role === 'rcol' && sh.some(s => s.assignments.some(a => (a.kind === 'group' ? H().byId(DB.groups, a.group)?.collab : a.collab) === u.collab))) || (u.role === 'coord' && H().zonesOf(u.id, c.id).includes(st.zone))));
     const lastEdit = sh.filter(s => s.editedBy).at(-1);
-    return `<div class="card" style="margin-bottom:12px"><div class="toolbar" style="border:0">
+    return `${assigningGroup ? `<div class="card card-pad small" style="margin-bottom:12px">Selecciona una tienda y un turno para asignar el grupo <b>${esc(assigningGroup.code)}</b>. El grupo aparecerá en el panel si está disponible.</div>` : ''}<div class="card" style="margin-bottom:12px"><div class="toolbar" style="border:0">
         <select class="input" style="width:260px" data-filter="store">${stores.map(x => `<option value="${x.id}" ${x.id === st.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-        ${weeks.length > 1 ? `<div class="seg">${weeks.map(w => `<button class="${w === week ? 'active' : ''}" data-act="filter" data-k="week" data-v="${w}">Semana del ${fmtDate(w, { day: 'numeric', month: 'short' })}</button>`).join('')}</div>` : ''}
         <span class="small muted">${esc(H().storeSub(st))} · ${H().R.zone(st.zone)} · ${st.checkout_shelfs} ${st.checkout_shelfs === 2 ? 'líneas' : 'línea'} de caja${H().can(S, 'history.last') && DB.history[st.id] ? ` · anterior: ${H().R.collab(DB.history[st.id])}` : ''}</span>
         <span class="spacer"></span>${someoneElse ? `<span class="presence small" title="Simulación de presencia en tiempo real"><span class="dot" style="background:var(--ok)"></span>${esc(someoneElse.name)} también está en esta tienda</span>` : ''}</div>
         ${lastEdit ? `<div class="small faint" style="padding:0 16px 12px">Último cambio: ${H().R.user(lastEdit.editedBy)}, ${esc(lastEdit.editedAt)}. Los cambios de otros usuarios aparecen al momento.</div>` : ''}</div>
-      <div class="split"><div style="min-width:0"><div class="card cal"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d, { day: 'numeric' })}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
-        <div class="cal-body" data-can="${canEdit ? 1 : 0}" data-store="${st.id}" data-c="${c.id}" style="height:${(HOUR_TO - HOUR_FROM) * HOUR_PX}px"><div class="cal-hours">${Array.from({ length: HOUR_TO - HOUR_FROM }, (_, i) => `<div style="height:${HOUR_PX}px">${String(HOUR_FROM + i).padStart(2, '0')}:00</div>`).join('')}</div>${days.map(col).join('')}</div></div>
-      <div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div></div>${sidePanel(S, c, sh)}</div>`;
+      <div class="split"><div style="min-width:0"><div class="card calendar-card">${mode === 'list' ? shiftList(days, sh, S, st, c, canEdit, hoursOf) : `${calendarToolbar(mode, periods, days, dates)}<div class="cal" style="--calendar-days:${days.length}"><div class="cal-head"><div></div>${days.map(d => `<div class="cal-day ${dates.includes(d) ? '' : 'off'}"><b>${WEEKDAYS[(new Date(d + 'T12:00').getDay() + 6) % 7]} ${fmtDate(d)}</b>${dates.includes(d) && canEdit ? btn('', { kind: 'ghost', size: 'sm', icon: 'plus', act: 'shift-new', data: `data-store="${st.id}" data-date="${d}" data-c="${c.id}"`, title: 'Nuevo turno' }) : ''}</div>`).join('')}</div>
+        <div class="cal-body" data-can="${canEdit ? 1 : 0}" data-store="${st.id}" data-c="${c.id}" style="height:${(HOUR_TO - HOUR_FROM) * HOUR_PX}px"><div class="cal-hours">${Array.from({ length: HOUR_TO - HOUR_FROM }, (_, i) => `<div style="height:${HOUR_PX}px">${String(HOUR_FROM + i).padStart(2, '0')}:00</div>`).join('')}</div>${days.map(col).join('')}</div></div>`}</div>
+      ${mode === 'list' ? '' : `<div class="row wrap small muted" style="margin-top:10px;gap:14px"><span class="row"><span class="legend low"></span>Sin cubrir</span><span class="row"><span class="legend part"></span>Parcial</span><span class="row"><span class="legend full"></span>Cubierto</span><span class="row"><span class="legend over"></span>Supera la capacidad</span><span class="row"><span class="legend open"></span>Horario de la tienda</span></div>`}</div>${sidePanel(S, c, sh.filter(shift => days.includes(shift.date)))}</div>`;
   }
 
   /* ---------- Modales ---------- */
@@ -142,6 +243,14 @@ window.Shifts = (() => {
   /* ---------- Acciones ---------- */
   const actions = (S, render) => ({
     'cal-store': d => { S.f.store = d.id; S.f.tab = 'calendario'; render(); },
+    'calendar-view': data => { S.f.calendarView = data.view; render(); document.getElementById('calendar-view-button').focus(); },
+    'calendar-step': data => {
+      S.f.calendarDate = data.date;
+      render();
+      const button = document.getElementById(`calendar-${data.direction}`);
+      const nextFocus = button?.disabled ? document.querySelector('.calendar-arrows button:not(:disabled)') : button;
+      (nextFocus || document.getElementById('calendar-view-button')).focus();
+    },
     'shift-open': d => { S.f.sel = Number(d.id); render(); },
     'shift-detail': d => shiftModal(S, d.id),
     'shift-new': d => newShiftModal(d),

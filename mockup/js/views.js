@@ -46,6 +46,7 @@ window.Views = (() => {
   const mainContact = cid => contactsOf(cid).find(k => k.level === 'Responsable colaborador') || contactsOf(cid)[0];
   const storeShifts = (sid, cid) => DB.shifts.filter(s => s.store === sid && (!cid || s.campaign === cid));
   const groupShifts = gid => DB.shifts.filter(s => s.assignments.some(a => a.kind === 'group' && a.group === gid));
+  const leadsGroup = (user, group) => Boolean(group) && user.role === 'rtienda' && !(user.excludedGroups || []).includes(group.id) && (user.volunteer ? group.leader === user.volunteer : group.id === user.group);
 
   const COLLAB_STATUSES = ['Confirmado', 'Pendiente', 'No participa'];
   const collabPart = (c, cid = activeCampaign().id) => DB.collabParticipation.find(p => p.collab === c.id && p.campaign === cid);
@@ -64,11 +65,11 @@ window.Views = (() => {
   const scope = {
     stores: S => { const u = S.user; if (u.role === 'admin') return DB.stores; if (u.role === 'coord') { const z = zonesOf(u.id); return DB.stores.filter(s => !s.archived && z.includes(s.zone)); }
       if (u.role === 'rcol') return DB.stores.filter(s => byId(DB.collabs, u.collab).stores.includes(s.id));
-      const ids = new Set(groupShifts(u.group).map(s => s.store)); return DB.stores.filter(s => ids.has(s.id)); },
+      const ids = new Set(scope.groups(S).flatMap(group => groupShifts(group.id).map(s => s.store))); return DB.stores.filter(s => ids.has(s.id)); },
     collabs: S => { const u = S.user; if (u.role === 'admin') return DB.collabs; if (u.role === 'coord') return DB.collabs.filter(c => c.coords.includes(u.id)); return DB.collabs.filter(c => c.id === u.collab); },
-    groups: S => { const u = S.user; if (u.role === 'rtienda') return DB.groups.filter(g => g.id === u.group); const cs = new Set(scope.collabs(S).map(c => c.id)); return DB.groups.filter(g => !g.archived && cs.has(g.collab)); },
+    groups: S => { const u = S.user; if (u.role === 'rtienda') return DB.groups.filter(g => !g.archived && leadsGroup(u, g)); const cs = new Set(scope.collabs(S).map(c => c.id)); return DB.groups.filter(g => !g.archived && cs.has(g.collab)); },
     volunteers: S => { const u = S.user; if (u.role === 'admin' || u.role === 'coord') return DB.volunteers.filter(v => v.collab === 1); return DB.volunteers.filter(v => v.collab === u.collab); },
-    shifts: (S, cid) => { if (S.user.role === 'rtienda') return DB.shifts.filter(s => s.campaign === cid && s.assignments.some(a => a.kind === 'group' && a.group === S.user.group));
+    shifts: (S, cid) => { if (S.user.role === 'rtienda') { const ids = new Set(scope.groups(S).map(g => g.id)); return DB.shifts.filter(s => s.campaign === cid && s.assignments.some(a => a.kind === 'group' && ids.has(a.group))); }
       const ids = new Set(scope.stores(S).map(s => s.id)); return DB.shifts.filter(s => s.campaign === cid && ids.has(s.store)); },
   };
   const inScope = (kind, id) => scope[kind](CS).some(x => String(x.id) === String(id));
@@ -86,7 +87,7 @@ window.Views = (() => {
     group: id => { const g = byId(DB.groups, id); if (!g) return 'Grupo eliminado'; return isRole('admin') || inScope('groups', id) ? link(`grupo/${id}`, esc(g.code)) : esc(g.code); },
     campaign: id => { const c = byId(DB.campaigns, id); return isRole('admin') ? link(`campanas/${id}`, esc(c.name)) : esc(c.name); },
     user: id => { const u = user(id); if (!u) return '—'; return isRole('admin') ? link(`usuario/${id}`, esc(u.name), 'plain') : esc(u.name); },
-    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return canViewVolunteer(CS, v) ? link(`voluntario/${id}`, esc(vName(v))) : esc(vName(v)); },
+    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return !isRole('rtienda') && canViewVolunteer(CS, v) ? link(`voluntario/${id}`, esc(vName(v))) : esc(vName(v)); },
     shift: s => `<a class="ref plain" href="#" data-act="open-shift" data-id="${s.id}">${fmtDate(s.date, { weekday: 'short', day: 'numeric' })} · ${s.slot} ${s.start}–${s.end}</a>`,
   };
   const asg = a => a.kind === 'vol' ? R.vol(a.vol) : a.kind === 'group' ? `${R.group(a.group)} · ${asgPeople(a)} pers.` : `${R.collab(a.collab)} · ${a.people}`;
@@ -116,7 +117,7 @@ window.Views = (() => {
     const campaignDay = isCampaignDay ? `<div class="card" style="margin-bottom:20px;border-color:var(--brand)"><div class="card-head"><div><h2>Hoy es día de campaña</h2><div class="small muted">${fmtDate(today, { weekday: 'long', day: 'numeric', month: 'long' })} · ${todayShifts.length} turnos en tu ámbito · ${openToday.length} incidencias abiertas</div></div>${btn('Ver turnos de hoy', { size: 'sm', act: 'go', data: 'data-to="turnos"' })}</div>
       ${['Mañana', 'Tarde'].map(slot => { const list = todayShifts.filter(s => s.slot === slot); return list.length ? `<div class="card-pad small muted" style="padding-bottom:0"><b>${slot}</b> · ${list.filter(s => coverage(s) === 'Cubierto').length}/${list.length} cubiertos</div>${list.filter(s => coverage(s) !== 'Cubierto').slice(0, 4).map(s => shiftRow(s)).join('')}` : ''; }).join('')}
       ${openToday.map(r => todo('alert', esc(byId(DB.reportTypes, r.type)?.name || 'Incidencia'), esc(r.description), btn('Ver', { size: 'sm', act: 'go', data: 'data-to="incidencias"' }))).join('')}</div>` : '';
-    const scopeText = { admin: 'toda la provincia', coord: zonesOf(u.id).map(R.zone).join(', ') || 'sin zonas asignadas', rcol: R.collab(u.collab), rtienda: 'grupo ' + R.group(u.group) }[u.role];
+    const scopeText = { admin: 'toda la provincia', coord: zonesOf(u.id).map(R.zone).join(', ') || 'sin zonas asignadas', rcol: R.collab(u.collab), rtienda: scope.groups(S).map(g => R.group(g.id)).join(', ') }[u.role];
     const hero = `<div class="hero" style="margin-bottom:20px"><div class="row wrap" style="position:relative;z-index:1;align-items:flex-start">
         <div style="flex:1;min-width:260px"><span class="badge plain" style="background:rgba(255,255,255,.2);color:#fff">${esc(c.code)} · ${isCampaignDay ? 'voluntariado presencial hoy' : `voluntariado presencial en ${days} días`}</span>
           <h1 style="margin:12px 0 6px;font-size:28px">${esc(c.name)}</h1>
@@ -168,10 +169,13 @@ window.Views = (() => {
           ${col.stores.length ? col.stores.map(id => { const ts = sh.filter(s => s.store === id), k = stats(ts), un = ts.filter(s => coverage(s) !== 'Cubierto').length; return `<div class="list-item"><div style="flex:1;min-width:0"><b>${R.store(id)}</b><div class="small muted">${ts.length} turnos · ${un ? `<span style="color:var(--danger)">${un} sin cubrir</span>` : 'todo cubierto'}</div></div><div style="width:140px">${progress(k.pct, k.pct >= 100 ? 'ok' : k.pct < 40 ? 'danger' : 'warn')}</div>${btn(un ? 'Asignar' : 'Ver', { size: 'sm', kind: un ? 'primary' : '', icon: 'clock', act: 'open-store-cal', data: `data-id="${id}"` })}</div>`; }).join('') : empty('Sin tiendas', 'Coordinación aún no te ha asignado tiendas en esta campaña.')}</div>
         <div class="grid g-main">${urgent}${feed(S)}</div>`;
     }
-    const g = byId(DB.groups, u.group), col = byId(DB.collabs, g.collab), mine = sh.slice().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)), next = mine.find(s => s.date >= today) || mine[0];
+    const leaderGroups = scope.groups(S), mine = sh.slice().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)), next = mine.find(s => s.date >= today) || mine[0];
+    const g = leaderGroups.find(group => next?.assignments.some(assignment => assignment.kind === 'group' && assignment.group === group.id)) || leaderGroups[0];
+    if (!g) return `${pageHead(`Hola, ${first}`, 'Tus grupos y turnos.', '')}<div class="card">${empty('Sin grupos', 'Todavía no tienes grupos asignados.')}</div>`;
+    const col = byId(DB.collabs, g.collab);
     const rcolU = DB.users.find(x => x.role === 'rcol' && x.collab === col.id), coordU = user(coordsOfZone(byId(DB.stores, next?.store)?.zone, c.id)[0] || col.coords?.[0]);
     const contact = (p, role) => p ? `<div class="list-item">${avatar(p.name)}<div style="flex:1"><b class="small">${esc(p.name)}</b><div class="small muted">${role}</div></div>${p.phone ? `<a class="btn sm" href="tel:${esc(p.phone)}">${icon('phone')} Llamar</a>` : ''}</div>` : '';
-    const going = s => { const a = s.assignments.find(x => x.kind === 'group' && x.group === g.id); return a?.members ? a.members.map(id => esc(byId(DB.volunteers, id).name)).join(', ') : `${asgPeople(a)} de ${gsize(g)} (todo el grupo${a?.people ? ' · falta que tu responsable elija quién' : ''})`; };
+    const going = s => { const a = s.assignments.find(x => x.kind === 'group' && leaderGroups.some(group => group.id === x.group)), group = byId(DB.groups, a.group); return a?.members ? a.members.map(id => esc(byId(DB.volunteers, id).name)).join(', ') : `${asgPeople(a)} de ${gsize(group)} (${esc(group.code)}${a?.people ? ' · falta que tu responsable elija quién' : ''})`; };
     const nextCard = next ? (() => { const s0 = byId(DB.stores, next.store), addr = `${s0.address}, ${loc(s0.locality)?.name || ''}`; return `<div class="card card-pad" style="margin-bottom:20px;border-color:var(--brand)">
         <div class="small muted" style="text-transform:uppercase;letter-spacing:.04em">Tu próximo turno</div>
         <h1 style="margin:6px 0 2px;font-size:26px">${fmtDate(next.date, { weekday: 'long', day: 'numeric', month: 'long' })} · ${next.start}–${next.end}</h1>
@@ -179,7 +183,7 @@ window.Views = (() => {
         <div class="row small muted" style="margin-bottom:12px">${icon('pin')} ${esc(addr)} · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}" target="_blank" rel="noopener">Cómo llegar</a></div>
         <div class="small" style="margin-bottom:14px">${icon('users')} Van: ${going(next)}</div>
         ${btn('Registrar incidencia', { kind: 'primary', icon: 'alert', act: 'incident', data: `data-id="${next.id}"` })}</div>`; })() : `<div class="card" style="margin-bottom:20px">${empty('Sin turnos', 'Tu responsable aún no ha asignado turnos al grupo.')}</div>`;
-    return `${pageHead(`Hola, ${first}`, `Líder del grupo ${R.group(g.id)} · ${esc(col.name)}`, '')}
+    return `${pageHead(`Hola, ${first}`, `Líder de ${leaderGroups.map(group => R.group(group.id)).join(', ')} · ${esc(col.name)}`, '')}
       ${nextCard}<div class="grid g-main"><div class="stack">${mine.length > 1 ? `<div class="card"><div class="card-head"><h2>Otros turnos del grupo</h2></div>${mine.filter(s => s !== next).map(s => shiftRow(s, btn('Incidencia', { size: 'sm', icon: 'alert', act: 'incident', data: `data-id="${s.id}"` }))).join('')}</div>` : ''}
         <div class="card"><div class="card-head"><h2>Tu grupo</h2>${badge(gsize(g) + ' personas', 'plain')}</div>${g.members.map(id => { const v = byId(DB.volunteers, id); return `<div class="list-item">${avatar(v.name, 'sm')}<div style="flex:1"><b class="small">${esc(v.name)}</b><div class="small muted">${esc(v.phone)}</div></div>${id === g.leader ? badge('Líder', 'brand') : ''}</div>`; }).join('')}</div></div>
         <div class="card"><div class="card-head"><h2>A quién llamar</h2></div>${contact(rcolU, `Tu responsable · ${esc(col.name)}`)}${contact(coordU, 'Coordinación de la zona')}<div class="card-pad small muted">Si falta alguien o hay problemas (petos, material…), registra una incidencia.</div></div></div>`;
@@ -466,22 +470,23 @@ window.Views = (() => {
 
   /* ---------- Grupos ---------- */
   function grupos(S) {
-    const own = S.user.role === 'rcol', list = scope.groups(S);
-    if (own) return `${pageHead('Grupos', 'Organiza tus voluntarios en grupos y nombra un líder. Los grupos se conservan entre campañas: revisa sus miembros al empezar cada una. Un voluntario puede estar en varios grupos si sus turnos no coinciden.', btn('Nuevo grupo', { kind: 'primary', icon: 'plus', act: 'group-form' }))}
+    const own = S.user.role === 'rcol', leader = S.user.role === 'rtienda', list = scope.groups(S);
+    if (own || leader) return `${pageHead(leader ? 'Mis grupos' : 'Grupos', leader ? 'Consulta los grupos de los que eres responsable.' : 'Organiza tus voluntarios en grupos y nombra un líder. Los grupos se conservan entre campañas: revisa sus miembros al empezar cada una. Un voluntario puede estar en varios grupos si sus turnos no coinciden.', own ? btn('Nuevo grupo', { kind: 'primary', icon: 'plus', act: 'group-form' }) : '')}
       ${list.length ? `<div class="grid g-3">${list.map(g => `<div class="card hover card-pad" data-act="go" data-to="grupo/${g.id}"><div class="row" style="margin-bottom:12px">${iconBox('users')}<div style="flex:1"><h2>${esc(g.code)}</h2><div class="small muted">${gsize(g)} personas · ${groupShifts(g.id).length} turnos</div></div>${g.reviewedFor === activeCampaign().id ? badge('Revisado', 'ok') : badge(`Revisar para ${esc(activeCampaign().code)}`, 'warn')}</div>
-        <div class="small muted" style="margin-bottom:6px">Líder: <b>${esc(byId(DB.volunteers, g.leader)?.name || 'sin asignar')}</b></div><div class="avatars">${g.members.map(id => avatar(byId(DB.volunteers, id)?.name, 'sm')).join('')}</div>${g.reviewedFor === activeCampaign().id ? '' : `<div class="row" style="margin-top:12px;gap:6px">${btn('Confirmar miembros', { size: 'sm', icon: 'check', act: 'group-review', data: `data-id="${g.id}"` })}${btn('Ajustar', { size: 'sm', icon: 'edit', act: 'group-form', data: `data-id="${g.id}"` })}</div>`}</div>`).join('')}</div>` : `<div class="card">${empty('Aún no tienes grupos', 'Crea un grupo con tus voluntarios para poder asignarlo a turnos.')}</div>`}`;
-    return `${pageHead('Grupos', 'Grupos que han creado las entidades colaboradoras. Por protección de datos, solo se ve el identificador y el número de personas.', '')}
-      <div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:transparent"><div class="card-pad row small">${icon('shield')}<span>Los nombres y teléfonos de estos voluntarios solo los ve el responsable de su entidad. Para cualquier gestión, contacta con él.</span></div></div>
-      <div class="card">${table([
-        { label: 'Grupo', render: r => `<div class="cell-main">${iconBox('users')}<div>${R.group(r.id)}<small>ID ${r.id}</small></div></div>` },
-        { label: 'Entidad', render: r => R.collab(r.collab) }, { label: 'Personas', render: r => gsize(r) }, { label: 'Líder', render: r => r.leader ? badge('Asignado', 'ok') : badge('Sin líder', 'warn') },
-        { label: 'Turnos', render: r => groupShifts(r.id).length },
+        <div class="small muted" style="margin-bottom:6px">Líder: <b>${esc(byId(DB.volunteers, g.leader)?.name || 'sin asignar')}</b></div><div class="avatars">${g.members.map(id => avatar(byId(DB.volunteers, id)?.name, 'sm')).join('')}</div>${!own || g.reviewedFor === activeCampaign().id ? '' : `<div class="row" style="margin-top:12px;gap:6px">${btn('Confirmar miembros', { size: 'sm', icon: 'check', act: 'group-review', data: `data-id="${g.id}"` })}${btn('Ajustar', { size: 'sm', icon: 'edit', act: 'group-form', data: `data-id="${g.id}"` })}</div>`}</div>`).join('')}</div>` : `<div class="card">${empty('Aún no tienes grupos', leader ? 'Todavía no tienes grupos asignados.' : 'Crea un grupo con tus voluntarios para poder asignarlo a turnos.')}</div>`}`;
+    return `${pageHead('Grupos', 'Grupos creados por las entidades colaboradoras.', '')}
+      <div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:transparent"><div class="card-pad row small">${icon('shield')}<span>Los datos de los miembros los gestiona su entidad. Puedes consultar el contacto del líder.</span></div></div>
+      <div class="card groups-table">${table([
+        { label: 'Grupo', render: r => `<div class="cell-main">${iconBox('users')}<div>${R.group(r.id)}</div></div>` },
+        { label: 'Entidad', render: r => R.collab(r.collab) }, { label: 'Personas', render: r => gsize(r) }, { label: 'Líder', render: r => { const leader = byId(DB.volunteers, r.leader); return leader ? `<button class="leader-contact" data-act="leader-contact" data-id="${r.id}">${esc(leader.name)}</button>` : '<span class="muted">Sin asignar</span>'; } },
+        { label: 'Turnos', render: r => { const count = scope.shifts(S, activeCampaign().id).filter(shift => shift.assignments.some(assignment => assignment.kind === 'group' && assignment.group === r.id)).length; return count ? `<button class="leader-contact" data-act="group-shifts" data-id="${r.id}">${count === 1 ? 'Ver turno' : `Ver ${count} turnos`}</button>` : can(S, 'shifts.assign') ? `<button class="leader-contact" data-act="group-assign" data-id="${r.id}">Asignar turno</button>` : '<span class="muted">Sin turnos</span>'; } },
       ], list, { emptyText: 'Ninguna entidad de tu ámbito ha creado grupos todavía.' })}</div>`;
   }
   function grupo(S, id) {
     const g = byId(DB.groups, id); if (!g) return empty('Grupo no encontrado', '');
-    const own = (S.user.role === 'rcol' && S.user.collab === g.collab) || S.user.group === g.id, sh = groupShifts(g.id), p = mainContact(g.collab);
-    return `${isRole('rtienda') ? '' : back('grupos', 'Grupos')}
+    if (!scope.groups(S).some(group => group.id === g.id)) return empty('Grupo no disponible', 'No tienes acceso a este grupo.');
+    const own = (S.user.role === 'rcol' && S.user.collab === g.collab) || leadsGroup(S.user, g), sh = groupShifts(g.id), p = mainContact(g.collab);
+    return `${back('grupos', isRole('rtienda') ? 'Mis grupos' : 'Grupos')}
       ${detailHead('users', esc(g.code), `Grupo de ${R.collab(g.collab)} · ${gsize(g)} personas`, S.user.role === 'rcol' && own ? btn('Editar grupo', { icon: 'edit', act: 'group-form', data: `data-id="${g.id}"` }) : '')}
       <div class="grid g-main"><div class="card"><div class="card-head"><h2>Turnos asignados</h2>${badge(sh.length, 'plain')}</div>${sh.map(s => shiftRow(s)).join('') || empty('Sin turnos', 'Aún no se ha asignado a ningún turno.')}</div>
       <div class="stack">${own ? `<div class="card"><div class="card-head"><h2>Miembros</h2></div>${g.members.map(id => `<div class="list-item">${avatar(byId(DB.volunteers, id)?.name, 'sm')}<div style="flex:1">${R.vol(id)}<div class="small muted">${esc(byId(DB.volunteers, id)?.phone)}</div></div>${id === g.leader ? badge('Líder', 'brand') : ''}</div>`).join('')}</div>`
@@ -612,5 +617,5 @@ window.Views = (() => {
   }
 
   return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { collaboratorShifts, catalogTabs, vName, anonV, canViewVolunteer, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+    helpers: { leadsGroup, collaboratorShifts, catalogTabs, vName, anonV, canViewVolunteer, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();
