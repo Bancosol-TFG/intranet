@@ -73,6 +73,7 @@ window.Views = (() => {
   };
   const inScope = (kind, id) => scope[kind](CS).some(x => String(x.id) === String(id));
   const collaboratorShifts = (state, campaignId, collabId) => scope.shifts(state, campaignId).filter(shift => shift.assignments.some(assignment => assignment.collab === collabId || (assignment.kind === 'group' && byId(DB.groups, assignment.group)?.collab === collabId) || (assignment.kind === 'vol' && byId(DB.volunteers, assignment.vol)?.collab === collabId)));
+  const canViewVolunteer = (S, volunteer) => !!volunteer && (scope.volunteers(S).some(item => item.id === volunteer.id) || (['admin', 'coord'].includes(S.user.role) && scope.collabs(S).some(collab => collab.id === volunteer.collab)));
 
   /* ---------- Enlaces a objetos (solo si el rol puede abrir la ficha) ---------- */
   const isRole = (...r) => r.includes(CS.user.role);
@@ -85,7 +86,7 @@ window.Views = (() => {
     group: id => { const g = byId(DB.groups, id); if (!g) return 'Grupo eliminado'; return isRole('admin') || inScope('groups', id) ? link(`grupo/${id}`, esc(g.code)) : esc(g.code); },
     campaign: id => { const c = byId(DB.campaigns, id); return isRole('admin') ? link(`campanas/${id}`, esc(c.name)) : esc(c.name); },
     user: id => { const u = user(id); if (!u) return '—'; return isRole('admin') ? link(`usuario/${id}`, esc(u.name), 'plain') : esc(u.name); },
-    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return anonV(v) ? `<span class="muted">${esc(vName(v))}</span>` : inScope('volunteers', id) ? link(`voluntario/${id}`, esc(v.name)) : esc(v.name); },
+    vol: id => { const v = byId(DB.volunteers, id); if (!v) return 'Voluntario'; return canViewVolunteer(CS, v) ? link(`voluntario/${id}`, esc(vName(v))) : esc(vName(v)); },
     shift: s => `<a class="ref plain" href="#" data-act="open-shift" data-id="${s.id}">${fmtDate(s.date, { weekday: 'short', day: 'numeric' })} · ${s.slot} ${s.start}–${s.end}</a>`,
   };
   const asg = a => a.kind === 'vol' ? R.vol(a.vol) : a.kind === 'group' ? `${R.group(a.group)} · ${asgPeople(a)} pers.` : `${R.collab(a.collab)} · ${a.people}`;
@@ -449,7 +450,7 @@ window.Views = (() => {
       ${DB.collabRequests.some(r => r.collab === c.id && (r.status === 'Pendiente' || r.by === S.user.id)) ? `<div class="card" style="margin-bottom:16px"><div class="card-head"><h2>Solicitudes de cambio</h2></div>${DB.collabRequests.filter(r => r.collab === c.id && (r.status === 'Pendiente' || r.by === S.user.id)).map(r => collabRequestItem(S, r)).join('')}</div>` : ''}
       ${c.oneCampaign ? `<div class="card card-pad small" style="margin-bottom:16px;background:var(--warn-bg);border-color:transparent">Sus voluntarios participan en una sola campaña (p. ej. institutos): no se conservan para la siguiente.</div>` : ''}
       <div class="grid g-main"><div class="stack">
-        <div class="card"><div class="card-head"><div><h2>Personas de contacto</h2><div class="small muted">Jerarquía del colaborador (tabla contact)</div></div>${admin || own ? btn('Añadir contacto', { size: 'sm', icon: 'plus', act: 'add-contact', data: `data-id="${c.id}"` }) : ''}</div>
+        <div class="card"><div class="card-head"><div><h2>Personas de contacto</h2></div>${admin || own ? btn('Añadir contacto', { size: 'sm', icon: 'plus', act: 'add-contact', data: `data-id="${c.id}"` }) : ''}</div>
           <div class="card-pad">${levels.map(([l, d], n) => `<div style="margin-left:${n * 22}px;padding-left:14px;border-left:2px solid var(--border);margin-bottom:12px"><div class="small" style="font-weight:600">${n + 1}. ${l}</div><div class="small faint">${d}</div>${contactsOf(c.id).filter(k => k.level === l).map(contact).join('') || '<div class="small faint" style="padding:6px 0">—</div>'}</div>`).join('')}
             <div style="margin-left:44px;padding-left:14px;border-left:2px solid var(--border)"><div class="small" style="font-weight:600">3. Líderes de grupo</div><div class="small faint">${groups.length ? groups.map(g => R.group(g.id)).join(', ') : 'Sin grupos'}</div></div></div></div>
         ${c.id === 1 ? `<div class="card"><div class="card-head"><div><h2>Voluntarios independientes</h2><div class="small muted">Bancosol los coordina directamente, por eso sí tiene sus datos</div></div>${btn('Ver todos', { size: 'sm', act: 'go', data: 'data-to="voluntarios"' })}</div>${vols.slice(0, 5).map(v => `<div class="list-item">${avatar(v.name, 'sm')}<div style="flex:1">${R.vol(v.id)}<div class="small muted">${R.loc(v.locality)} · ${v.history.length} campañas</div></div>${toPurge(v) ? badge('Propuesto para baja', 'warn') : ''}</div>`).join('')}</div>`
@@ -459,7 +460,6 @@ window.Views = (() => {
         <div class="card"><div class="card-head"><div><h2>Coordinación en ${esc(activeCampaign().code)}</h2><div class="small muted">Puede cambiar de una campaña a otra</div></div>${admin ? btn('', { kind: 'ghost', size: 'sm', icon: 'edit', act: 'edit', data: `data-entity="collabs" data-id="${c.id}"` }) : ''}</div>${c.coords.length ? c.coords.map(i => `<div class="list-item">${avatar(user(i).name, 'sm')}<div>${R.user(i)}<div class="small muted">${zonesOf(i).map(R.zone).join(', ')}</div></div></div>`).join('') : `<div class="card-pad small muted">Sin coordinador. Asigna uno para que lo contacte.</div>`}</div>
         <div class="card"><div class="card-head"><div><h2>Tiendas en ${esc(activeCampaign().code)}</h2><div class="small muted">Las asigna coordinación en cada campaña; su responsable gestiona los turnos</div></div>${admin || S.user.role === 'coord' ? btn('', { kind: 'ghost', size: 'sm', icon: 'edit', act: 'edit', data: `data-entity="collabStores" data-id="${c.id}"` }) : ''}</div>${c.stores.length ? c.stores.map(sid => `<div class="list-item"><span class="dot"></span><div style="flex:1">${R.store(sid)}<div class="small muted">${esc(storeSub(byId(DB.stores, sid)))}</div></div></div>`).join('') : '<div class="card-pad small muted">Coordinación le asigna los turnos directamente.</div>'}</div>
         <div class="card"><div class="card-head"><h2>Campañas</h2></div>${camps.filter(p => isRole('admin') || byId(DB.campaigns, p.campaign).status !== 'Finalizada').map(p => `<div class="list-item"><span class="dot"></span><span style="flex:1">${R.campaign(p.campaign)}</span>${badge(p.status || 'Confirmado', { Confirmado: 'ok', 'Pendiente': 'warn', 'No participa': '' }[p.status || 'Confirmado'])}</div>`).join('') || '<div class="card-pad small muted">Aún no ha participado.</div>'}</div>
-        <div class="card card-pad"><h2 style="margin-bottom:12px">Dónde colabora</h2><div class="row wrap">${c.localities.map(l => `<span class="chip" style="padding-right:10px">${R.loc(l)}</span>`).join('')}</div></div>
         ${auditCard('collabs', c.id)}
       </div></div>`;
   }
@@ -501,7 +501,8 @@ window.Views = (() => {
       <div class="card"><div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Nombre, teléfono, localidad…" data-filter="q" value="${esc(S.f.q || '')}"></div>
         <span class="spacer"></span>${extra.length ? `<div class="seg">${[['', 'Todos'], ['datos', 'Con datos'], ['anon', 'Anonimizados']].map(([k, l]) => `<button class="${vd === k ? 'active' : ''}" data-act="filter" data-k="vdata" data-v="${k}">${l}</button>`).join('')}</div>` : ''}<div class="seg">${[['', 'Todos'], ['baja', 'Propuestos para baja']].map(([k, l]) => `<button class="${(S.f.vstate || '') === k ? 'active' : ''}" data-act="filter" data-k="vstate" data-v="${k}">${l}</button>`).join('')}</div></div>
       ${table([
-        { label: 'Voluntario', render: r => anonV(r) ? `<div class="cell-main">${avatar('?')}<div>${R.vol(r.id)}<small>${R.collab(r.collab)} · ${badge('Anonimizado', 'plain')}</small></div></div>` : `<div class="cell-main">${avatar(r.name)}<div>${R.vol(r.id)}<small>${globalId(r)} · ${r.minor ? `Menor${r.consent ? ' · autorización recibida' : ' · falta autorización'}` : 'Mayor de edad'}</small></div></div>` },
+        { label: 'Voluntario', render: r => `<div class="cell-main">${avatar(anonV(r) ? '?' : r.name)}<div>${R.vol(r.id)}</div></div>` },
+        { label: 'Entidad', render: r => R.collab(r.collab) },
         { label: 'Teléfono', render: r => anonV(r) ? '<span class="faint small">Oculto</span>' : esc(r.phone) }, { label: 'Localidad', render: r => R.loc(r.locality) },
         { label: 'Grupos', render: r => DB.groups.filter(x => x.members.includes(r.id)).map(g => R.group(g.id)).join(', ') || '<span class="faint small">—</span>' },
         { label: 'Participación', render: r => r.history.length ? `<div class="row wrap" style="gap:4px">${r.history.map(h => badge(h, 'plain')).join('')}</div>` : '<span class="faint small">Nuevo</span>' },
@@ -515,19 +516,21 @@ window.Views = (() => {
     const list = DB.volunteers.filter(v => v.collab !== 1 && (isRole('admin') || cs.has(v.collab)) && (globalId(v) + byId(DB.collabs, v.collab).name).toLowerCase().includes(q));
     return `${pageHead('Voluntarios', 'Por protección de datos, de los voluntarios de entidades solo se ve su identificador global, su historial e incidencias. Los datos personales los gestiona su responsable.', '')}${volTabs(S)}
       <div class="card"><div class="toolbar"><div class="input-icon" style="width:240px">${icon('search')}<input class="input" placeholder="Identificador o entidad…" data-filter="q" value="${esc(S.f.q || '')}"></div><span class="spacer"></span><span class="small muted">${list.length} voluntarios</span></div>
-      ${table([{ label: 'Identificador', render: r => `<code>${globalId(r)}</code>${r.minor ? ' ' + badge('Menor', 'info') : ''}` }, { label: 'Entidad', render: r => R.collab(r.collab) },
+      ${table([{ label: 'Identificador', render: r => link(`voluntario/${r.id}`, esc(globalId(r))) }, { label: 'Entidad', render: r => R.collab(r.collab) },
         { label: 'Campañas', render: r => r.history.length ? r.history.map(h => badge(h, 'plain')).join(' ') : '<span class="faint small">Nuevo</span>' },
         { label: 'Incidencias', render: r => volReports(r).length ? badge(volReports(r).length, 'danger') : '<span class="faint">—</span>' },
         { label: 'Estado', render: r => r.blocked ? badge('Bloqueado', 'danger') : toPurge(r) ? badge('Propuesto para baja', 'warn') : badge('Activo') },
         { label: '', width: '120px', render: r => isRole('admin') ? btn(r.blocked ? 'Desbloquear' : 'Bloquear', { size: 'sm', kind: r.blocked ? '' : 'ghost danger', act: 'vol-block', data: `data-id="${r.id}"` }) : '' }], list)}</div>`;
   }
   function voluntario(S, id) {
-    const v = byId(DB.volunteers, id); if (!v || !inScope('volunteers', id)) return empty('Voluntario no disponible', 'No tienes acceso a sus datos.');
-    const gs = DB.groups.filter(x => x.members.includes(v.id)), sh = DB.shifts.filter(s => s.assignments.some(a => (a.kind === 'vol' && a.vol === v.id) || (a.kind === 'group' && gs.some(g => g.id === a.group))));
+    const v = byId(DB.volunteers, id); if (!canViewVolunteer(S, v)) return empty('Voluntario no disponible', 'No tienes acceso a sus datos.');
+    const gs = DB.groups.filter(x => x.members.includes(v.id)), sh = volShifts(v).filter(shift => scope.shifts(S, shift.campaign).some(visible => visible.id === shift.id));
+    if (anonV(v)) return `${back('voluntarios', 'Voluntarios')}${detailHead('user', esc(vName(v)), '')}<div class="card"><div class="card-head"><h2>Turnos</h2></div>${sh.map(shift => `<div class="list-item"><div><b>${esc(byId(DB.stores, shift.store)?.name || 'Tienda')}</b><div class="small muted">${fmtDate(shift.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${esc(shift.start)}–${esc(shift.end)}</div></div></div>`).join('') || empty('Sin turnos', 'No tiene turnos asignados en tu ámbito.')}</div>`;
     return `${back('voluntarios', 'Voluntarios')}
       ${detailHead('user', esc(v.name), `${R.collab(v.collab)} · ${R.loc(v.locality)} · ${esc(v.phone)}`, btn('Editar', { icon: 'edit', act: 'edit', data: `data-entity="volunteers" data-id="${v.id}"` }), toPurge(v) ? badge('Propuesto para baja', 'warn') : '')}
-      <div class="grid g-main"><div class="card"><div class="card-head"><h2>Turnos</h2></div>${sh.map(s => shiftRow(s)).join('') || empty('Sin turnos', 'No tiene turnos en la campaña.')}</div>
-      <div class="card card-pad"><dl class="dl"><dt>Grupos</dt><dd>${gs.map(g => R.group(g.id) + (g.leader === v.id ? ' ' + badge('Líder', 'brand') : '')).join(', ') || 'Suelto'}</dd><dt>Identificador</dt><dd><code>${globalId(v)}</code></dd><dt>Edad</dt><dd>${v.minor ? `Menor · tutor: ${esc(v.tutorName || '—')} ${esc(v.tutorPhone || '')} · ${v.consent ? 'autorización recibida' : 'falta autorización'}` : 'Mayor de edad'}</dd><dt>Dónde colabora</dt><dd>${(v.localities || []).map(R.loc).join(', ') || '—'}</dd><dt>Incidencias</dt><dd>${volReports(v).length}</dd>${v.blocked ? `<dt>Estado</dt><dd>${badge('Bloqueado por Bancosol', 'danger')}</dd>` : ''}<dt>Campañas</dt><dd>${v.history.map(h => badge(h, 'plain')).join(' ') || 'Ninguna'}</dd></dl></div></div>`;
+      <div class="grid g-2 volunteer-detail"><div class="card"><div class="card-head"><h2>Turnos</h2></div>${sh.map(s => shiftRow(s)).join('') || empty('Sin turnos', 'No tiene turnos asignados.')}</div>
+      <div class="stack"><div class="card card-pad"><h2>Datos de contacto</h2><dl class="dl volunteer-details"><dt>Teléfono</dt><dd>${esc(v.phone || '—')}</dd><dt>Localidad</dt><dd>${R.loc(v.locality)}</dd><dt>Entidad</dt><dd>${R.collab(v.collab)}</dd></dl></div>
+      <div class="card card-pad"><h2>Datos del voluntario</h2><dl class="dl volunteer-details"><dt>Grupos</dt><dd>${gs.map(g => R.group(g.id) + (g.leader === v.id ? ' ' + badge('Líder', 'brand') : '')).join(', ') || 'Suelto'}</dd><dt>Identificador</dt><dd><code>${globalId(v)}</code></dd><dt>Edad</dt><dd>${v.minor ? `Menor · tutor: ${esc(v.tutorName || '—')} ${esc(v.tutorPhone || '')} · ${v.consent ? 'autorización recibida' : 'falta autorización'}` : 'Mayor de edad'}</dd><dt>Dónde colabora</dt><dd>${(v.localities || []).map(R.loc).join(', ') || '—'}</dd><dt>Incidencias</dt><dd>${volReports(v).length}</dd>${v.blocked ? `<dt>Estado</dt><dd>${badge('Bloqueado por Bancosol', 'danger')}</dd>` : ''}<dt>Campañas</dt><dd>${v.history.map(h => badge(h, 'plain')).join(' ') || 'Ninguna'}</dd></dl></div></div></div>`;
   }
 
   /* ---------- Incidencias (report) ---------- */
@@ -609,5 +612,5 @@ window.Views = (() => {
   }
 
   return { bind: S => { CS = S; }, historico, inicio, campanas, campana, tiendas, tienda, zona, localidad, cadena, turnos, colaboradores, colaborador, grupos, grupo, voluntarios, voluntario, incidencias, usuarios, usuario, perfil, catalogos, configuracion,
-    helpers: { collaboratorShifts, catalogTabs, vName, anonV, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
+    helpers: { collaboratorShifts, catalogTabs, vName, anonV, canViewVolunteer, exportBtn, auditCard, SEQ, globalId, volShifts, hasAdult, overlaps, memberClashes, COLLAB_STATUSES, COLLAB_FIELDS, collabPart, linkCollab, asgPeople, asgIcon, stats, STORE_FIELDS, activeCampaigns, R, gsize, byId, filled, coverage, can, role, chain, zone, loc, scope, toPurge, missed, asgText, activeCampaign, iconBox, storeSub, zonesOf, part } };
 })();
